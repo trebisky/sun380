@@ -16,6 +16,9 @@ sun380.elf: sun380.bin
 sun380.dis: sun380.elf
 	$(DUMP) sun380.elf >sun380.dis
 
+sun380.odx: sun380.bin
+	odx sun380.bin >sun380.odx
+
 fix: sun380.elf
 	$(DUMP) --start-address=0xfefe2b04 --stop-address=0xfefe2b10 sun380.elf
 
@@ -30,3 +33,4 @@ clean:
 	rm -f wrap
 	rm -f *.elf
 	rm -f *.dis
+	rm -f *.odx

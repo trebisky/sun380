@@ -1,0 +1,39 @@
+#!/bin/python
+
+# Repeat the disassembly of a small section
+# Tom Trebisky  10-29-2024
+
+import sys
+import os
+
+n = len(sys.argv)
+if n < 2 :
+    print ( "Sorry" )
+    exit ()
+
+if n > 2 :
+    print ( "Too many" )
+    exit ()
+
+print ( sys.argv[1] )
+
+# first element is command name, like C
+addr = sys.argv[1]
+
+# This doesn't mind a 0x prefix
+naddr = int ( addr, 16 )
+print ( naddr )
+addr1 = hex ( naddr )
+addr2 = hex ( naddr + 16 )
+print ( addr1 )
+print ( addr2 )
+
+cmd = "m68k-linux-gnu-objdump -m68030 -z -d"
+cmd += " --start-address=" + addr1
+cmd += " --stop-address=" + addr2
+cmd += " sun380.elf"
+
+print ( cmd )
+os.system ( cmd )
+
+

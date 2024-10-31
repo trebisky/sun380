@@ -1,74 +1,6 @@
 ; Here is a disassembly of the sun3/80 boot rom
 ;  10-27-2024
-
-; First a bunch of vectors
-; There can be 256 of these (1024 bytes)
-; This would be from 0000 to 03ff
 ;
-; The first four are:
-; fefe0000 fef6 0c00 -- initial stack
-; fefe0004 fefe 0228 -- initial PC
-; fefe0008 fefe 073a -- bus error
-; fefe000c fefe 00f8 -- address error
-;
-; Note that many vectors point into RAM
-;  at fef7_2xxx addresses.
-; This is what I find called "mondata" in NetBSD code
-; Also note the initial stack pointer
-;    at an fef6_xxxx address
-;
-; How does RAM get mapped into these addresses?
-; via the MMU of course.
-; We expect that the initialization code will
-; deal with the MMU almost first thing, then
-; determine how much ram there is, perhaps as
-; part of the process.
-;
-; The ROM won't be able to do much without getting
-; ram set up (it won't be able to do calls using a
-; stack for example).  Some other hardware I have
-; seen supplies a small static ram chip for the
-; rom to use, but no such thing on the Sun 3/80.
-
-
-
-fefe0000 fef6 0c00 fefe 0228 fefe 073a fefe 00f8          (   :    
-fefe0010 fef7 21d6 fefe 1f50 fefe 1e74 fefe 1f80     !    P   t    
-fefe0020 fefe 1eaa fef7 201b fef7 2016 fef7 2017                   
-fefe0030 fefe 2206 fefe 21dc fef7 21ea fef7 2013     "   !   !     
-fefe0040 fef7 20d6 fef7 20da fef7 22f2 feff 4468             "   Dh
-fefe0050 fefe 4ba0 fef7 2366 fef7 208a fefe 4bba     K   #f      K 
-fefe0060 fefe 388a fef7 2028 fef7 2020 fef7 20c6     8    (        
-fefe0070 fefe 2430 fefe 2536 fefe 2562 fef7 2096     $0  %6  %b    
-fefe0080 fefe 258c fefe 2b04 fefe 2c54 fef7 200e     %   +   ,T    
-fefe0090 fefe 0bf8 fefe 04fe fefe 0622 fef7 20c2              "    
-fefe00a0 fef7 210e 0000 0002 fef7 2000 fef7 22ee     !           " 
-fefe00b0 fef7 20ca fef7 2014 fef7 21da fef7 21aa             !   ! 
-fefe00c0 fef7 21b2 fefe 03ba fef7 201c fef7 22ea     !           " 
-fefe00d0 fef7 222a fef7 222e fef7 2232 fef7 2236     "*  ".  "2  "6
-fefe00e0 fef7 223a fef7 2376 0000 0000 0000 0000     ":  #v        
-fefe00f0 0000 0000 0000 0000 fef7 2250 206f 0004             "P o  
-
-fefe0100 7000 1010 4e75 206f 0004 7000 3010 4e75   p   Nu o  p 0 Nu
-fefe0110 206f 0004 2010 4e75 206f 0004 202f 000c    o    Nu o   /  
-fefe0120 1080 4e75 206f 0004 202f 000c 3080 4e75     Nu o   /  0 Nu
-fefe0130 206f 0004 202f 000c 2080 4e75 2f0a 4cef    o   /    Nu/ L 
-fefe0140 0700 0008 2009 9088 673c b3ca 6f06 b1ca           g<  o   
-fefe0150 6d38 6732 e280 5180 6f14 34d8 34d8 34d8   m8g2  Q o 4 4 4 
-fefe0160 34d8 34d8 34d8 34d8 34d8 5180 6cec 4440   4 4 4 4 4 Q l D@
-fefe0170 e340 4efb 0002 34d8 34d8 34d8 34d8 34d8    @N   4 4 4 4 4 
-fefe0180 34d8 34d8 34d8 245f 4e75 b5c8 67f8 d5c0   4 4 4 $_Nu  g   
-fefe0190 e280 5180 6f14 3521 3521 3521 3521 3521     Q o 5!5!5!5!5!
-fefe01a0 3521 3521 3521 5180 6cec 4440 e340 4efb   5!5!5!Q l D@ @N 
-fefe01b0 0002 3521 3521 3521 3521 3521 3521 3521     5!5!5!5!5!5!5!
-fefe01c0 3521 60c2 2f0a 4cef 0700 0008 2009 9088   5!` / L         
-fefe01d0 6732 e280 5180 6f14 30ca 30ca 30ca 30ca   g2  Q o 0 0 0 0 
-fefe01e0 30ca 30ca 30ca 30ca 5180 6cec 4440 e340   0 0 0 0 Q l D@ @
-fefe01f0 4efb 0002 30ca 30ca 30ca 30ca 30ca 30ca   N   0 0 0 0 0 0 
-fefe0200 30ca 30ca 245f 4e75 33fc 0000 fef1 6000   0 0 $_Nu3     ` 
-fefe0210 23fc 0000 0000 fef7 200e f039 4100 fef7   #          9A   
-fefe0220 200e 60ff 0000 6e3c 4280 4e7b 0802 203c     `   n<B N{   <
-
 ; I assumed that the ROM started at 0xFEFE based on the values in the
 ; vector table above.  I found some constants in NetBSD code that
 ; confirm that, namely:
@@ -78,42 +10,120 @@ fefe0220 200e 60ff 0000 6e3c 4280 4e7b 0802 203c     `   n<B N{   <
 ;
 ; note also the "data page" (they say "don't touch")
 
+; ===========================================================
+; Here is the vector table:
+; Note that many vectors point into RAM
+;  at fef7_2xxx addresses.
+; (what NetBSD code calls "mondata")
+; Also note the initial stack pointer at fef6_0c00
 
-; ----------------------------------------
-; Address error -- 
-; This is odd, it looks like a vector pointer here
-; not a handler for address error
-fefe00f8:	fef7 2250
+fefe0000 fef6 0c00   ; 0 - initial stack
+fefe0004 fefe 0228   ; 1 - start address (first PC)
+fefe0008 fefe 073a   ; 2 - bus error
+fefe000c fefe 00f8   ; 3 - address error (bug)
+fefe0010 fef7 21d6   ; 4
+fefe0014 fefe 1f50   ; 5 - zero divide
+fefe0018 fefe 1e74   ; 6 - CHK
+fefe001c fefe 1f80   ; 7 - TRAPcc
+fefe0020 fefe 1eaa   ; 8 - Privilege violation
+fefe0024 fef7 201b   ; 9
+fefe0028 fef7 2016   ; 10
+fefe002c fef7 2017   ; 11
+fefe0030 fefe 2206   ; 12 - reserved
+fefe0034 fefe 21dc   ; 13 - coprocessor violation
+fefe0038 fef7 21ea   ; 14
+fefe003c fef7 2013   ; 15
+fefe0040 fef7 20d6   ; 16
+fefe0044 fef7 20da   ; 17
+fefe0048 fef7 22f2   ; 18
+fefe004c feff 4468   ; 19 - address goes into strings
+fefe0050 fefe 4ba0   ; 20 - reserved
+fefe0054 fef7 2366   ; 21
+fefe0058 fef7 208a   ; 22
+fefe005c fefe 4bba   ; 23 - reserved
+fefe0060 fefe 388a   ; 24 - spurious int
+fefe0064 fef7 2028   ; 25
+fefe0068 fef7 2020   ; 26
+fefe006c fef7 20c6   ; 27
+fefe0070 fefe 2430   ; 28 - Level 4 autovector
+fefe0074 fefe 2536   ; 29 - Level 5 autovector
+fefe0078 fefe 2562   ; 30 - Level 6 autovector
+fefe007c fef7 2096   ; 31
+fefe0080 fefe 258c   ; 32 - TRAP #0
+fefe0084 fefe 2b04   ; 33 - TRAP #1
+fefe0088 fefe 2c54   ; 34 - TRAP #2
+fefe008c fef7 200e   ; 35
+fefe0090 fefe 0bf8   ; 36 - TRAP #4
+fefe0094 fefe 04fe   ; 37 - TRAP #5
+fefe0098 fefe 0622   ; 38 - TRAP #6
+fefe009c fef7 20c2   ; 39
+fefe00a0 fef7 210e   ; 40
+fefe00a4 0000 0002   ; 41
+fefe00a8 fef7 2000   ; 42
+fefe00ac fef7 22ee   ; 43
+fefe00b0 fef7 20ca   ; 44
+fefe00b4 fef7 2014   ; 45
+fefe00b8 fef7 21da   ; 46
+fefe00bc fef7 21aa   ; 47
+fefe00c0 fef7 21b2   ; 48
+fefe00c4 fefe 03ba   ; 49 - FPCP inexact
+fefe00c8 fef7 201c   ; 50
+fefe00cc fef7 22ea   ; 51
+fefe00d0 fef7 222a   ; 52
+fefe00d4 fef7 222e   ; 53
+fefe00d8 fef7 2232   ; 54
+fefe00dc fef7 2236   ; 55
+fefe00e0 fef7 223a   ; 56
+fefe00e4 fef7 2376   ; 57
+fefe00e8 0000 0000   ; 58
+fefe00ec 0000 0000   ; 59
+fefe00f0 0000 0000   ; 60
+fefe00f4 0000 0000   ; 61
 
+; This is supposed to be code for address error, but it is
+; a pointer to code in RAM someplace.  This is certainly a
+; bug if an address error ever happens.
+
+fefe00f8 fef7 2250   ; 62
+
+; these silly routines get called from below
+
+; readb
 fefe00fc:	206f 0004      	moveal %sp@(4),%a0
 fefe0100:	7000           	moveq #0,%d0
 fefe0102:	1010           	moveb %a0@,%d0
 fefe0104:	4e75           	rts
 
+; readw
 fefe0106:	206f 0004      	moveal %sp@(4),%a0
 fefe010a:	7000           	moveq #0,%d0
 fefe010c:	3010           	movew %a0@,%d0
 fefe010e:	4e75           	rts
 
+; readl
 fefe0110:	206f 0004      	moveal %sp@(4),%a0
 fefe0114:	2010           	movel %a0@,%d0
 fefe0116:	4e75           	rts
 
+; writeb ( val, xx, addr )
 fefe0118:	206f 0004      	moveal %sp@(4),%a0
 fefe011c:	202f 000c      	movel %sp@(12),%d0
 fefe0120:	1080           	moveb %d0,%a0@
 fefe0122:	4e75           	rts
 
+; writew ( val, xx, addr )
 fefe0124:	206f 0004      	moveal %sp@(4),%a0
 fefe0128:	202f 000c      	movel %sp@(12),%d0
 fefe012c:	3080           	movew %d0,%a0@
 fefe012e:	4e75           	rts
 
+; writel ( val, xx, addr )
 fefe0130:	206f 0004      	moveal %sp@(4),%a0
 fefe0134:	202f 000c      	movel %sp@(12),%d0
 fefe0138:	2080           	movel %d0,%a0@
 fefe013a:	4e75           	rts
 
+; subroutine -- called below from 2 places.
 fefe013c:	2f0a           	movel %a2,%sp@-
 fefe013e:	4cef 0700 0008 	moveml %sp@(8),%a0-%a2
 fefe0144:	2009           	movel %a1,%d0
@@ -151,6 +161,7 @@ fefe0184:	34d8           	movew %a0@+,%a2@+
 fefe0186:	245f           	moveal %sp@+,%a2
 fefe0188:	4e75           	rts
 
+; Never called ??
 fefe018a:	b5c8           	cmpal %a0,%a2
 fefe018c:	67f8           	beqs 0xfefe0186
 fefe018e:	d5c0           	addal %d0,%a2
@@ -211,6 +222,7 @@ fefe0202:	30ca           	movew %a2,%a0@+
 fefe0204:	245f           	moveal %sp@+,%a2
 fefe0206:	4e75           	rts
 
+; subroutine, called from 2 places below
 fefe0208:	33fc 0000 fef1 	movew #0,0xfef16000
 fefe020e:	6000 
 fefe0210:	23fc 0000 0000 	movel #0,0xfef7200e
@@ -311,9 +323,8 @@ fefe0324:	f000 2400      	pflusha
 fefe0328:	13fc 0000 fef0 	moveb #0,0xfef0b400
 fefe032e:	b400 
 
-; a subroutine call -- this requires a stack
-
 fefe0330:	4eba 032a      	jsr %pc@(0xfefe065c)		; reset
+
 fefe0334:	4ff9 fef6 0c00 	lea 0xfef60c00,%sp
 fefe033a:	227c 0000 0041 	moveal #65,%a1
 fefe0340:	4851           	pea %a1@
@@ -8937,7 +8948,8 @@ fefe7054:	0000 0000      	orib #0,%d0
 fefe7058:	fefe 7060
 fefe705c:	fefe 7060
 
-; jumps come here from above
+; several jumps come here from above
+; First, add and or all the registers !!
 fefe7060:	d1c9           	addal %a1,%a0
 fefe7062:	d1ca           	addal %a2,%a0
 fefe7064:	d1cb           	addal %a3,%a0
@@ -8953,9 +8965,11 @@ fefe7076:	8084           	orl %d4,%d0
 fefe7078:	8085           	orl %d5,%d0
 fefe707a:	8086           	orl %d6,%d0
 fefe707c:	8087           	orl %d7,%d0
+
 fefe707e:	0c80 0000 0000 	cmpil #0,%d0
 fefe7084:	6700 0008      	beqw 0xfefe708e
 fefe7088:	243c ffff ffff 	movel #-1,%d2
+
 fefe708e:	4bfa 06e0      	lea %pc@(0xfefe7770),%a5
 fefe7092:	2a0d           	movel %a5,%d5
 fefe7094:	0285 0001 ffff 	andil #131071,%d5
@@ -8963,10 +8977,13 @@ fefe709a:	2a45           	moveal %d5,%a5
 fefe709c:	dbfc 6300 0000 	addal #1660944384,%a5
 fefe70a2:	f015 4100      	pmovefd %a5@,%tc
 fefe70a6:	4287           	clrl %d7
+
 fefe70a8:	203c 0000 0009 	movel #9,%d0
 fefe70ae:	4e7b 0002      	movec %d0,%cacr
+
 fefe70b2:	4280           	clrl %d0
 fefe70b4:	4e7b 0802      	movec %d0,%caar
+
 fefe70b8:	203c 6300 0000 	movel #1660944384,%d0
 fefe70be:	4e7b 0801      	movec %d0,%vbr
 fefe70c2:	4ff9 0002 0000 	lea 0x20000,%sp
@@ -9041,10 +9058,12 @@ fefe71ea:	08c7 000e      	bset #14,%d7
 fefe71ee:	08c7 000f      	bset #15,%d7
 fefe71f2:	08c7 001d      	bset #29,%d7
 fefe71f6:	6000 0012      	braw 0xfefe720a
+
 fefe71fa:	0887 001a      	bclr #26,%d7
 fefe71fe:	0887 000e      	bclr #14,%d7
 fefe7202:	0887 000f      	bclr #15,%d7
 fefe7206:	0887 001d      	bclr #29,%d7
+
 fefe720a:	08c7 000e      	bset #14,%d7
 fefe720e:	08c7 000a      	bset #10,%d7
 fefe7212:	1e3c 0028      	moveb #40,%d7

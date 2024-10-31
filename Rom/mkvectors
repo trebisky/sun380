@@ -1,0 +1,44 @@
+#!/bin/python3
+
+import string
+
+orig = """
+fefe0000 fef6 0c00 fefe 0228 fefe 073a fefe 00f8
+fefe0010 fef7 21d6 fefe 1f50 fefe 1e74 fefe 1f80
+fefe0020 fefe 1eaa fef7 201b fef7 2016 fef7 2017
+fefe0030 fefe 2206 fefe 21dc fef7 21ea fef7 2013
+fefe0040 fef7 20d6 fef7 20da fef7 22f2 feff 4468
+fefe0050 fefe 4ba0 fef7 2366 fef7 208a fefe 4bba
+fefe0060 fefe 388a fef7 2028 fef7 2020 fef7 20c6
+fefe0070 fefe 2430 fefe 2536 fefe 2562 fef7 2096
+fefe0080 fefe 258c fefe 2b04 fefe 2c54 fef7 200e
+fefe0090 fefe 0bf8 fefe 04fe fefe 0622 fef7 20c2
+fefe00a0 fef7 210e 0000 0002 fef7 2000 fef7 22ee
+fefe00b0 fef7 20ca fef7 2014 fef7 21da fef7 21aa
+fefe00c0 fef7 21b2 fefe 03ba fef7 201c fef7 22ea
+fefe00d0 fef7 222a fef7 222e fef7 2232 fef7 2236
+fefe00e0 fef7 223a fef7 2376 0000 0000 0000 0000
+fefe00f0 0000 0000 0000 0000 fef7 2250 206f 0004"""
+
+vn = 0
+
+def process ( line ) :
+        global vn
+        ww = line.split()
+        addr = int ( ww[0], 16 )
+        ix = 1
+        for i in range ( 4 ) :
+            #print ( i )
+            sa = f'{addr:x}'
+            print ( sa + " " + ww[ix] + " " + ww[ix+1] + "   ; " + f'{vn}' )
+            addr += 4
+            vn += 1
+            ix += 2
+
+linez = orig.split ( '\n')
+
+for ll in linez :
+    if ll != "" :
+        process ( ll )
+
+# THE END

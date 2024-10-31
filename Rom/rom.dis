@@ -1,6 +1,19 @@
 ; Here is a disassembly of the sun3/80 boot rom
-;  10-27-2024
+;  10-27-2024    Tom Trebisky
 ;
+; What do we expect to find here?
+; 1 - board initialization
+; 2 - memory detection and test
+; 3 - startup diagnostics.
+; 4 - serial port driver
+; 5 - frame buffer driver
+; 6 - keyboard driver
+; 7 - disk driver (scsi) and boot
+; 8 - lance network driver
+; 9 - rarp and tftp boot code
+; 10 - maybe floppy disk support
+
+; -------------------------------------------
 ; I assumed that the ROM started at 0xFEFE based on the values in the
 ; vector table above.  I found some constants in NetBSD code that
 ; confirm that, namely:

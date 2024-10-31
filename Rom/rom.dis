@@ -100,6 +100,10 @@ fefe00f4 0000 0000   ; 61
 fefe00f8 fef7 2250   ; 62
 
 ; these silly routines get called from below
+; Why even have these, and why is the second argument
+;  to the "write" routines ignored.
+; This would be simple code to just write in C or
+; with one or two assembly instructions.
 
 ; readb
 fefe00fc:	206f 0004      	moveal %sp@(4),%a0
@@ -1085,9 +1089,10 @@ fefe0d06:	1010           	moveb %a0@,%d0
 fefe0d08:	49c0           	extbl %d0
 fefe0d0a:	4e5e           	unlk %fp
 fefe0d0c:	4e75           	rts
+
 fefe0d0e:	0000
 
-; subroutine at fefe0d10  (BAD alignment)
+; subroutine
 
 fefe0d10:	4e56 ffe8      	linkw %fp,#-24
 fefe0d14:	48d7 00e0      	moveml %d5-%d7,%sp@
@@ -1755,9 +1760,12 @@ fefe172e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
 fefe1734:	7000           	moveq #0,%d0
 fefe1736:	4e5e           	unlk %fp
 fefe1738:	4e75           	rts
-; BAD
-fefe173a:	0000 4e56      	orib #86,%d0
-fefe173e:	ffe8           	.short 0xffe8
+
+fefe173a:	0000
+
+; subroutine
+
+fefe173c:	4e56 ffe8      	linkw %fp,#-24
 fefe1740:	48d7 20e0      	moveml %d5-%d7/%a5,%sp@
 fefe1744:	2c2e 0008      	movel %fp@(8),%d6
 fefe1748:	2e06           	movel %d6,%d7
@@ -2358,11 +2366,11 @@ fefe1e6a:	2e2e fffc      	movel %fp@(-4),%d7
 fefe1e6e:	4e5e           	unlk %fp
 fefe1e70:	4e75           	rts
 
-; BAD
+fefe1e72:	0000
+
 ; CHk instruction
 
-fefe1e72:	0000 4e56      	orib #86,%d0
-fefe1e76:	fffc           	.short 0xfffc
+fefe1e74:	4e56 fffc      	linkw %fp,#-4
 fefe1e78:	2e87           	movel %d7,%sp@
 fefe1e7a:	1e2e 000b      	moveb %fp@(11),%d7
 fefe1e7e:	0c07 000a      	cmpib #10,%d7
@@ -2667,13 +2675,14 @@ fefe21ce:	7000           	moveq #0,%d0
 fefe21d0:	4cee 38fc ffd0 	moveml %fp@(-48),%d2-%d7/%a3-%a5
 fefe21d6:	4e5e           	unlk %fp
 fefe21d8:	4e75           	rts
-; BAD
-fefe21da:	0000 4e56      	orib #86,%d0
-fefe21de:	0000 42b9      	orib #-71,%d0
-fefe21e2:	fef7           	.short 0xfef7
-fefe21e4:	21e6 13fc      	movel %fp@-,0x13fc
-fefe21e8:	004c           	.short 0x004c
-fefe21ea:	fef7           	.short 0xfef7
+
+fefe21da:	0000
+
+; subroutine
+
+fefe21dc:	4e56 0000      	linkw %fp,#0
+fefe21e0:	42b9 fef7 21e6 	clrl 0xfef721e6
+fefe21e6:	13fc 004c fef7 	moveb #76,0xfef72014
 fefe21ec:	2014           	movel %a4@,%d0
 fefe21ee:	23fc 0000 01f4 	movel #500,0xfef720ca
 fefe21f4:	fef7 20ca 
@@ -2869,9 +2878,12 @@ fefe2420:	6000 ff30      	braw 0xfefe2352
 fefe2424:	4cee 3cfc ffc0 	moveml %fp@(-64),%d2-%d7/%a2-%a5
 fefe242a:	4e5e           	unlk %fp
 fefe242c:	4e75           	rts
-; BAD
-fefe242e:	0000 4e56      	orib #86,%d0
-fefe2432:	ffd0           	.short 0xffd0
+
+fefe242e:	0000
+
+; subroutine
+
+fefe2430:	4e56 ffd0      	linkw %fp,#-48
 fefe2434:	48d7 3cfc      	moveml %d2-%d7/%a2-%a5,%sp@
 fefe2438:	287c fef7 2028 	moveal #-17358808,%a4
 fefe243e:	2a4c           	moveal %a4,%a5
@@ -3620,9 +3632,12 @@ fefe2c92:	7000           	moveq #0,%d0
 fefe2c94:	4cee 20c0 fff4 	moveml %fp@(-12),%d6-%d7/%a5
 fefe2c9a:	4e5e           	unlk %fp
 fefe2c9c:	4e75           	rts
-; BAD
-fefe2c9e:	0000 4e56      	orib #86,%d0
-fefe2ca2:	ffe0           	.short 0xffe0
+
+fefe2c9e:	0000
+
+; subroutine
+
+fefe2ca0:	4e56 ffe0      	linkw %fp,#-32
 fefe2ca4:	48d7 3cc0      	moveml %d6-%d7/%a2-%a5,%sp@
 fefe2ca8:	207c fef7 2156 	moveal #-17358506,%a0
 fefe2cae:	0c90 0000 0001 	cmpil #1,%a0@
@@ -4231,9 +4246,12 @@ fefe34b6:	7001           	moveq #1,%d0
 fefe34b8:	4cee 38f0 ff90 	moveml %fp@(-112),%d4-%d7/%a3-%a5
 fefe34be:	4e5e           	unlk %fp
 fefe34c0:	4e75           	rts
-; BAD
-fefe34c2:	0000 4e56      	orib #86,%d0
-fefe34c6:	ffe8           	.short 0xffe8
+
+fefe34c2:	0000
+
+; subroutine
+
+fefe34c4:	4e56 ffe8      	linkw %fp,#-24
 fefe34c8:	48d7 30f0      	moveml %d4-%d7/%a4-%a5,%sp@
 fefe34cc:	2e2e 0008      	movel %fp@(8),%d7
 fefe34d0:	5387           	subql #1,%d7
@@ -5959,10 +5977,13 @@ fefe4b94:	4cee 30c0 ffd4 	moveml %fp@(-44),%d6-%d7/%a4-%a5
 fefe4b9a:	4e5e           	unlk %fp
 fefe4b9c:	4e75           	rts
 
-fefe4b9e:	0000 4e56      	orib #86,%d0
-fefe4ba2:	0000 4878      	orib #120,%d0
-fefe4ba6:	0001 486e      	orib #110,%d1
-fefe4baa:	000b           	.short 0x000b
+fefe4b9e:	0000
+
+; subroutine
+
+fefe4ba0:	4e56 0000      	linkw %fp,#0
+fefe4ba4:	4878 0001      	pea 0x1
+fefe4ba8:	486e 000b      	pea %fp@(11)
 fefe4bac:	4eb9 fefe 4bba 	jsr 0xfefe4bba
 fefe4bb2:	504f           	addqw #8,%sp
 fefe4bb4:	7000           	moveq #0,%d0
@@ -7442,8 +7463,11 @@ fefe5cc4:	4cee 3cec ffa0 	moveml %fp@(-96),%d2-%d3/%d5-%d7/%a2-%a5
 fefe5cca:	4e5e           	unlk %fp
 fefe5ccc:	4e75           	rts
 
-fefe5cce:	0000 4e56      	orib #86,%d0
-fefe5cd2:	ff98           	.short 0xff98
+fefe5cce:	0000
+
+; subroutine
+
+fefe5cd0:	4e56 ff98      	linkw %fp,#-104
 fefe5cd4:	48d7 30c0      	moveml %d6-%d7/%a4-%a5,%sp@
 fefe5cd8:	422e ffff      	clrb %fp@(-1)
 fefe5cdc:	2a7c fef2 0000 	moveal #-17694720,%a5
@@ -8019,8 +8043,11 @@ fefe653a:	2a6e fff8      	moveal %fp@(-8),%a5
 fefe653e:	4e5e           	unlk %fp
 fefe6540:	4e75           	rts
 
-fefe6542:	0000 4e56      	orib #86,%d0
-fefe6546:	ffd8           	.short 0xffd8
+fefe6542:	0000
+
+; subroutine
+
+fefe6544:	4e56 ffd8      	linkw %fp,#-40
 fefe6548:	48d7 3800      	moveml %a3-%a5,%sp@
 fefe654c:	2a7c fef0 401f 	moveal #-17809377,%a5
 fefe6552:	0c15 0010      	cmpib #16,%a5@
@@ -8595,8 +8622,9 @@ fefe6c72:	2e2e fffc      	movel %fp@(-4),%d7
 fefe6c76:	4e5e           	unlk %fp
 fefe6c78:	4e75           	rts
 
-fefe6c7a:	0000 4e56      	orib #86,%d0
-fefe6c7e:	fffc           	.short 0xfffc
+fefe6c7a:	0000
+
+fefe6c7c:	4e56 fffc      	linkw %fp,#-4
 fefe6c80:	7000           	moveq #0,%d0
 fefe6c82:	0c39 0006 fef0 	cmpib #6,0xfef0470b
 fefe6c88:	470b 
@@ -8605,8 +8633,9 @@ fefe6c8c:	4400           	negb %d0
 fefe6c8e:	4e5e           	unlk %fp
 fefe6c90:	4e75           	rts
 
-fefe6c92:	0000 4e56      	orib #86,%d0
-fefe6c96:	ffe4           	.short 0xffe4
+fefe6c92:	0000
+
+fefe6c94:	4e56 ffe4      	linkw %fp,#-28
 fefe6c98:	48d7 20f8      	moveml %d3-%d7/%a5,%sp@
 fefe6c9c:	7a00           	moveq #0,%d5
 fefe6c9e:	4eb9 fefe 258c 	jsr 0xfefe258c

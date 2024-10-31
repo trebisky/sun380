@@ -2194,10 +2194,8 @@ fefe1bec:	2f06           	movel %d6,%sp@-
 ; push the address of the Sun workstation string
 fefe1bee:	4879 feff 4473 	pea 0xfeff4473
 fefe1bf4:	6008           	bras 0xfefe1bfe
-
 fefe1bf6:	2f06           	movel %d6,%sp@-
 fefe1bf8:	4879 feff 44a2 	pea 0xfeff44a2
-
 fefe1bfe:	4eb9 fefe 2b04 	jsr 0xfefe2b04			; printf
 fefe1c04:	504f           	addqw #8,%sp
 

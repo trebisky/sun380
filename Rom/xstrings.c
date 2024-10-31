@@ -32,7 +32,7 @@ read_rom ( char *path )
 	}
 
 	romsize = read ( rom, buf, MAX_ROMSIZE );
-	printf ( " ... %d bytes read\n", romsize );
+	// printf ( " ... %d bytes read\n", romsize );
 	close ( rom );
 
 	romend = rombase + romsize - 1;
@@ -119,6 +119,35 @@ single ( char *arg_addr )
 		printf ( "%s\n", ss );
 }
 
+/* The sun 3/80 dump is big endian.
+ * we want to generate a string anyway,
+ * so we loop and read the bytes in order
+ * rather than playing games with integers
+ */
+void
+get_long ( char *arg_addr )
+{
+		unsigned int addr;
+		char ss[1024];
+		int index;
+		int *p;
+		int i, val;
+
+		addr = strtol ( arg_addr, NULL, 16 );
+		if ( addr < rombase )
+			sorry ();
+		if ( addr > romend )
+			sorry ();
+
+		index = addr - rombase;
+
+		for ( i=0; i<4; i++ ) {
+			val = buf[index+i] & 0xff;
+			printf ( "%02x", val );
+		}
+		printf ( "\n" );
+}
+
 int
 main ( int argc, char **argv )
 {
@@ -131,8 +160,13 @@ main ( int argc, char **argv )
 			// batch ( STR_START, STR_END );
 			// batch ( 0xfeff4468, 0xfeff4c90 );
 			batch ( 0xfeff60d0, 0xfeff6b76 );
-		} else
+		} else if ( argc == 1 ) {
 			single ( argv[0] );
+		} else {
+			// argv[0] is "long", we cheat
+			// and just assume that for now.
+			get_long ( argv[1] );
+		}
 
 		return 0;
 }

@@ -15,6 +15,7 @@ char buf[MAX_ROMSIZE];
 int romsize;
 
 unsigned int rombase = 0xfefe0000;
+unsigned int romend;
 
 #define STR_START	0xfeff3c8c
 #define STR_END 	0xfeff4266
@@ -33,26 +34,18 @@ read_rom ( char *path )
 	romsize = read ( rom, buf, MAX_ROMSIZE );
 	printf ( " ... %d bytes read\n", romsize );
 	close ( rom );
+
+	romend = rombase + romsize - 1;
 }
 
-void
-strings ( unsigned int start, unsigned int end )
+int
+dump_string ( char *ss, int index )
 {
-	char ss[1024];
-	char *p;
-	int o_start, o_end;
-	int index;
-	int c;
-	unsigned int a_str;
-	int newl;
+		int newl;
+		char *p;
+		int c;
 
-	o_start = start - rombase;
-	o_end = end - rombase;
-	index = o_start;
-
-	for ( ;; ) {
 		newl = 0;
-		a_str = rombase + index;
 		p = ss;
 		while ( c = buf[index] ) {
 			if ( c == '\n' ) {
@@ -72,7 +65,27 @@ strings ( unsigned int start, unsigned int end )
 			}
 		}
 		*p = '\0';
+
+		return index;
+}
+
+void
+batch ( unsigned int start, unsigned int end )
+{
+	int o_start, o_end;
+	int index;
+	unsigned int a_str;
+	char ss[1024];
+
+	o_start = start - rombase;
+	o_end = end - rombase;
+	index = o_start;
+
+	for ( ;; ) {
+		a_str = rombase + index;
+		index = dump_string ( ss, index );
 		printf ( "%08x: %s\n", a_str, ss );
+
 		while ( buf[index] == '\0' )
 			index++;
 		if ( index >= o_end )
@@ -80,12 +93,47 @@ strings ( unsigned int start, unsigned int end )
 	}
 }
 
+void
+sorry ( void )
+{
+		fprintf ( stderr, "Sorry\n" );
+		exit ( 1 );
+}
+
+void
+single ( char *arg_addr )
+{
+		unsigned int addr;
+		char ss[1024];
+		int index;
+
+		addr = strtol ( arg_addr, NULL, 16 );
+		if ( addr < rombase )
+			sorry ();
+		if ( addr > romend )
+			sorry ();
+
+		index = addr - rombase;
+		(void) dump_string ( ss, index );
+		// printf ( "%08x: %s\n", addr, ss );
+		printf ( "%s\n", ss );
+}
+
 int
 main ( int argc, char **argv )
 {
 		read_rom ( BIN_PATH );
-		// strings ( STR_START, STR_END );
-		strings ( 0xfeff4468, 0xfeff4c90 );
+
+		argc--;
+		argv++;
+
+		if ( argc == 0 ) {
+			// batch ( STR_START, STR_END );
+			batch ( 0xfeff4468, 0xfeff4c90 );
+			printf ( "DONE\n" );
+		} else
+			single ( argv[0] );
+
 		return 0;
 }
 

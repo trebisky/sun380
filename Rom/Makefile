@@ -10,6 +10,9 @@ all:	wrap sun380.dis
 wrap: wrap.c
 	cc -o wrap wrap.c
 
+xstrings: xstrings.c
+	cc -o xstrings xstrings.c
+
 sun380.elf: sun380.bin
 	./wrap sun380.bin sun380.elf fefe0000
 

@@ -129,8 +129,8 @@ main ( int argc, char **argv )
 
 		if ( argc == 0 ) {
 			// batch ( STR_START, STR_END );
-			batch ( 0xfeff4468, 0xfeff4c90 );
-			printf ( "DONE\n" );
+			// batch ( 0xfeff4468, 0xfeff4c90 );
+			batch ( 0xfeff60d0, 0xfeff6b76 );
 		} else
 			single ( argv[0] );
 

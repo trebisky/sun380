@@ -160,7 +160,8 @@ main ( int argc, char **argv )
 			// batch ( STR_START, STR_END );
 			// batch ( 0xfeff4468, 0xfeff4c90 );
 			// batch ( 0xfeff60d0, 0xfeff6b76 );
-			batch ( 0xfeff542c, 0xfeff5d26 );
+			// batch ( 0xfeff542c, 0xfeff5d26 );
+			batch ( 0xfeff5e08, 0xfeff600a );
 		} else if ( argc == 1 ) {
 			single ( argv[0] );
 		} else {

@@ -26558,205 +26558,35 @@ feff5dfe:	64d0           	bccs 0xfeff5dd0
 feff5e00:	feff           	.short 0xfeff
 feff5e02:	6418           	bccs 0xfeff5e1c
 feff5e04:	0000 0000      	orib #0,%d0
-feff5e08:	0a44 6961      	eoriw #26977,%d4
-feff5e0c:	676e           	beqs 0xfeff5e7c
-feff5e0e:	6f73           	bles 0xfeff5e83
-feff5e10:	7469           	moveq #105,%d2
-feff5e12:	6320           	blss 0xfeff5e34
-feff5e14:	4175           	.short 0x4175
-feff5e16:	746f           	moveq #111,%d2
-feff5e18:	2d62 6f6f      	movel %a2@-,%fp@(28527)
-feff5e1c:	7420           	moveq #32,%d2
-feff5e1e:	696e           	bvss 0xfeff5e8e
-feff5e20:	2070 726f      	moveal %a0@(6f,%d7:w:2),%a0
-feff5e24:	6772           	beqs 0xfeff5e98
-feff5e26:	6573           	bcss 0xfeff5e9b
-feff5e28:	732e           	.short 0x732e
-feff5e2a:	2e2e 000a      	movel %fp@(10),%d7
-feff5e2e:	4545           	.short 0x4545
-feff5e30:	5052           	addqw #8,%a2@
-feff5e32:	4f4d           	.short 0x4f4d
-feff5e34:	2062           	moveal %a2@-,%a0
-feff5e36:	6f6f           	bles 0xfeff5ea7
-feff5e38:	7420           	moveq #32,%d2
-feff5e3a:	6465           	bccs 0xfeff5ea1
-feff5e3c:	7669           	moveq #105,%d3
-feff5e3e:	6365           	blss 0xfeff5ea5
-feff5e40:	2e2e 2e00      	movel %fp@(11776),%d7
-feff5e44:	0020 2563      	orib #99,%a0@-
-feff5e48:	2563 2825      	movel %a3@-,%a2@(10277)
-feff5e4c:	782c           	moveq #44,%d4
-feff5e4e:	2578 2c25 7829 	movel 0x2c25,%a2@(30761)
-feff5e54:	2573 2025 730a 	movel %a3@(25,%d2:w),%a2@(29450)
-feff5e5a:	0042 6f6f      	oriw #28527,%d2
-feff5e5e:	743a           	moveq #58,%d2
-feff5e60:	2025           	movel %a5@-,%d0
-feff5e62:	6325           	blss 0xfeff5e89
-feff5e64:	6328           	blss 0xfeff5e8e
-feff5e66:	2578 2c25 782c 	movel 0x2c25,%a2@(30764)
-feff5e6c:	2578 2925 7320 	movel 0x2925,%a2@(29472)
-feff5e72:	2573 0a00 0a25 	movel %a3@(0,%d0:l:2),%a2@(2597)
-feff5e78:	6325           	blss 0xfeff5e9f
-feff5e7a:	633a           	blss 0xfeff5eb6
-feff5e7c:	2044           	moveal %d4,%a0
-feff5e7e:	6576           	bcss 0xfeff5ef6
-feff5e80:	6963           	bvss 0xfeff5ee5
-feff5e82:	6520           	bcss 0xfeff5ea4
-feff5e84:	6e6f           	bgts 0xfeff5ef5
-feff5e86:	7420           	moveq #32,%d2
-feff5e88:	666f           	bnes 0xfeff5ef9
-feff5e8a:	756e           	.short 0x756e
-feff5e8c:	642e           	bccs 0xfeff5ebc
-feff5e8e:	0a00 4e6f      	eorib #111,%d0
-feff5e92:	2062           	moveal %a2@-,%a0
-feff5e94:	6f6f           	bles 0xfeff5f05
-feff5e96:	7461           	moveq #97,%d2
-feff5e98:	626c           	bhis 0xfeff5f06
-feff5e9a:	6520           	bcss 0xfeff5ebc
-feff5e9c:	6465           	bccs 0xfeff5f03
-feff5e9e:	7669           	moveq #105,%d3
-feff5ea0:	6365           	blss 0xfeff5f07
-feff5ea2:	7320           	.short 0x7320
-feff5ea4:	666f           	bnes 0xfeff5f15
-feff5ea6:	756e           	.short 0x756e
-feff5ea8:	640a           	bccs 0xfeff5eb4
-feff5eaa:	000a           	.short 0x000a
-feff5eac:	496e           	.short 0x496e
-feff5eae:	7661           	moveq #97,%d3
-feff5eb0:	6c69           	bges 0xfeff5f1b
-feff5eb2:	6420           	bccs 0xfeff5ed4
-feff5eb4:	6465           	bccs 0xfeff5f1b
-feff5eb6:	7669           	moveq #105,%d3
-feff5eb8:	6365           	blss 0xfeff5f1f
-feff5eba:	203d           	.short 0x203d
-feff5ebc:	2027           	movel %sp@-,%d0
-feff5ebe:	2563 2563      	movel %a3@-,%a2@(9571)
-feff5ec2:	270a           	movel %a2,%a3@-
-feff5ec4:	0042 6f6f      	oriw #28527,%d2
-feff5ec8:	743a           	moveq #58,%d2
-feff5eca:	2025           	movel %a5@-,%d0
-feff5ecc:	6325           	blss 0xfeff5ef3
-feff5ece:	6328           	blss 0xfeff5ef8
-feff5ed0:	2578 2c25 782c 	movel 0x2c25,%a2@(30764)
-feff5ed6:	2578 2925 7320 	movel 0x2925,%a2@(29472)
-feff5edc:	2573 0a00 426f 	movel %a3@(0,%d0:l:2),%a2@(17007)
-feff5ee2:	6f74           	bles 0xfeff5f58
-feff5ee4:	3a20           	movew %a0@-,%d5
-feff5ee6:	6c6f           	bges 0xfeff5f57
-feff5ee8:	6164           	bsrs 0xfeff5f4e
-feff5eea:	2066           	moveal %fp@-,%a0
-feff5eec:	6169           	bsrs 0xfeff5f57
-feff5eee:	6c65           	bges 0xfeff5f55
-feff5ef0:	640a           	bccs 0xfeff5efc
-feff5ef2:	0042 6f6f      	oriw #28527,%d2
-feff5ef6:	7420           	moveq #32,%d2
-feff5ef8:	7379           	.short 0x7379
-feff5efa:	6e74           	bgts 0xfeff5f70
-feff5efc:	6178           	bsrs 0xfeff5f76
-feff5efe:	3a20           	movew %a0@-,%d5
-feff5f00:	6220           	bhis 0xfeff5f22
-feff5f02:	5b21           	subqb #5,%a1@-
-feff5f04:	5d5b           	subqw #6,%a3@+
-feff5f06:	6465           	bccs 0xfeff5f6d
-feff5f08:	7628           	moveq #40,%d3
-feff5f0a:	6374           	blss 0xfeff5f80
-feff5f0c:	6c72           	bges 0xfeff5f80
-feff5f0e:	2c75 6e69      	moveal %a5@(69,%d6:l:8),%fp
-feff5f12:	742c           	moveq #44,%d2
-feff5f14:	7061           	moveq #97,%d0
-feff5f16:	7274           	moveq #116,%d1
-feff5f18:	295d 206e      	movel %a5@+,%a4@(8302)
-feff5f1c:	616d           	bsrs 0xfeff5f8b
-feff5f1e:	6520           	bcss 0xfeff5f40
-feff5f20:	5b6f 7074      	subqw #5,%sp@(28788)
-feff5f24:	696f           	bvss 0xfeff5f95
-feff5f26:	6e73           	bgts 0xfeff5f9b
-feff5f28:	5d0a           	subqb #6,%a2
-feff5f2a:	506f 7373      	addqw #8,%sp@(29555)
-feff5f2e:	6962           	bvss 0xfeff5f92
-feff5f30:	6c65           	bges 0xfeff5f97
-feff5f32:	2062           	moveal %a2@-,%a0
-feff5f34:	6f6f           	bles 0xfeff5fa5
-feff5f36:	7420           	moveq #32,%d2
-feff5f38:	6465           	bccs 0xfeff5f9f
-feff5f3a:	7669           	moveq #105,%d3
-feff5f3c:	6365           	blss 0xfeff5fa3
-feff5f3e:	733a           	.short 0x733a
-feff5f40:	0a00 2020      	eorib #32,%d0
-feff5f44:	2573 0a00 3031 	movel %a3@(0,%d0:l:2),%a2@(12337)
-feff5f4a:	3233 3435      	movew %a3@(35,%d3:w:4),%d1
-feff5f4e:	3637 3839      	movew %sp@(39,%d3:l),%d3
-feff5f52:	6162           	bsrs 0xfeff5fb6
-feff5f54:	6364           	blss 0xfeff5fba
-feff5f56:	6566           	bcss 0xfeff5fbe
-feff5f58:	0000 0000      	orib #0,%d0
-feff5f5c:	0000 0000      	orib #0,%d0
-feff5f60:	0a07 5761      	eorib #97,%d7
-feff5f64:	6974           	bvss 0xfeff5fda
-feff5f66:	696e           	bvss 0xfeff5fd6
-feff5f68:	6720           	beqs 0xfeff5f8a
-feff5f6a:	666f           	bnes 0xfeff5fdb
-feff5f6c:	7220           	moveq #32,%d1
-feff5f6e:	6469           	bccs 0xfeff5fd9
-feff5f70:	736b           	.short 0x736b
-feff5f72:	2074 6f20 7370 	moveal %a4@(7370,%d6:l:8),%a0
-feff5f78:	696e           	bvss 0xfeff5fe8
-feff5f7a:	2075 702e      	moveal %a5@(2e,%d7:w),%a0
-feff5f7e:	2e2e 0a0a      	movel %fp@(2570),%d7
-feff5f82:	506c 6561      	addqw #8,%a4@(25953)
-feff5f86:	7365           	.short 0x7365
-feff5f88:	2073 7461      	moveal %a3@(61,%d7:w:4),%a0
-feff5f8c:	7274           	moveq #116,%d1
-feff5f8e:	2069 742c      	moveal %a1@(29740),%a0
-feff5f92:	2069 6620      	moveal %a1@(26144),%a0
-feff5f96:	6e65           	bgts 0xfeff5ffd
-feff5f98:	6365           	blss 0xfeff5fff
-feff5f9a:	7373           	.short 0x7373
-feff5f9c:	6172           	bsrs 0xfeff6010
-feff5f9e:	792c           	.short 0x792c
-feff5fa0:	202d 4f52      	movel %a5@(20306),%d0
-feff5fa4:	2d20           	movel %a0@-,%fp@-
-feff5fa6:	7072           	moveq #114,%d0
-feff5fa8:	6573           	bcss 0xfeff601d
-feff5faa:	7320           	.short 0x7320
-feff5fac:	616e           	bsrs 0xfeff601c
-feff5fae:	7920           	.short 0x7920
-feff5fb0:	6b65           	bmis 0xfeff6017
-feff5fb2:	7920           	.short 0x7920
-feff5fb4:	746f           	moveq #111,%d2
-feff5fb6:	2071 7569 742e 	moveal %a1@(742e)@(0),%a0
-feff5fbc:	0a0a           	.short 0x0a0a
-feff5fbe:	0000 4e6f      	orib #111,%d0
-feff5fc2:	206c 6162      	moveal %a4@(24930),%a0
-feff5fc6:	656c           	bcss 0xfeff6034
-feff5fc8:	2066           	moveal %fp@-,%a0
-feff5fca:	6f75           	bles 0xfeff6041
-feff5fcc:	6e64           	bgts 0xfeff6032
-feff5fce:	202d 2061      	movel %a5@(8289),%d0
-feff5fd2:	7474           	moveq #116,%d2
-feff5fd4:	656d           	bcss 0xfeff6043
-feff5fd6:	7074           	moveq #116,%d0
-feff5fd8:	696e           	bvss 0xfeff6048
-feff5fda:	6720           	beqs 0xfeff5ffc
-feff5fdc:	626f           	bhis 0xfeff604d
-feff5fde:	6f74           	bles 0xfeff6054
-feff5fe0:	2061           	moveal %a1@-,%a0
-feff5fe2:	6e79           	bgts 0xfeff605d
-feff5fe4:	7761           	.short 0x7761
-feff5fe6:	792e           	.short 0x792e
-feff5fe8:	0a00 0000      	eorib #0,%d0
-feff5fec:	436f           	.short 0x436f
-feff5fee:	7272           	moveq #114,%d1
-feff5ff0:	7570           	.short 0x7570
-feff5ff2:	7420           	moveq #32,%d2
-feff5ff4:	6c61           	bges 0xfeff6057
-feff5ff6:	6265           	bhis 0xfeff605d
-feff5ff8:	6c0a           	bges 0xfeff6004
-feff5ffa:	0047 6976      	oriw #26998,%d7
-feff5ffe:	696e           	bvss 0xfeff606e
-feff6000:	6720           	beqs 0xfeff6022
-feff6002:	7570           	.short 0x7570
-feff6004:	2e2e 2e0a      	movel %fp@(11786),%d7
+
+; I don't see all these strings referenced in printf statements
+
+feff5e08: \n ++
+feff5e09: Diagnostic Auto-boot in progress...
+feff5e2d: \n ++
+feff5e2e: EEPROM boot device...
+feff5e45:  %c%c(%x,%x,%x)%s %s\n
+feff5e5b: Boot: %c%c(%x,%x,%x)%s %s\n
+feff5e76: \n ++
+feff5e77: %c%c: Device not found.\n
+feff5e90: No bootable devices found\n
+feff5eab: \n ++
+feff5eac: Invalid device = '%c%c'\n
+feff5ec5: Boot: %c%c(%x,%x,%x)%s %s\n
+feff5ee0: Boot: load failed\n
+feff5ef3: Boot syntax: b [!][dev(ctlr,unit,part)] name [options]\n ++
+feff5f2a: Possible boot devices:\n
+feff5f42:   %s\n
+feff5f48: 0123456789abcdef
+feff5f60: \n ++
+feff5f61: .Waiting for disk to spin up...\n ++
+feff5f81: \n ++
+feff5f82: Please start it, if necessary, -OR- press any key to quit.\n ++
+feff5fbd: \n
+feff5fc0: No label found - attempting boot anyway.\n
+feff5fec: Corrupt label\n
+feff5ffb: Giving up...\n
+
 feff6008:	0000 0000      	orib #0,%d0
 feff600c:	0000 0000      	orib #0,%d0
 feff6010:	0000 0000      	orib #0,%d0

@@ -1,0 +1,106 @@
+#!/bin/python3
+
+# xprintf - scan our disassembly looking for printf calls.
+#  then find and add the string being printed.
+# Tom Trebisky  10-30-2024 -- Happy Halloween
+
+# Several odd things pop up we cannot handle:
+
+#last: fefe3856:	2f07           	movel %d7,%sp@-
+#line: fefe3858:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+
+#fefe6e62:   4853            pea %a3@
+#fefe6e64:   4eb9 fefe 2b04  jsr 0xfefe2b04          ; printf
+
+# We just skip these and do nothing.
+
+import re
+import subprocess
+
+infile = "rom.dis"
+
+def fetch_long ( addr ) :
+    cmd = [ "./xstrings" ]
+    cmd.append ( "long" )
+    cmd.append ( addr )
+    #print ( cmd )
+
+    output = subprocess.run ( cmd, stdout=subprocess.PIPE )
+    stuff = output.stdout.decode ( 'utf-8' ).split ( '\n' )
+
+    # We get two lines
+    # the first is what we want
+    # the second is blank
+
+    return stuff[0]
+
+    #for x in stuff :
+    #    print ( "stuff: " + x )
+
+def fetch_string ( addr ) :
+    cmd = [ "./xstrings" ]
+    cmd.append ( addr )
+    #print ( cmd )
+
+    output = subprocess.run ( cmd, stdout=subprocess.PIPE )
+    stuff = output.stdout.decode ( 'utf-8' ).split ( '\n' )
+
+    return stuff[0]
+
+def process ( last, ll ) :
+        ww = ll.split ()
+        if len(ww) < 6 :
+            return None
+        if ww[5] != "0xfefe2b04" :
+            return None
+
+# This is the most common case.
+# The pea address points directly to the string.
+# fefe6ee6:   4879 feff 5c70  pea 0xfeff5c70
+# fefe6eec:   4eb9 fefe 2b04  jsr 0xfefe2b04          ; printf
+
+        if "pea" in last :
+            ww = last.split()
+            if len(ww) < 6 :
+                print ( "Skip: " + last )
+                return None
+            addr = ww[5]
+            xstr = fetch_string ( addr )
+            return xstr
+
+# This case fetches a pointer to the string
+# last: fefe3c44:	2f39 feff 55f8 	movel 0xfeff55f8,%sp@-
+# line: fefe3c4a:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+        if "movel" in last :
+            #print ( last )
+            ww = last.split()
+            if len(ww) < 6 :
+                print ( "Skip: " + last )
+                return None
+            addr = re.sub ( r',.*', "", ww[5] )
+            #print ( f"printf ( {addr} )" )
+            addr2 = fetch_long ( addr )
+            xstr = fetch_string ( addr2 )
+            return xstr
+
+# -----------------------------
+
+last = None
+
+with open ( infile ) as ff :
+    for raw in ff:
+        ll = raw.strip()
+
+        if "jsr" in ll :
+            extra = process ( last, ll )
+            if extra :
+                ll2 = re.sub ( r' *;.*', "", ll )
+                print ( ll2 )
+                print ( "; printf ( \"" + extra + "\" )" )
+            else :
+                print ( ll )
+        else :
+            print ( ll )
+        last = ll
+
+# THE END

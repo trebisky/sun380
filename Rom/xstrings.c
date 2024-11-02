@@ -48,7 +48,10 @@ dump_string ( char *ss, int index )
 		newl = 0;
 		p = ss;
 		while ( c = buf[index] ) {
-			if ( c == '\n' ) {
+			if ( c == '\r' ) {
+				*p++ = '\\';
+				*p++ = 'r';
+			} else if ( c == '\n' ) {
 				*p++ = '\\';
 				*p++ = 'n';
 				newl = 1;
@@ -161,7 +164,10 @@ main ( int argc, char **argv )
 			// batch ( 0xfeff4468, 0xfeff4c90 );
 			// batch ( 0xfeff60d0, 0xfeff6b76 );
 			// batch ( 0xfeff542c, 0xfeff5d26 );
-			batch ( 0xfeff5e08, 0xfeff600a );
+			// batch ( 0xfeff5e08, 0xfeff600a );
+
+			// batch ( 0xfefe7640, 0xfefe79e6 );
+			batch ( 0xfefe962c, 0xfefe99ea );
 		} else if ( argc == 1 ) {
 			single ( argv[0] );
 		} else {

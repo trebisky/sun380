@@ -38,6 +38,9 @@ read_rom ( char *path )
 	romend = rombase + romsize - 1;
 }
 
+/* This is used by batch and has special handling
+ * of newlines.
+ */
 int
 dump_string ( char *ss, int index )
 {
@@ -70,6 +73,32 @@ dump_string ( char *ss, int index )
 		*p = '\0';
 
 		return index;
+}
+
+/* This is used by single and prints to a null byte with
+ * no hanky panky
+ */
+void
+dump_string_basic ( char *ss, int index )
+{
+		char *p;
+		int c;
+
+		p = ss;
+		while ( c = buf[index] ) {
+			if ( c == '\r' ) {
+				*p++ = '\\';
+				*p++ = 'r';
+			} else if ( c == '\n' ) {
+				*p++ = '\\';
+				*p++ = 'n';
+			} else if ( c < ' ' || c > '~' ) {
+				*p++ = '~';
+			} else
+				*p++ = c;
+			index++;
+		}
+		*p = '\0';
 }
 
 void
@@ -117,7 +146,7 @@ single ( char *arg_addr )
 			sorry ();
 
 		index = addr - rombase;
-		(void) dump_string ( ss, index );
+		dump_string_basic ( ss, index );
 		// printf ( "%08x: %s\n", addr, ss );
 		printf ( "%s\n", ss );
 }
@@ -151,6 +180,17 @@ get_long ( char *arg_addr )
 		printf ( "\n" );
 }
 
+/* Currently this can do 3 things:
+ *
+ * 1) without arguments, does a "batch" of strings
+ *    using the internal limits (see below)
+ * 2) with one argument, prints a single string
+ *    at the address given
+ * 3) with two arguments, fetches a 4 byte long
+ *    from that address and prints it as hex.
+ *    i.e.  ./xstrings long fefe7738
+ *    the first argument "long" is currently ignored
+ */
 int
 main ( int argc, char **argv )
 {
@@ -167,7 +207,10 @@ main ( int argc, char **argv )
 			// batch ( 0xfeff5e08, 0xfeff600a );
 
 			// batch ( 0xfefe7640, 0xfefe79e6 );
-			batch ( 0xfefe962c, 0xfefe99ea );
+			// batch ( 0xfefe962c, 0xfefe99ea );
+			// batch ( 0xfefe8710, 0xfefe8940 );
+			// batch ( 0xfefe7fec, 0xfefe83f9 );
+			batch ( 0xfefe7be2, 0xfefe7c48 );
 		} else if ( argc == 1 ) {
 			single ( argv[0] );
 		} else {

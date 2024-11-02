@@ -25,6 +25,10 @@ sun380.odx: sun380.bin
 fix: sun380.elf
 	$(DUMP) --start-address=0xfefe2b04 --stop-address=0xfefe2b10 sun380.elf
 
+strings: xstrings
+	./xstrings >zzz
+	./xstrings
+
 # ============================================================
 
 callan13.dis: callan13.elf

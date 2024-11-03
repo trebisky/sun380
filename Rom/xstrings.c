@@ -199,6 +199,7 @@ main ( int argc, char **argv )
 		argc--;
 		argv++;
 
+		/* End address is last address in last string */
 		if ( argc == 0 ) {
 			// batch ( STR_START, STR_END );
 			// batch ( 0xfeff4468, 0xfeff4c90 );
@@ -210,7 +211,8 @@ main ( int argc, char **argv )
 			// batch ( 0xfefe962c, 0xfefe99ea );
 			// batch ( 0xfefe8710, 0xfefe8940 );
 			// batch ( 0xfefe7fec, 0xfefe83f9 );
-			batch ( 0xfefe7be2, 0xfefe7c48 );
+			// batch ( 0xfefe7be2, 0xfefe7c48 );
+			 batch ( 0xfefed788, 0xfefede2a );
 		} else if ( argc == 1 ) {
 			single ( argv[0] );
 		} else {

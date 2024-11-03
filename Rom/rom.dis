@@ -1587,14 +1587,14 @@ fefe12c8:	4eb9 fefe 2b04 	jsr 0xfefe2b04
 ; printf ( "Device:         Virtual Address: Physical Address:\n" )
 fefe12ce:	584f           	addqw #4,%sp
 
-fefe12d0:	4879 6200 0000 	pea 0x62000000		; physical addr
+fefe12d0:	4879 6200 0000 	pea 0x62000000		; physical addr -- SCC_kb
 fefe12d6:	4879 fef0 0000 	pea 0xfef00000		; virtual addr
 fefe12dc:	4879 feff 3cd4 	pea 0xfeff3cd4		; the format
 fefe12e2:	4eb9 fefe 2b04 	jsr 0xfefe2b04			
 ; printf ( "Keybrd Mouse    0x%x       0x%x\n" )
 fefe12e8:	4fef 000c      	lea %sp@(12),%sp
 
-fefe12ec:	4879 6200 2000 	pea 0x62002000
+fefe12ec:	4879 6200 2000 	pea 0x62002000	; SCC
 fefe12f2:	4879 fef0 2000 	pea 0xfef02000
 fefe12f8:	4879 feff 3cf5 	pea 0xfeff3cf5
 fefe12fe:	4eb9 fefe 2b04 	jsr 0xfefe2b04			
@@ -1741,7 +1741,7 @@ fefe151a:	4eb9 fefe 2b04 	jsr 0xfefe2b04
 ; printf ( "Keybrd Mouse    0x%x:      0x%x:\n" )
 fefe1520:	4fef 000c      	lea %sp@(12),%sp
 
-fefe1524:	4879 6200 2000 	pea 0x62002000
+fefe1524:	4879 6200 2000 	pea 0x62002000	; SCC
 fefe152a:	4879 fef0 2000 	pea 0xfef02000
 fefe1530:	4879 feff 3fbe 	pea 0xfeff3fbe
 fefe1536:	4eb9 fefe 2b04 	jsr 0xfefe2b04			
@@ -3514,9 +3514,11 @@ fefe294e:	4cee 3cf8 ffdc 	moveml %fp@(-36),%d3-%d7/%a2-%a5
 fefe2954:	4e5e           	unlk %fp
 fefe2956:	4e75           	rts
 
+; Gets called with an SCC VA as the first argument
 fefe2958:	4e56 fff0      	linkw %fp,#-16
 fefe295c:	48d7 30c0      	moveml %d6-%d7/%a4-%a5,%sp@
-fefe2960:	286e 0008      	moveal %fp@(8),%a4
+
+fefe2960:	286e 0008      	moveal %fp@(8),%a4		; SCC base
 fefe2964:	2a7c feff 53e8 	moveal #-16821272,%a5
 fefe296a:	2c3c feff 540a 	movel #-16821238,%d6
 fefe2970:	0c39 0012 fef0 	cmpib #18,0xfef0405b
@@ -3538,25 +3540,44 @@ fefe29aa:	4a2e 000f      	tstb %fp@(15)
 fefe29ae:	662e           	bnes 0xfefe29de
 fefe29b0:	584d           	addqw #4,%a5
 fefe29b2:	602a           	bras 0xfefe29de
-fefe29b4:	2e3c 0000 0640 	movel #1600,%d7
+
+; The code below here copies a table, given by
+; a5 into the location given by a4
+; d6 is the location to stop at.
+; This is the SCC initialization sequence.
+;
+; 00015400 03c1 05ea 0e03 0010 0010 0010 09c0 0010
+; 00015410 0446 03c0 0560 0902 0b51 0c0e 0d00 0e02
+; 00015420 021e 03c1 0568 0e03 0010 0010 7525 6369
+
+
+; the value in feff5490 is 3 !!
+; this same delay value is used many places
+; the delay count is 1600 << 3
+
+fefe29b4:	2e3c 0000 0640 	movel #1600,%d7			; loop
 fefe29ba:	2239 feff 5490 	movel 0xfeff5490,%d1
 fefe29c0:	e2a7           	asrl %d1,%d7
-fefe29c2:	5387           	subql #1,%d7
+fefe29c2:	5387           	subql #1,%d7		; delay loop
 fefe29c4:	4a87           	tstl %d7
 fefe29c6:	6efa           	bgts 0xfefe29c2
+
 fefe29c8:	189d           	moveb %a5@+,%a4@
+
 fefe29ca:	2e3c 0000 0640 	movel #1600,%d7
 fefe29d0:	2239 feff 5490 	movel 0xfeff5490,%d1
 fefe29d6:	e2a7           	asrl %d1,%d7
 fefe29d8:	5387           	subql #1,%d7
 fefe29da:	4a87           	tstl %d7
 fefe29dc:	6efa           	bgts 0xfefe29d8
+
 fefe29de:	bbc6           	cmpal %d6,%a5
-fefe29e0:	65d2           	bcss 0xfefe29b4
+fefe29e0:	65d2           	bcss 0xfefe29b4		; loop up
+
 fefe29e2:	4eb9 fefe 6c7c 	jsr 0xfefe6c7c
 fefe29e8:	4a80           	tstl %d0
 fefe29ea:	6712           	beqs 0xfefe29fe
-fefe29ec:	4879 fef0 2000 	pea 0xfef02000
+fefe29ec:	4879 fef0 2000 	pea 0xfef02000		; serial SCC VA
 fefe29f2:	4878 1200      	pea 0x1200
 fefe29f6:	4eb9 fefe 2a68 	jsr 0xfefe2a68
 fefe29fc:	504f           	addqw #8,%sp
@@ -3905,11 +3926,11 @@ fefe2dbe:	2e3c fef0 2000 	movel #-17817600,%d7
 fefe2dc4:	23c7 fef7 235a 	movel %d7,0xfef7235a
 fefe2dca:	23c7 fef7 235e 	movel %d7,0xfef7235e
 fefe2dd0:	4878 0001      	pea 0x1
-fefe2dd4:	4879 fef0 2000 	pea 0xfef02000
+fefe2dd4:	4879 fef0 2000 	pea 0xfef02000		; serial SCC VA
 fefe2dda:	4eb9 fefe 2958 	jsr 0xfefe2958
 fefe2de0:	504f           	addqw #8,%sp
 fefe2de2:	42a7           	clrl %sp@-
-fefe2de4:	4879 fef0 2004 	pea 0xfef02004
+fefe2de4:	4879 fef0 2004 	pea 0xfef02004		; serial SCC VA
 fefe2dea:	4eb9 fefe 2958 	jsr 0xfefe2958
 fefe2df0:	504f           	addqw #8,%sp
 fefe2df2:	0c39 0012 fef0 	cmpib #18,0xfef04058
@@ -3922,7 +3943,7 @@ fefe2e06:	7200           	moveq #0,%d1
 fefe2e08:	1239 fef0 405a 	moveb 0xfef0405a,%d1
 fefe2e0e:	d081           	addl %d1,%d0
 fefe2e10:	2a40           	moveal %d0,%a5
-fefe2e12:	4879 fef0 2004 	pea 0xfef02004
+fefe2e12:	4879 fef0 2004 	pea 0xfef02004		; serial SCC VA
 fefe2e18:	4855           	pea %a5@
 fefe2e1a:	4eb9 fefe 32c8 	jsr 0xfefe32c8
 fefe2e20:	584f           	addqw #4,%sp
@@ -4004,7 +4025,7 @@ fefe2f38:	0240 0fff      	andiw #4095,%d0
 fefe2f3c:	0c40 007d      	cmpiw #125,%d0
 fefe2f40:	675c           	beqs 0xfefe2f9e
 fefe2f42:	4878 0001      	pea 0x1
-fefe2f46:	4879 fef0 0000 	pea 0xfef00000
+fefe2f46:	4879 fef0 0000 	pea 0xfef00000		; SCC_kb VA
 fefe2f4c:	4eb9 fefe 2958 	jsr 0xfefe2958
 fefe2f52:	504f           	addqw #8,%sp
 fefe2f54:	267c fef7 22ee 	moveal #-17358098,%a3
@@ -5580,7 +5601,7 @@ fefe4322:	4878 0002      	pea 0x2
 fefe4326:	4eb9 fefe 6952 	jsr 0xfefe6952
 fefe432c:	584f           	addqw #4,%sp
 fefe432e:	4878 0001      	pea 0x1
-fefe4332:	4879 fef0 0000 	pea 0xfef00000
+fefe4332:	4879 fef0 0000 	pea 0xfef00000		; SCC_kb VA
 fefe4338:	4eb9 fefe 2958 	jsr 0xfefe2958
 fefe433e:	504f           	addqw #8,%sp
 fefe4340:	4239 fef0 9000 	clrb 0xfef09000
@@ -9426,6 +9447,7 @@ fefe71d6:	207c 6400 070b 	moveal #1677723403,%a0
 fefe71dc:	1010           	moveb %a0@,%d0
 fefe71de:	0c00 0006      	cmpib #6,%d0
 fefe71e2:	6600 0016      	bnew 0xfefe71fa
+
 fefe71e6:	08c7 001a      	bset #26,%d7
 fefe71ea:	08c7 000e      	bset #14,%d7
 fefe71ee:	08c7 000f      	bset #15,%d7
@@ -9453,115 +9475,190 @@ fefe721a:	60ff 0000 292c 	bral 0xfefe9b48			; ODD_test
 fefe7220:	7201           	moveq #1,%d1
 fefe7222:	4dfa 0008      	lea %pc@(0xfefe722c),%fp
 fefe7226:	60ff 0000 29fa 	bral 0xfefe9c22			; ODD_user_sp
-; uart zs0
-; the dbf is a clever delay loop
+
+/ Do stuff with the serial port
 fefe722c:	740c           	moveq #12,%d2
-fefe722e:	13c2 6200 2004 	moveb %d2,0x62002004
+fefe722e:	13c2 6200 2004 	moveb %d2,0x62002004	; SCC
 fefe7234:	383c 0180      	movew #384,%d4
 fefe7238:	51cc fffe      	dbf %d4,0xfefe7238
-fefe723c:	13c1 6200 2004 	moveb %d1,0x62002004
+
+fefe723c:	13c1 6200 2004 	moveb %d1,0x62002004	; SCC
 fefe7242:	383c 0180      	movew #384,%d4
 fefe7246:	51cc fffe      	dbf %d4,0xfefe7246
-fefe724a:	13c2 6200 2004 	moveb %d2,0x62002004
+
+fefe724a:	13c2 6200 2004 	moveb %d2,0x62002004	; SCC
 fefe7250:	383c 0180      	movew #384,%d4
 fefe7254:	51cc fffe      	dbf %d4,0xfefe7254
 
-fefe7258:	1039 6200 2004 	moveb 0x62002004,%d0
+fefe7258:	1039 6200 2004 	moveb 0x62002004,%d0	; SCC
 fefe725e:	b200           	cmpb %d0,%d1
 fefe7260:	6700 000c      	beqw 0xfefe726e
+
+; maybe print this
 fefe7264:	4dfa 0008      	lea %pc@(0xfefe726e),%fp
 fefe7268:	60ff 0000 2a3e 	bral 0xfefe9ca8		; ODD_print2
+
 fefe726e:	4dfa 0008      	lea %pc@(0xfefe7278),%fp
 fefe7272:	60ff 0000 2aa8 	bral 0xfefe9d1c			; ODD_func
 fefe7278:	e301           	aslb #1,%d1
-fefe727a:	6600 ffa6      	bnew 0xfefe7222
+fefe727a:	6600 ffa6      	bnew 0xfefe7222		; loop up
+
 fefe727e:	7201           	moveq #1,%d1
 fefe7280:	4dfa 0008      	lea %pc@(0xfefe728a),%fp
 fefe7284:	60ff 0000 299c 	bral 0xfefe9c22			; ODD_user_sp
+
+; Do stuff with the other serial channel
 fefe728a:	740c           	moveq #12,%d2
-fefe728c:	13c2 6200 2000 	moveb %d2,0x62002000
+fefe728c:	13c2 6200 2000 	moveb %d2,0x62002000	; SCC
 fefe7292:	383c 0180      	movew #384,%d4
 fefe7296:	51cc fffe      	dbf %d4,0xfefe7296
-fefe729a:	13c1 6200 2000 	moveb %d1,0x62002000
+fefe729a:	13c1 6200 2000 	moveb %d1,0x62002000	; SCC
 fefe72a0:	383c 0180      	movew #384,%d4
 fefe72a4:	51cc fffe      	dbf %d4,0xfefe72a4
-fefe72a8:	13c2 6200 2000 	moveb %d2,0x62002000
+fefe72a8:	13c2 6200 2000 	moveb %d2,0x62002000	; SCC
 fefe72ae:	383c 0180      	movew #384,%d4
 fefe72b2:	51cc fffe      	dbf %d4,0xfefe72b2
-fefe72b6:	1039 6200 2000 	moveb 0x62002000,%d0
+fefe72b6:	1039 6200 2000 	moveb 0x62002000,%d0	; SCC
 fefe72bc:	b200           	cmpb %d0,%d1
 fefe72be:	6700 000c      	beqw 0xfefe72cc
+
+; maybe print this
 fefe72c2:	4dfa 0008      	lea %pc@(0xfefe72cc),%fp
 fefe72c6:	60ff 0000 29e0 	bral 0xfefe9ca8		; ODD_print2
+
 fefe72cc:	4dfa 0008      	lea %pc@(0xfefe72d6),%fp
 fefe72d0:	60ff 0000 2a4a 	bral 0xfefe9d1c			; ODD_func
 fefe72d6:	e301           	aslb #1,%d1
-fefe72d8:	6600 ffa6      	bnew 0xfefe7280
+fefe72d8:	6600 ffa6      	bnew 0xfefe7280		; loop up
+
 fefe72dc:	08c7 000e      	bset #14,%d7
 fefe72e0:	08c7 000a      	bset #10,%d7
 fefe72e4:	1e3c 0029      	moveb #41,%d7
 fefe72e8:	4dfa 0008      	lea %pc@(0xfefe72f2),%fp
 fefe72ec:	60ff 0000 285a 	bral 0xfefe9b48			; ODD_test
+
+; -- it sure looks like 2 exact copies of the same code follows,
+;    Once for 0004, then for 0000
+;    (mouse, then keyboard?)
+;  doing something with the keyboard/mouse serial
+;  this sort of looks like a diagnostic
+
+; A value to write to reg 12
 fefe72f2:	7201           	moveq #1,%d1
+
+; loop here from below
 fefe72f4:	4dfa 0008      	lea %pc@(0xfefe72fe),%fp
 fefe72f8:	60ff 0000 2928 	bral 0xfefe9c22			; ODD_user_sp
-fefe72fe:	740c           	moveq #12,%d2
-fefe7300:	13c2 6200 0004 	moveb %d2,0x62000004
-fefe7306:	383c 0180      	movew #384,%d4
-fefe730a:	51cc fffe      	dbf %d4,0xfefe730a
-fefe730e:	13c1 6200 0004 	moveb %d1,0x62000004
+
+fefe72fe:	740c           	moveq #12,%d2			; reg 12
+fefe7300:	13c2 6200 0004 	moveb %d2,0x62000004	; SCC_kb
+fefe7306:	383c 0180      	movew #384,%d4	
+fefe730a:	51cc fffe      	dbf %d4,0xfefe730a		; delay
+
+fefe730e:	13c1 6200 0004 	moveb %d1,0x62000004	; SCC_kb (write reg 12)
 fefe7314:	383c 0180      	movew #384,%d4
-fefe7318:	51cc fffe      	dbf %d4,0xfefe7318
-fefe731c:	13c2 6200 0004 	moveb %d2,0x62000004
+fefe7318:	51cc fffe      	dbf %d4,0xfefe7318		; delay
+
+fefe731c:	13c2 6200 0004 	moveb %d2,0x62000004	; SCC_kb (reg 12 again)
 fefe7322:	383c 0180      	movew #384,%d4
-fefe7326:	51cc fffe      	dbf %d4,0xfefe7326
-fefe732a:	1039 6200 0004 	moveb 0x62000004,%d0
+fefe7326:	51cc fffe      	dbf %d4,0xfefe7326		; delay
+
+fefe732a:	1039 6200 0004 	moveb 0x62000004,%d0	; SCC_kb (read reg 12)
 fefe7330:	b200           	cmpb %d0,%d1
 fefe7332:	6700 000c      	beqw 0xfefe7340
+
 fefe7336:	4dfa 0008      	lea %pc@(0xfefe7340),%fp
 fefe733a:	60ff 0000 296c 	bral 0xfefe9ca8		; ODD_print2
+
 fefe7340:	4dfa 0008      	lea %pc@(0xfefe734a),%fp
 fefe7344:	60ff 0000 29d6 	bral 0xfefe9d1c			; ODD_func
+
 fefe734a:	e301           	aslb #1,%d1
-fefe734c:	6600 ffa6      	bnew 0xfefe72f4
+fefe734c:	6600 ffa6      	bnew 0xfefe72f4		; loop up
+; ------------
+
+; A value to write to reg 12
 fefe7350:	7201           	moveq #1,%d1
+
+; loop here from below
 fefe7352:	4dfa 0008      	lea %pc@(0xfefe735c),%fp
 fefe7356:	60ff 0000 28ca 	bral 0xfefe9c22			; ODD_user_sp
+
 fefe735c:	740c           	moveq #12,%d2
-fefe735e:	13c2 6200 0000 	moveb %d2,0x62000000
+fefe735e:	13c2 6200 0000 	moveb %d2,0x62000000	; SCC_kb
 fefe7364:	383c 0180      	movew #384,%d4
 fefe7368:	51cc fffe      	dbf %d4,0xfefe7368
-fefe736c:	13c1 6200 0000 	moveb %d1,0x62000000
+
+fefe736c:	13c1 6200 0000 	moveb %d1,0x62000000	; SCC_kb
 fefe7372:	383c 0180      	movew #384,%d4
 fefe7376:	51cc fffe      	dbf %d4,0xfefe7376
-fefe737a:	13c2 6200 0000 	moveb %d2,0x62000000
+
+fefe737a:	13c2 6200 0000 	moveb %d2,0x62000000	; SCC_kb
 fefe7380:	383c 0180      	movew #384,%d4
 fefe7384:	51cc fffe      	dbf %d4,0xfefe7384
-fefe7388:	1039 6200 0000 	moveb 0x62000000,%d0
+
+fefe7388:	1039 6200 0000 	moveb 0x62000000,%d0	; SCC_kb (read)
 fefe738e:	b200           	cmpb %d0,%d1
 fefe7390:	6700 000c      	beqw 0xfefe739e
+
 fefe7394:	4dfa 0008      	lea %pc@(0xfefe739e),%fp
 fefe7398:	60ff 0000 290e 	bral 0xfefe9ca8		; ODD_print2
+
 fefe739e:	4dfa 0008      	lea %pc@(0xfefe73a8),%fp
 fefe73a2:	60ff 0000 2978 	bral 0xfefe9d1c			; ODD_func
+
 fefe73a8:	e301           	aslb #1,%d1
-fefe73aa:	6600 ffa6      	bnew 0xfefe7352
+fefe73aa:	6600 ffa6      	bnew 0xfefe7352		; loop up
+; ------------
+
 fefe73ae:	0807 001a      	btst #26,%d7
 fefe73b2:	6600 0006      	bnew 0xfefe73ba
 fefe73b6:	0887 000e      	bclr #14,%d7
 fefe73ba:	0887 000a      	bclr #10,%d7
+
+; Initialize SCC at 6200_2004
+; Copy a block of stuff from relocated a0 to a1
+; Block ends on 0xff
+; We loop through the block, but a1 stays constant
+; fefeaa74:	09c0           	bset %d4,%d0
+; fefeaa76:	0446 03c0      	subiw #960,%d6
+; fefeaa7a:	05e2           	bset %d2,%a2@-
+; fefeaa7c:	0902           	btst %d4,%d2
+; fefeaa7e:	0b55           	bchg %d5,%a5@
+; fefeaa80:	0c0e           	.short 0x0c0e
+; fefeaa82:	0d00           	btst %d6,%d0
+; fefeaa84:	0e02           	.short 0x0e02
+; fefeaa86:	03c1           	bset %d1,%d1
+; fefeaa88:	05ea 0e03      	bset %d2,%a2@(3587)
+; fefeaa8c:	0030 0030 0010 	orib #48,%a0@(10,%d0:w)
+; fefeaa92:	ffff           	.short 0xffff
+
 fefe73be:	4dfa 0014      	lea %pc@(0xfefe73d4),%fp
 fefe73c2:	41f9 fefe aa74 	lea 0xfefeaa74,%a0
-fefe73c8:	43f9 6200 2004 	lea 0x62002004,%a1
+fefe73c8:	43f9 6200 2004 	lea 0x62002004,%a1	; SCC
 fefe73ce:	60ff 0000 32ee 	bral 0xfefea6be
+
 fefe73d4:	2c3c 0000 0180 	movel #384,%d6
-fefe73da:	51ce fffe      	dbf %d6,0xfefe73da
+fefe73da:	51ce fffe      	dbf %d6,0xfefe73da	; delay
+
+; Initialize SCC at 6200_2000
+; another block to send
+; fefeaa94:	0446 03c0      	subiw #960,%d6
+; fefeaa98:	05e2           	bset %d2,%a2@-
+; fefeaa9a:	0902           	btst %d4,%d2
+; fefeaa9c:	0b55           	bchg %d5,%a5@
+; fefeaa9e:	0c7e           	.short 0x0c7e
+; fefeaaa0:	0d00           	btst %d6,%d0
+; fefeaaa2:	0e02           	.short 0x0e02
+; fefeaaa4:	03c1           	bset %d1,%d1
+; fefeaaa6:	05ea 0e03      	bset %d2,%a2@(3587)
+; fefeaaaa:	0030 0030 0010 	orib #48,%a0@(10,%d0:w)
+; fefeaab0:	ffff           	.short 0xffff
+
 fefe73de:	4dfa 0014      	lea %pc@(0xfefe73f4),%fp
 fefe73e2:	41f9 fefe aa94 	lea 0xfefeaa94,%a0
-fefe73e8:	43f9 6200 2000 	lea 0x62002000,%a1
+fefe73e8:	43f9 6200 2000 	lea 0x62002000,%a1	; SCC
 fefe73ee:	60ff 0000 32ce 	bral 0xfefea6be
-
-;-- fefe7770 0123 4567 1a0c 0d0a 5375 6e2d 332f 3830    #Eg    Sun-3/80
 
 ; -----------------------------------
 ; Here is is - the first message I see when the system boots up
@@ -11613,6 +11710,11 @@ fefe9d18:	6000 06ba      	braw 0xfefea3d4		; ODD_print
 ; -----------------------------------
 ; Another important ODD routine that gets called from many places
 ; many many calls
+;
+; Note that d7 is some collection of flags that
+;  are set elsewhere and tested here.
+; Sometimes they get stored to 6f00_003c
+
 ; ODD_func
 
 fefe9d1c:	0839 0006 6f00 	btst #6,0x6f00003c
@@ -11624,12 +11726,14 @@ fefe9d30:	103c 005c      	moveb #92,%d0
 fefe9d34:	6000 000e      	braw 0xfefe9d44
 fefe9d38:	08f9 0006 6f00 	bset #6,0x6f00003c
 fefe9d3e:	003c
-fefe9d40:	103c 002f      	moveb #47,%d0
-fefe9d44:	0807 000e      	btst #14,%d7
+fefe9d40:	103c 002f      	moveb #47,%d0	; '/'
+fefe9d44:	0807 000e      	btst #14,%d7	; Flags
 fefe9d48:	6600 005e      	bnew 0xfefe9da8
-fefe9d4c:	0807 000b      	btst #11,%d7
+
+fefe9d4c:	0807 000b      	btst #11,%d7	; Flags
 fefe9d50:	6600 000a      	bnew 0xfefe9d5c
-fefe9d54:	0807 0009      	btst #9,%d7
+
+fefe9d54:	0807 0009      	btst #9,%d7		; Flags
 fefe9d58:	6700 004e      	beqw 0xfefe9da8
 
 ; note:
@@ -11642,42 +11746,48 @@ fefe9d58:	6700 004e      	beqw 0xfefe9da8
 fefe9d5c:	2c3c 0000 0180 	movel #384,%d6
 fefe9d62:	51ce fffe      	dbf %d6,0xfefe9d62		; delay
 
-fefe9d66:	0839 0002 6200 	btst #2,0x62002004
+fefe9d66:	0839 0002 6200 	btst #2,0x62002004	; SCC
 fefe9d6c:	2004
 fefe9d6e:	6700 ffec      	beqw 0xfefe9d5c
 
 ; write to the SCC, repeat the write until
 ; the bit gets set
-fefe9d72:	13c0 6200 2006 	moveb %d0,0x62002006
+fefe9d72:	13c0 6200 2006 	moveb %d0,0x62002006	; SCC
 fefe9d78:	103c 0008      	moveb #8,%d0
 
 fefe9d7c:	2c3c 0000 0180 	movel #384,%d6
 fefe9d82:	51ce fffe      	dbf %d6,0xfefe9d82		; delay
 
-fefe9d86:	0839 0002 6200 	btst #2,0x62002004
+fefe9d86:	0839 0002 6200 	btst #2,0x62002004	; SCC
 fefe9d8c:	2004
 fefe9d8e:	6700 ffec      	beqw 0xfefe9d7c			; loop
 
-fefe9d92:	13c0 6200 2006 	moveb %d0,0x62002006
-fefe9d98:	0807 0009      	btst #9,%d7
+fefe9d92:	13c0 6200 2006 	moveb %d0,0x62002006	; SCC
+fefe9d98:	0807 0009      	btst #9,%d7				; Flags
 fefe9d9c:	6700 000a      	beqw 0xfefe9da8
-fefe9da0:	0807 000e      	btst #14,%d7
+fefe9da0:	0807 000e      	btst #14,%d7			; Flags
 fefe9da4:	6600 0002      	bnew 0xfefe9da8
-fefe9da8:	0807 000a      	btst #10,%d7
+
+; sometimes we come straight here from above
+fefe9da8:	0807 000a      	btst #10,%d7			; Flags
 fefe9dac:	6600 0100      	bnew 0xfefe9eae		; end (below)
 
-fefe9db0:	1c39 6200 2004 	moveb 0x62002004,%d6
+fefe9db0:	1c39 6200 2004 	moveb 0x62002004,%d6	; SCC
+
+; should we go to other channel ?
 fefe9db6:	0806 0000      	btst #0,%d6
 fefe9dba:	6700 000c      	beqw 0xfefe9dc8
-fefe9dbe:	1c39 6200 2006 	moveb 0x62002006,%d6
+
+fefe9dbe:	1c39 6200 2006 	moveb 0x62002006,%d6  ; SCC - read data
 fefe9dc4:	6000 0016      	braw 0xfefe9ddc
 
-fefe9dc8:	1c39 6200 2000 	moveb 0x62002000,%d6
+; Now the other channel
+fefe9dc8:	1c39 6200 2000 	moveb 0x62002000,%d6	; SCC
 fefe9dce:	0806 0000      	btst #0,%d6
 fefe9dd2:	6700 00da      	beqw 0xfefe9eae		; end (below)
 
 ; read a character
-fefe9dd6:	1c39 6200 2002 	moveb 0x62002002,%d6
+fefe9dd6:	1c39 6200 2002 	moveb 0x62002002,%d6  ; read data	; SCC
 
 ; Test for 'q'
 fefe9ddc:	0c06 0071      	cmpib #113,%d6
@@ -11704,7 +11814,7 @@ fefe9e00:	6700 0102      	beqw 0xfefe9f04
 ; space
 fefe9e04:	0c06 0020      	cmpib #32,%d6
 fefe9e08:	6600 000a      	bnew 0xfefe9e14
-fefe9e0c:	08c7 0007      	bset #7,%d7
+fefe9e0c:	08c7 0007      	bset #7,%d7			; Flags
 fefe9e10:	6000 00d4      	braw 0xfefe9ee6
 
 ; 0x0C, formfeed
@@ -11718,7 +11828,7 @@ fefe9e20:	6700 000a      	beqw 0xfefe9e2c
 ; 'S'
 fefe9e24:	0c06 0053      	cmpib #83,%d6
 fefe9e28:	6600 000c      	bnew 0xfefe9e36
-fefe9e2c:	0887 0009      	bclr #9,%d7
+fefe9e2c:	0887 0009      	bclr #9,%d7			; Flags
 fefe9e30:	60ff ffff d22e 	bral 0xfefe7060		; BIG_init
 
 ; 'b'
@@ -11729,18 +11839,18 @@ fefe9e3a:	6700 000a      	beqw 0xfefe9e46
 fefe9e3e:	0c06 0042      	cmpib #66,%d6
 fefe9e42:	6600 006a      	bnew 0xfefe9eae		; end (below)
 
-fefe9e46:	0807 0009      	btst #9,%d7
+fefe9e46:	0807 0009      	btst #9,%d7			; Flags
 fefe9e4a:	6600 0062      	bnew 0xfefe9eae		; end (below)
 
-fefe9e4e:	0807 000b      	btst #11,%d7
+fefe9e4e:	0807 000b      	btst #11,%d7		; Flags
 fefe9e52:	6700 000e      	beqw 0xfefe9e62		; Burn-in mode on
 
-fefe9e56:	0887 000b      	bclr #11,%d7
+fefe9e56:	0887 000b      	bclr #11,%d7		; Flags
 fefe9e5a:	49fa 1099      	lea %pc@(0xfefeaef5),%a4
 ; 0xfefeaef5 \r\n <Turning BURN-IN mode OFF>
 fefe9e5e:	6000 000a      	braw 0xfefe9e6a
 
-fefe9e62:	08c7 000b      	bset #11,%d7
+fefe9e62:	08c7 000b      	bset #11,%d7		; Flags
 fefe9e66:	49fa 1070      	lea %pc@(0xfefeaed8),%a4
 ; 0xfefeaed8 \r\n <Turning BURN-IN mode ON>
 
@@ -11754,7 +11864,7 @@ fefe9e74:	d9fc 6300 0000 	addal #1660944384,%a4
 ; loop to print string pointed to by a4
 fefe9e7a:	2c3c 0000 0180 	movel #384,%d6		; loops to here
 fefe9e80:	51ce fffe      	dbf %d6,0xfefe9e80	; delay
-fefe9e84:	0839 0002 6200 	btst #2,0x62002004
+fefe9e84:	0839 0002 6200 	btst #2,0x62002004	; SCC
 fefe9e8a:	2004
 fefe9e8c:	6700 ffec      	beqw 0xfefe9e7a		; loop until ready
 
@@ -11764,11 +11874,11 @@ fefe9e96:	51ce fffe      	dbf %d6,0xfefe9e96
 fefe9e9a:	1c1c           	moveb %a4@+,%d6		; next char
 fefe9e9c:	0c06 0000      	cmpib #0,%d6
 fefe9ea0:	6700 000c      	beqw 0xfefe9eae		; end (below)
-fefe9ea4:	13c6 6200 2006 	moveb %d6,0x62002006
+fefe9ea4:	13c6 6200 2006 	moveb %d6,0x62002006	; SCC
 fefe9eaa:	6000 ffce      	braw 0xfefe9e7a		; loop up
 
 ; end
-fefe9eae:	0807 0009      	btst #9,%d7
+fefe9eae:	0807 0009      	btst #9,%d7			; Flags
 fefe9eb2:	6700 0032      	beqw 0xfefe9ee6
 fefe9eb6:	0839 0000 6100 	btst #0,0x61000800		; system XXX
 fefe9ebc:	0800
@@ -11783,7 +11893,7 @@ fefe9edc:	0800
 fefe9ede:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
 fefe9ee4:	0800
 
-fefe9ee6:	0807 0007      	btst #7,%d7
+fefe9ee6:	0807 0007      	btst #7,%d7			; Flags
 fefe9eea:	6600 0012      	bnew 0xfefe9efe
 
 fefe9eee:	46fc 3700      	movew #14080,%sr		; select master state
@@ -11801,7 +11911,7 @@ fefe9f02:	4ed6           	jmp %fp@
 fefe9f04:	3c3c 2140      	movew #8512,%d6
 fefe9f08:	4646           	notw %d6
 fefe9f0a:	cd79 6100 0000 	andw %d6,0x61000000		; system enable
-fefe9f10:	0887 0009      	bclr #9,%d7
+fefe9f10:	0887 0009      	bclr #9,%d7			; Flags
 fefe9f14:	023c 00fe      	andib #-2,%ccr
 fefe9f18:	4ed6           	jmp %fp@
 
@@ -11815,6 +11925,7 @@ fefe9f30:	49fa 093e      	lea %pc@(0xfefea870),%a4
 ; 0xfefea870 ~~                      <<< Sun 3/80 Test Loop Menu >>>\r\n Individual tests can be selected and run from this menu. Each test will run\r\n until stopped. Only the first error will be displayed.
 fefe9f34:	4dfa 0006      	lea %pc@(0xfefe9f3c),%fp
 fefe9f38:	6000 049a      	braw 0xfefea3d4		; ODD_print
+
 fefe9f3c:	4bfa 07ca      	lea %pc@(0xfefea708),%a5
 fefe9f40:	2a0d           	movel %a5,%d5
 fefe9f42:	0285 0001 ffff 	andil #131071,%d5
@@ -11852,21 +11963,29 @@ fefe9fae:	49fa 0989      	lea %pc@(0xfefea939),%a4
 ; 0xfefea939 \r\n    <<< Press <Space> for more, <Esc> to quit or select an option >>> 
 fefe9fb2:	4dfa 0006      	lea %pc@(0xfefe9fba),%fp
 fefe9fb6:	6000 041c      	braw 0xfefea3d4		; ODD_print
+
+; loop comes here.  Looks to me like we are trying both
+; serial ports, waiting for something (anything)
 fefe9fba:	223c 0000 0180 	movel #384,%d1
-fefe9fc0:	51c9 fffe      	dbf %d1,0xfefe9fc0
+fefe9fc0:	51c9 fffe      	dbf %d1,0xfefe9fc0		; delay
+
 fefe9fc4:	4286           	clrl %d6
-fefe9fc6:	1c39 6200 2004 	moveb 0x62002004,%d6
+fefe9fc6:	1c39 6200 2004 	moveb 0x62002004,%d6	; SCC
 fefe9fcc:	0806 0000      	btst #0,%d6
 fefe9fd0:	6700 000c      	beqw 0xfefe9fde
-fefe9fd4:	1c39 6200 2006 	moveb 0x62002006,%d6
+fefe9fd4:	1c39 6200 2006 	moveb 0x62002006,%d6	; SCC
 fefe9fda:	6000 0016      	braw 0xfefe9ff2
-fefe9fde:	1c39 6200 2000 	moveb 0x62002000,%d6
+
+fefe9fde:	1c39 6200 2000 	moveb 0x62002000,%d6	; SCC
 fefe9fe4:	0806 0000      	btst #0,%d6
-fefe9fe8:	6700 ffd0      	beqw 0xfefe9fba
-fefe9fec:	1c39 6200 2002 	moveb 0x62002002,%d6
-fefe9ff2:	223c 0000 0180 	movel #384,%d1
+fefe9fe8:	6700 ffd0      	beqw 0xfefe9fba		; loop up
+fefe9fec:	1c39 6200 2002 	moveb 0x62002002,%d6	; SCC
+
+; got something
+fefe9ff2:	223c 0000 0180 	movel #384,%d1			; delay
 fefe9ff8:	51c9 fffe      	dbf %d1,0xfefe9ff8
-fefe9ffc:	0c06 001b      	cmpib #27,%d6
+
+fefe9ffc:	0c06 001b      	cmpib #27,%d6		; test for ESC
 fefea000:	6600 0016      	bnew 0xfefea018
 
 ; print message
@@ -11877,6 +11996,7 @@ fefea008:	4df9 fefe 7060 	lea 0xfefe7060,%fp		; BIG_init
 fefea00e:	6000 03c4      	braw 0xfefea3d4		; ODD_print
 fefea012:	60ff ffff d04c 	bral 0xfefe7060		; BIG_init
 
+; not ESC
 fefea018:	0c06 0020      	cmpib #32,%d6
 fefea01c:	6600 0010      	bnew 0xfefea02e
 fefea020:	0c84 ffff ffff 	cmpil #-1,%d4
@@ -11905,12 +12025,12 @@ fefea07a:	4dfa 0006      	lea %pc@(0xfefea082),%fp
 fefea07e:	6000 0354      	braw 0xfefea3d4		; ODD_print
 fefea082:	dbfc 0000 0008 	addal #8,%a5
 fefea088:	2c55           	moveal %a5@,%fp
-fefea08a:	08c7 0009      	bset #9,%d7
+fefea08a:	08c7 0009      	bset #9,%d7			; Flags
 fefea08e:	4ed6           	jmp %fp@
 
 fefea090:	343c 0180      	movew #384,%d2
 fefea094:	51ca fffe      	dbf %d2,0xfefea094
-fefea098:	1239 6200 2004 	moveb 0x62002004,%d1
+fefea098:	1239 6200 2004 	moveb 0x62002004,%d1	; SCC
 fefea09e:	0801 0000      	btst #0,%d1
 fefea0a2:	343c 0180      	movew #384,%d2
 fefea0a6:	51ca fffe      	dbf %d2,0xfefea0a6
@@ -11918,12 +12038,12 @@ fefea0aa:	0801 0002      	btst #2,%d1
 fefea0ae:	56ca ffe8      	dbne %d2,0xfefea098
 fefea0b2:	343c 0180      	movew #384,%d2
 fefea0b6:	51ca fffe      	dbf %d2,0xfefea0b6
-fefea0ba:	13c0 6200 2006 	moveb %d0,0x62002006
+fefea0ba:	13c0 6200 2006 	moveb %d0,0x62002006	; SCC
 fefea0c0:	343c 0180      	movew #384,%d2
 fefea0c4:	51ca fffe      	dbf %d2,0xfefea0c4
 fefea0c8:	343c 0180      	movew #384,%d2
 fefea0cc:	51ca fffe      	dbf %d2,0xfefea0cc
-fefea0d0:	1239 6200 2000 	moveb 0x62002000,%d1
+fefea0d0:	1239 6200 2000 	moveb 0x62002000,%d1	; SCC
 fefea0d6:	0801 0000      	btst #0,%d1
 fefea0da:	343c 0180      	movew #384,%d2
 fefea0de:	51ca fffe      	dbf %d2,0xfefea0de
@@ -11931,7 +12051,7 @@ fefea0e2:	0801 0002      	btst #2,%d1
 fefea0e6:	56ca ffe8      	dbne %d2,0xfefea0d0
 fefea0ea:	343c 0180      	movew #384,%d2
 fefea0ee:	51ca fffe      	dbf %d2,0xfefea0ee
-fefea0f2:	13c0 6200 2002 	moveb %d0,0x62002002
+fefea0f2:	13c0 6200 2002 	moveb %d0,0x62002002	; SCC
 fefea0f8:	343c 0180      	movew #384,%d2
 fefea0fc:	51ca fffe      	dbf %d2,0xfefea0fc
 fefea100:	4ed6           	jmp %fp@
@@ -11957,11 +12077,11 @@ fefea13c:	4e7b 0801      	movec %d0,%vbr
 fefea140:	4ed6           	jmp %fp@
 
 ; Bus error handler
-fefea142:	0887 0011      	bclr #17,%d7
+fefea142:	0887 0011      	bclr #17,%d7			; Flags
 fefea146:	6600 002c      	bnew 0xfefea174
-fefea14a:	0887 0007      	bclr #7,%d7
-fefea14e:	0887 0006      	bclr #6,%d7
-fefea152:	13c7 6f00 003c 	moveb %d7,0x6f00003c
+fefea14a:	0887 0007      	bclr #7,%d7				; Flags
+fefea14e:	0887 0006      	bclr #6,%d7				; Flags
+fefea152:	13c7 6f00 003c 	moveb %d7,0x6f00003c	; save flags (?)
 fefea158:	202f 0014      	movel %sp@(20),%d0
 fefea15c:	49fa 0028      	lea %pc@(0xfefea186),%a4
 ; 0xfefea186 \r\n Unexpected bus error, address=%d0, a5=%a5
@@ -11998,10 +12118,15 @@ fefea1aa:	2c20           	movel %a0@-,%d6
 fefea1ac:	6135           	bsrs 0xfefea1e3
 fefea1ae:	3d25           	movew %a5@-,%fp@-
 fefea1b0:	6135           	bsrs 0xfefea1e7
-fefea1b2:	0000 0887      	orib #-121,%d0
-fefea1b6:	0007 0887      	orib #-121,%d7
-fefea1ba:	0006 13c7      	orib #-57,%d6
-fefea1be:	6f00 003c      	blew 0xfefea1fc
+
+fefea1b2:	0000
+
+; no path to here
+fefea1b4:	0887 0007      	bclr #7,%d7
+fefea1b8:	0887 0006      	bclr #6,%d7
+fefea1bc:	13c7 6f00 003c 	moveb %d7,0x6f00003c
+
+; no path to here
 fefea1c2:	49fa 001e      	lea %pc@(0xfefea1e2),%a4
 ; 0xfefea1e2 \r\n Address trap error, address %a5
 fefea1c6:	4dfa 0008      	lea %pc@(0xfefea1d0),%fp
@@ -12216,10 +12341,10 @@ fefea3fc:	0807 000a      	btst #10,%d7
 fefea400:	6600 0042      	bnew 0xfefea444
 fefea404:	3c3c 0180      	movew #384,%d6
 fefea408:	51ce fffe      	dbf %d6,0xfefea408
-fefea40c:	1c39 6200 2004 	moveb 0x62002004,%d6
+fefea40c:	1c39 6200 2004 	moveb 0x62002004,%d6	; SCC
 fefea412:	0806 0000      	btst #0,%d6
 fefea416:	6700 002c      	beqw 0xfefea444
-fefea41a:	1c39 6200 2006 	moveb 0x62002006,%d6
+fefea41a:	1c39 6200 2006 	moveb 0x62002006,%d6	; SCC
 fefea420:	0c06 0070      	cmpib #112,%d6
 fefea424:	6700 000a      	beqw 0xfefea430
 fefea428:	0c06 0050      	cmpib #80,%d6
@@ -12287,7 +12412,7 @@ fefea4e0:	1c10           	moveb %a0@,%d6
 fefea4e2:	303c 0180      	movew #384,%d0
 fefea4e6:	51c8 fffe      	dbf %d0,0xfefea4e6
 fefea4ea:	70ff           	moveq #-1,%d0
-fefea4ec:	1239 6200 2004 	moveb 0x62002004,%d1
+fefea4ec:	1239 6200 2004 	moveb 0x62002004,%d1	; SCC
 fefea4f2:	0801 0000      	btst #0,%d1
 fefea4f6:	303c 0180      	movew #384,%d0
 fefea4fa:	51c8 fffe      	dbf %d0,0xfefea4fa
@@ -12295,13 +12420,13 @@ fefea4fe:	0801 0002      	btst #2,%d1
 fefea502:	56c8 ffe8      	dbne %d0,0xfefea4ec
 fefea506:	303c 0180      	movew #384,%d0
 fefea50a:	51c8 fffe      	dbf %d0,0xfefea50a
-fefea50e:	13c6 6200 2006 	moveb %d6,0x62002006
+fefea50e:	13c6 6200 2006 	moveb %d6,0x62002006	; SCC
 fefea514:	0807 001a      	btst #26,%d7
 fefea518:	6600 0034      	bnew 0xfefea54e
 fefea51c:	303c 0180      	movew #384,%d0
 fefea520:	51c8 fffe      	dbf %d0,0xfefea520
 fefea524:	70ff           	moveq #-1,%d0
-fefea526:	1239 6200 2000 	moveb 0x62002000,%d1
+fefea526:	1239 6200 2000 	moveb 0x62002000,%d1	; SCC
 fefea52c:	0801 0000      	btst #0,%d1
 fefea530:	303c 0180      	movew #384,%d0
 fefea534:	51c8 fffe      	dbf %d0,0xfefea534
@@ -12309,7 +12434,7 @@ fefea538:	0801 0002      	btst #2,%d1
 fefea53c:	56c8 ffe8      	dbne %d0,0xfefea526
 fefea540:	303c 0180      	movew #384,%d0
 fefea544:	51c8 fffe      	dbf %d0,0xfefea544
-fefea548:	13c6 6200 2002 	moveb %d6,0x62002002
+fefea548:	13c6 6200 2002 	moveb %d6,0x62002002	; SCC
 fefea54e:	303c 0180      	movew #384,%d0
 fefea552:	51c8 fffe      	dbf %d0,0xfefea552
 fefea556:	5283           	addql #1,%d3
@@ -12318,7 +12443,7 @@ fefea55c:	6700 ff5e      	beqw 0xfefea4bc
 fefea560:	6000 fef4      	braw 0xfefea456
 fefea564:	1c1c           	moveb %a4@+,%d6
 fefea566:	4280           	clrl %d0
-fefea568:	1239 6200 2004 	moveb 0x62002004,%d1
+fefea568:	1239 6200 2004 	moveb 0x62002004,%d1	; SCC
 fefea56e:	0801 0000      	btst #0,%d1
 fefea572:	303c 0180      	movew #384,%d0
 fefea576:	51c8 fffe      	dbf %d0,0xfefea576
@@ -12326,13 +12451,13 @@ fefea57a:	0801 0002      	btst #2,%d1
 fefea57e:	56c8 ffe8      	dbne %d0,0xfefea568
 fefea582:	303c 0180      	movew #384,%d0
 fefea586:	51c8 fffe      	dbf %d0,0xfefea586
-fefea58a:	13c6 6200 2006 	moveb %d6,0x62002006
+fefea58a:	13c6 6200 2006 	moveb %d6,0x62002006	; SCC
 fefea590:	0807 001a      	btst #26,%d7
 fefea594:	6600 0034      	bnew 0xfefea5ca
 fefea598:	4280           	clrl %d0
 fefea59a:	303c 0180      	movew #384,%d0
 fefea59e:	51c8 fffe      	dbf %d0,0xfefea59e
-fefea5a2:	1239 6200 2000 	moveb 0x62002000,%d1
+fefea5a2:	1239 6200 2000 	moveb 0x62002000,%d1	; SCC
 fefea5a8:	0801 0000      	btst #0,%d1
 fefea5ac:	303c 0180      	movew #384,%d0
 fefea5b0:	51c8 fffe      	dbf %d0,0xfefea5b0
@@ -12340,7 +12465,7 @@ fefea5b4:	0801 0002      	btst #2,%d1
 fefea5b8:	56c8 ffe8      	dbne %d0,0xfefea5a2
 fefea5bc:	303c 0180      	movew #384,%d0
 fefea5c0:	51c8 fffe      	dbf %d0,0xfefea5c0
-fefea5c4:	13c6 6200 2002 	moveb %d6,0x62002002
+fefea5c4:	13c6 6200 2002 	moveb %d6,0x62002002	; SCC
 fefea5ca:	303c 0180      	movew #384,%d0
 fefea5ce:	51c8 fffe      	dbf %d0,0xfefea5ce
 fefea5d2:	6000 fe82      	braw 0xfefea456
@@ -12370,12 +12495,12 @@ fefea60c:	0807 000e      	btst #14,%d7
 fefea610:	6600 0028      	bnew 0xfefea63a
 fefea614:	223c 0000 0180 	movel #384,%d1
 fefea61a:	51c9 fffe      	dbf %d1,0xfefea61a
-fefea61e:	0839 0002 6200 	btst #2,0x62002004
+fefea61e:	0839 0002 6200 	btst #2,0x62002004	; SCC
 fefea624:	2004
 fefea626:	6700 ffe4      	beqw 0xfefea60c
 fefea62a:	223c 0000 0180 	movel #384,%d1
 fefea630:	51c9 fffe      	dbf %d1,0xfefea630
-fefea634:	13c0 6200 2006 	moveb %d0,0x62002006
+fefea634:	13c0 6200 2006 	moveb %d0,0x62002006	; SCC
 fefea63a:	4ed6           	jmp %fp@
 fefea63c:	0807 000e      	btst #14,%d7
 fefea640:	6600 007a      	bnew 0xfefea6bc
@@ -12387,45 +12512,59 @@ fefea652:	0600 0007      	addib #7,%d0
 fefea656:	0600 0030      	addib #48,%d0
 fefea65a:	223c 0000 0180 	movel #384,%d1
 fefea660:	51c9 fffe      	dbf %d1,0xfefea660
-fefea664:	0839 0002 6200 	btst #2,0x62002004
+fefea664:	0839 0002 6200 	btst #2,0x62002004	; SCC
 fefea66a:	2004
 fefea66c:	6700 ffec      	beqw 0xfefea65a
 fefea670:	223c 0000 0180 	movel #384,%d1
 fefea676:	51c9 fffe      	dbf %d1,0xfefea676
-fefea67a:	13c0 6200 2006 	moveb %d0,0x62002006
+fefea67a:	13c0 6200 2006 	moveb %d0,0x62002006	; SCC
 fefea680:	e958           	rolw #4,%d0
 fefea682:	0200 000f      	andib #15,%d0
 fefea686:	0c00 0009      	cmpib #9,%d0
 fefea68a:	6f00 0006      	blew 0xfefea692
 fefea68e:	0600 0007      	addib #7,%d0
 fefea692:	0600 0030      	addib #48,%d0
+
 fefea696:	223c 0000 0180 	movel #384,%d1
-fefea69c:	51c9 fffe      	dbf %d1,0xfefea69c
-fefea6a0:	0839 0002 6200 	btst #2,0x62002004
+fefea69c:	51c9 fffe      	dbf %d1,0xfefea69c		; delay
+
+fefea6a0:	0839 0002 6200 	btst #2,0x62002004		; SCC
 fefea6a6:	2004
 fefea6a8:	6700 ffec      	beqw 0xfefea696
+
 fefea6ac:	223c 0000 0180 	movel #384,%d1
-fefea6b2:	51c9 fffe      	dbf %d1,0xfefea6b2
-fefea6b6:	13c0 6200 2006 	moveb %d0,0x62002006
+fefea6b2:	51c9 fffe      	dbf %d1,0xfefea6b2		; delay
+
+fefea6b6:	13c0 6200 2006 	moveb %d0,0x62002006	; SCC
 fefea6bc:	4ed6           	jmp %fp@
+
+; subroutine to copy a block of stuff into
+; some device register.  Only used for SCC 6200_2004
+;
+; flip address in a0 fefe --> 6300
+; copy from there (a0) to a1, end on ff byte
 fefea6be:	4280           	clrl %d0
 fefea6c0:	2008           	movel %a0,%d0
 fefea6c2:	0280 0001 ffff 	andil #131071,%d0
 fefea6c8:	2040           	moveal %d0,%a0
 fefea6ca:	d1fc 6300 0000 	addal #1660944384,%a0
+
 fefea6d0:	1018           	moveb %a0@+,%d0
 fefea6d2:	0c00 00ff      	cmpib #-1,%d0
 fefea6d6:	670c           	beqs 0xfefea6e4
 fefea6d8:	383c 0180      	movew #384,%d4
-fefea6dc:	51cc fffe      	dbf %d4,0xfefea6dc
+fefea6dc:	51cc fffe      	dbf %d4,0xfefea6dc		; delay
 fefea6e0:	1280           	moveb %d0,%a1@
-fefea6e2:	60ec           	bras 0xfefea6d0
+fefea6e2:	60ec           	bras 0xfefea6d0			; loop up
 fefea6e4:	4ed6           	jmp %fp@
-fefea6e6:	206f 0004      	moveal %sp@(4),%a0
+
+; subroutine to shove a block of stuff into the SCC
+; never called
+fefea6e6:	206f 0004      	moveal %sp@(4),%a0		; where block is
 fefea6ea:	4e56 0000      	linkw %fp,#0
 fefea6ee:	48e7 fffe      	moveml %d0-%fp,%sp@-
 fefea6f2:	4dfa 000a      	lea %pc@(0xfefea6fe),%fp
-fefea6f6:	43f9 6200 2000 	lea 0x62002000,%a1
+fefea6f6:	43f9 6200 2000 	lea 0x62002000,%a1	; SCC
 fefea6fc:	60c0           	bras 0xfefea6be
 fefea6fe:	4cdf 7fff      	moveml %sp@+,%d0-%fp
 fefea702:	4e5e           	unlk %fp
@@ -12777,6 +12916,8 @@ fefeaa66:	03c1           	bset %d1,%d1
 fefeaa68:	05ea 0e03      	bset %d2,%a2@(3587)
 fefeaa6c:	0030 0030 0010 	orib #48,%a0@(10,%d0:w)
 fefeaa72:	ffff           	.short 0xffff
+
+; one SCC init block
 fefeaa74:	09c0           	bset %d4,%d0
 fefeaa76:	0446 03c0      	subiw #960,%d6
 fefeaa7a:	05e2           	bset %d2,%a2@-
@@ -12789,6 +12930,8 @@ fefeaa86:	03c1           	bset %d1,%d1
 fefeaa88:	05ea 0e03      	bset %d2,%a2@(3587)
 fefeaa8c:	0030 0030 0010 	orib #48,%a0@(10,%d0:w)
 fefeaa92:	ffff           	.short 0xffff
+
+; another SCC init block
 fefeaa94:	0446 03c0      	subiw #960,%d6
 fefeaa98:	05e2           	bset %d2,%a2@-
 fefeaa9a:	0902           	btst %d4,%d2
@@ -12800,6 +12943,7 @@ fefeaaa4:	03c1           	bset %d1,%d1
 fefeaaa6:	05ea 0e03      	bset %d2,%a2@(3587)
 fefeaaaa:	0030 0030 0010 	orib #48,%a0@(10,%d0:w)
 fefeaab0:	ffff           	.short 0xffff
+
 fefeaab2:	0446 03c0      	subiw #960,%d6
 fefeaab6:	05e2           	bset %d2,%a2@-
 fefeaab8:	0902           	btst %d4,%d2
@@ -13410,12 +13554,12 @@ fefeb0e8:	4dfa 0008      	lea %pc@(0xfefeb0f2),%fp
 fefeb0ec:	60ff ffff f2e6 	bral 0xfefea3d4		; ODD_print
 fefeb0f2:	203c 0000 ffff 	movel #65535,%d0
 fefeb0f8:	0883 001f      	bclr #31,%d3
-fefeb0fc:	1239 6200 2004 	moveb 0x62002004,%d1
+fefeb0fc:	1239 6200 2004 	moveb 0x62002004,%d1	; SCC
 fefeb102:	0801 0000      	btst #0,%d1
 fefeb106:	6600 0022      	bnew 0xfefeb12a
 fefeb10a:	323c 0180      	movew #384,%d1
 fefeb10e:	51c9 fffe      	dbf %d1,0xfefeb10e
-fefeb112:	1239 6200 2000 	moveb 0x62002000,%d1
+fefeb112:	1239 6200 2000 	moveb 0x62002000,%d1	; SCC
 fefeb118:	0801 0000      	btst #0,%d1
 fefeb11c:	6600 001c      	bnew 0xfefeb13a
 fefeb120:	5380           	subql #1,%d0
@@ -13423,12 +13567,12 @@ fefeb122:	6e00 ffd8      	bgtw 0xfefeb0fc
 fefeb126:	6000 005e      	braw 0xfefeb186
 fefeb12a:	303c 0180      	movew #384,%d0
 fefeb12e:	51c8 fffe      	dbf %d0,0xfefeb12e
-fefeb132:	1039 6200 2006 	moveb 0x62002006,%d0
+fefeb132:	1039 6200 2006 	moveb 0x62002006,%d0	; SCC
 fefeb138:	6012           	bras 0xfefeb14c
 fefeb13a:	323c 0180      	movew #384,%d1
 fefeb13e:	51c8 fffe      	dbf %d0,0xfefeb13e
 fefeb142:	08c3 001f      	bset #31,%d3
-fefeb146:	1039 6200 2002 	moveb 0x62002002,%d0
+fefeb146:	1039 6200 2002 	moveb 0x62002002,%d0	; SCC
 fefeb14c:	0200 007f      	andib #127,%d0
 fefeb150:	0c00 0065      	cmpib #101,%d0
 fefeb154:	6600 0014      	bnew 0xfefeb16a
@@ -15889,10 +16033,10 @@ fefed36c:	60ff ffff d066 	bral 0xfefea3d4		; ODD_print
 fefed372:	4ed6           	jmp %fp@
 fefed374:	0807 000a      	btst #10,%d7
 fefed378:	6600 006a      	bnew 0xfefed3e4
-fefed37c:	1c39 6200 2004 	moveb 0x62002004,%d6
+fefed37c:	1c39 6200 2004 	moveb 0x62002004,%d6	; SCC
 fefed382:	0806 0000      	btst #0,%d6
 fefed386:	6700 005c      	beqw 0xfefed3e4
-fefed38a:	1c39 6200 2006 	moveb 0x62002006,%d6
+fefed38a:	1c39 6200 2006 	moveb 0x62002006,%d6	; SCC
 fefed390:	0c06 0020      	cmpib #32,%d6
 fefed394:	6600 000a      	bnew 0xfefed3a0
 fefed398:	08c7 0007      	bset #7,%d7
@@ -15928,11 +16072,11 @@ fefed406:	4e71           	nop
 fefed408:	4280           	clrl %d0
 fefed40a:	2c3c 0000 0180 	movel #384,%d6
 fefed410:	51ce fffe      	dbf %d6,0xfefed410
-fefed414:	1c39 6200 2004 	moveb 0x62002004,%d6
+fefed414:	1c39 6200 2004 	moveb 0x62002004,%d6	; SCC
 fefed41a:	0806 0000      	btst #0,%d6
 fefed41e:	6700 ffea      	beqw 0xfefed40a
 fefed422:	4286           	clrl %d6
-fefed424:	1c39 6200 2006 	moveb 0x62002006,%d6
+fefed424:	1c39 6200 2006 	moveb 0x62002006,%d6	; SCC
 fefed42a:	0886 0007      	bclr #7,%d6
 fefed42e:	0c06 0008      	cmpib #8,%d6
 fefed432:	6700 000a      	beqw 0xfefed43e
@@ -15984,7 +16128,7 @@ fefed4de:	6000 ff2a      	braw 0xfefed40a
 fefed4e2:	4ed6           	jmp %fp@
 fefed4e4:	343c 0180      	movew #384,%d2
 fefed4e8:	51ca fffe      	dbf %d2,0xfefed4e8
-fefed4ec:	1639 6200 2004 	moveb 0x62002004,%d3
+fefed4ec:	1639 6200 2004 	moveb 0x62002004,%d3	; SCC
 fefed4f2:	0803 0000      	btst #0,%d3
 fefed4f6:	343c 0180      	movew #384,%d2
 fefed4fa:	51ca fffe      	dbf %d2,0xfefed4fa
@@ -15992,26 +16136,26 @@ fefed4fe:	0803 0002      	btst #2,%d3
 fefed502:	56ca ffe8      	dbne %d2,0xfefed4ec
 fefed506:	343c 0180      	movew #384,%d2
 fefed50a:	51ca fffe      	dbf %d2,0xfefed50a
-fefed50e:	13c1 6200 2006 	moveb %d1,0x62002006
+fefed50e:	13c1 6200 2006 	moveb %d1,0x62002006	; SCC
 fefed514:	343c 0180      	movew #384,%d2
 fefed518:	51ca fffe      	dbf %d2,0xfefed518
 fefed51c:	4ed4           	jmp %a4@
 fefed51e:	2c3c 0000 0180 	movel #384,%d6
 fefed524:	51ce fffe      	dbf %d6,0xfefed524
-fefed528:	1c39 6200 2004 	moveb 0x62002004,%d6
+fefed528:	1c39 6200 2004 	moveb 0x62002004,%d6	; SCC
 fefed52e:	0806 0000      	btst #0,%d6
 fefed532:	6700 ffea      	beqw 0xfefed51e
-fefed536:	1039 6200 2006 	moveb 0x62002006,%d0
+fefed536:	1039 6200 2006 	moveb 0x62002006,%d0	; SCC
 fefed53c:	2c3c 0000 0180 	movel #384,%d6
 fefed542:	51ce fffe      	dbf %d6,0xfefed542
-fefed546:	13c0 6200 2006 	moveb %d0,0x62002006
+fefed546:	13c0 6200 2006 	moveb %d0,0x62002006	; SCC
 fefed54c:	4ed6           	jmp %fp@
 fefed54e:	2c3c 0000 0180 	movel #384,%d6
 fefed554:	51ce fffe      	dbf %d6,0xfefed554
-fefed558:	1c39 6200 2004 	moveb 0x62002004,%d6
+fefed558:	1c39 6200 2004 	moveb 0x62002004,%d6	; SCC
 fefed55e:	0806 0000      	btst #0,%d6
 fefed562:	6700 ffea      	beqw 0xfefed54e
-fefed566:	1039 6200 2006 	moveb 0x62002006,%d0
+fefed566:	1039 6200 2006 	moveb 0x62002006,%d0	; SCC
 fefed56c:	2c3c 0000 0180 	movel #384,%d6
 fefed572:	51ce fffe      	dbf %d6,0xfefed572
 fefed576:	4ed6           	jmp %fp@
@@ -24757,7 +24901,10 @@ feff544b: ne
 feff544e: Invalid baud rate.\n
 feff5468: 0123456789ABCDEF
 feff547c: 0123456789ABCDEF
-feff5493: ..
+; data (not string)
+feff5490: 0000 0003
+feff5494: 0c00
+; back to string
 feff5496: No Keyboard Found: 
 feff54aa: Using RS232 Port A as input!\n
 feff54c8: Selftest Completed.\n ++

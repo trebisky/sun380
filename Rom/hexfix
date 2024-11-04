@@ -19,6 +19,7 @@ import sys
 
 # infile = "callan13.dis"
 
+# *** OLD, no longer used
 # Deal with: moveq #97,%d3
 # split on #, then on ,
 def process1 ( thing ) :
@@ -48,7 +49,7 @@ def process1 ( thing ) :
     print ( "Process1-out: " + rval )
     return rval
 
-def fixit ( dingus ) :
+def fixit ( dingus, itype ) :
     if dingus[0] != '#' :
         return dingus
 
@@ -58,8 +59,17 @@ def fixit ( dingus ) :
     if ival > 9 :
         sval = hex(ival)
 
+    # We don't want negatives to end up bloated with
+    # excess ff to the left for things like ffffffea
+    # so we check if the end of the instruction was
+    # w or b and trim accordingly
     if ival < -9 :
-        sval = hex((ival + (1 << 32)) % (1 << 32))
+        bigval = (ival + (1 << 32)) % (1 << 32)
+        if itype == 'b' :
+            bigval = bigval & 0xff
+        if itype == 'w' :
+            bigval = bigval & 0xffff
+        sval = hex ( bigval )
 
     return '#' + sval
 
@@ -75,23 +85,28 @@ def fixit ( dingus ) :
 # put it all back together
 
 def process2 ( thing ) :
-    print ( "Process2-in: " + thing )
+    #print ( "Process2-in: " + thing )
     t = thing.split(' ')
     tt = t[1].split(',')
 
-    tt2 = map ( fixit, tt )
-#    tt2 = []
-#    for x in tt :
-#        if x[0] == '#' :
-#            tt2.append ( fixit ( x ) )
-#        else :
-#            tt2.append ( x )
+    #print ( "Tail: ", t[0], itype )
+    # should be w, b, or l
+    itype = t[0][-1]
+
+    # This was really slick until I decided that
+    # I wanted to pass the w or b to fixit.
+    # tt2 = map ( fixit, tt )
+
+    # So we unroll our own map.
+    tt2 = []
+    for x in tt :
+        tt2.append ( fixit ( x, itype ) )
 
     #sval = fixit ( tt[1] )
     #return t[0] + ",#" + sval
 
     rval =  t[0] + ' ' + ",".join(tt2)
-    print ( "Process2-out: " + rval )
+    #print ( "Process2-out: " + rval )
     return rval
 
 # When developing we return None
@@ -149,12 +164,24 @@ def scan ( line ) :
     # the immediate follows the comma.
     # this is process2()
 
-    if ",#" in lt[2] :
-        lt[2] = process2 ( lt[2] )
-    else :
-        lt[2] = process2 ( lt[2] )
+    #if ",#" in lt[2] :
+    #    lt[2] = process2 ( lt[2] )
+    #else :
+    #    lt[2] = process2 ( lt[2] )
 
-    return "\t".join(lt)
+    # For debug/test
+    #showit = False
+    #if "#-" in line :
+    #    showit = True
+
+    #if showit:
+    #    print ( "Before: ", line )
+    lt[2] = process2 ( lt[2] )
+    rv = "\t".join(lt)
+    #if showit:
+    #    print ( "After : ", rv )
+
+    return rv
 
 # The Callan disassembly had these, but
 #   the sun3 does not
@@ -178,8 +205,11 @@ with open ( infile ) as f:
     for raw in f:
         #line = raw.rstrip ()
         line = raw.strip ()
-        print ( "Line: " + line )
+        #print ( "Line: " + line )
         fix1 = scan ( line )
+
+        # in the production version,
+        #  this is the only print we want
         print ( fix1 )
 
         # Callan needed this

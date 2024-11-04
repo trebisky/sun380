@@ -416,6 +416,8 @@ fefe0410:	4e7a 8801      	movec %vbr,%a0
 fefe0414:	4e7a 9802      	movec %caar,%a1
 fefe0418:	4e7a a002      	movec %cacr,%a2
 fefe041c:	48ef 0700 0048 	moveml %a0-%a2,%sp@(72)
+
+; mask off all interrupts
 fefe0422:	007c 0700      	oriw #1792,%sr
 fefe0426:	4a87           	tstl %d7
 fefe0428:	6706           	beqs 0xfefe0430
@@ -3549,7 +3551,6 @@ fefe29b2:	602a           	bras 0xfefe29de
 ; 00015400 03c1 05ea 0e03 0010 0010 0010 09c0 0010
 ; 00015410 0446 03c0 0560 0902 0b51 0c0e 0d00 0e02
 ; 00015420 021e 03c1 0568 0e03 0010 0010 7525 6369
-
 
 ; the value in feff5490 is 3 !!
 ; this same delay value is used many places
@@ -9192,6 +9193,7 @@ fefe6f4e:	4cee 20f8 ffdc 	moveml %fp@(-36),%d3-%d7/%a5
 fefe6f54:	4e5e           	unlk %fp
 fefe6f56:	4e75           	rts
 
+; this table is referenced at fefe9378
 fefe6f58:	0002 1000      	orib #0,%d2
 fefe6f5c:	fefe           	.short 0xfefe
 fefe6f5e:	7060           	moveq #96,%d0
@@ -9474,7 +9476,7 @@ fefe721a:	60ff 0000 292c 	bral 0xfefe9b48			; ODD_test
 
 fefe7220:	7201           	moveq #1,%d1
 fefe7222:	4dfa 0008      	lea %pc@(0xfefe722c),%fp
-fefe7226:	60ff 0000 29fa 	bral 0xfefe9c22			; ODD_user_sp
+fefe7226:	60ff 0000 29fa 	bral 0xfefe9c22			; ODD_stash_fp
 
 / Do stuff with the serial port
 fefe722c:	740c           	moveq #12,%d2
@@ -9505,7 +9507,7 @@ fefe727a:	6600 ffa6      	bnew 0xfefe7222		; loop up
 
 fefe727e:	7201           	moveq #1,%d1
 fefe7280:	4dfa 0008      	lea %pc@(0xfefe728a),%fp
-fefe7284:	60ff 0000 299c 	bral 0xfefe9c22			; ODD_user_sp
+fefe7284:	60ff 0000 299c 	bral 0xfefe9c22			; ODD_stash_fp
 
 ; Do stuff with the other serial channel
 fefe728a:	740c           	moveq #12,%d2
@@ -9548,7 +9550,7 @@ fefe72f2:	7201           	moveq #1,%d1
 
 ; loop here from below
 fefe72f4:	4dfa 0008      	lea %pc@(0xfefe72fe),%fp
-fefe72f8:	60ff 0000 2928 	bral 0xfefe9c22			; ODD_user_sp
+fefe72f8:	60ff 0000 2928 	bral 0xfefe9c22			; ODD_stash_fp
 
 fefe72fe:	740c           	moveq #12,%d2			; reg 12
 fefe7300:	13c2 6200 0004 	moveb %d2,0x62000004	; SCC_kb
@@ -9582,7 +9584,7 @@ fefe7350:	7201           	moveq #1,%d1
 
 ; loop here from below
 fefe7352:	4dfa 0008      	lea %pc@(0xfefe735c),%fp
-fefe7356:	60ff 0000 28ca 	bral 0xfefe9c22			; ODD_user_sp
+fefe7356:	60ff 0000 28ca 	bral 0xfefe9c22			; ODD_stash_fp
 
 fefe735c:	740c           	moveq #12,%d2
 fefe735e:	13c2 6200 0000 	moveb %d2,0x62000000	; SCC_kb
@@ -9681,7 +9683,7 @@ fefe7422:	0807 0010      	btst #16,%d7
 fefe7426:	6700 0006      	beqw 0xfefe742e
 fefe742a:	0041 8000      	oriw #-32768,%d1
 fefe742e:	4dfa 0008      	lea %pc@(0xfefe7438),%fp
-fefe7432:	60ff 0000 27ee 	bral 0xfefe9c22			; ODD_user_sp
+fefe7432:	60ff 0000 27ee 	bral 0xfefe9c22			; ODD_stash_fp
 fefe7438:	3015           	movew %a5@,%d0
 fefe743a:	0280 0000 feff 	andil #65279,%d0
 fefe7440:	0281 0000 feff 	andil #65279,%d1
@@ -9702,7 +9704,7 @@ fefe7474:	49fa 0531      	lea %pc@(0xfefe79a7),%a4
 fefe7478:	4dfa 0008      	lea %pc@(0xfefe7482),%fp
 fefe747c:	60ff 0000 26ca 	bral 0xfefe9b48			; ODD_test
 fefe7482:	4dfa 0008      	lea %pc@(0xfefe748c),%fp
-fefe7486:	60ff 0000 279a 	bral 0xfefe9c22			; ODD_user_sp
+fefe7486:	60ff 0000 279a 	bral 0xfefe9c22			; ODD_stash_fp
 fefe748c:	4bf9 6300 0000 	lea 0x63000000,%a5
 fefe7492:	4280           	clrl %d0
 fefe7494:	121d           	moveb %a5@+,%d1
@@ -9737,7 +9739,7 @@ fefe74f4:	4dfa 0008      	lea %pc@(0xfefe74fe),%fp
 fefe74f8:	60ff 0000 264e 	bral 0xfefe9b48			; ODD_test
 
 fefe74fe:	4dfa 0008      	lea %pc@(0xfefe7508),%fp
-fefe7502:	60ff 0000 271e 	bral 0xfefe9c22			; ODD_user_sp
+fefe7502:	60ff 0000 271e 	bral 0xfefe9c22			; ODD_stash_fp
 ; the following address is CLOCK2 in Mostek MK48T02
 fefe7508:	41f9 6400 07f8 	lea 0x640007f8,%a0
 fefe750e:	4280           	clrl %d0
@@ -9877,7 +9879,7 @@ fefe7a00:	260d           	movel %a5,%d3
 fefe7a02:	0683 0000 2000 	addil #8192,%d3
 fefe7a08:	4281           	clrl %d1
 fefe7a0a:	4dfa 0008      	lea %pc@(0xfefe7a14),%fp
-fefe7a0e:	60ff 0000 2212 	bral 0xfefe9c22			; ODD_user_sp
+fefe7a0e:	60ff 0000 2212 	bral 0xfefe9c22			; ODD_stash_fp
 fefe7a14:	4280           	clrl %d0
 fefe7a16:	2ac1           	movel %d1,%a5@+
 fefe7a18:	4681           	notl %d1
@@ -9923,7 +9925,7 @@ fefe7aa4:	49fa 0165      	lea %pc@(0xfefe7c0b),%a4
 fefe7aa8:	4dfa 0008      	lea %pc@(0xfefe7ab2),%fp
 fefe7aac:	60ff 0000 209a 	bral 0xfefe9b48			; ODD_test
 fefe7ab2:	4dfa 0008      	lea %pc@(0xfefe7abc),%fp
-fefe7ab6:	60ff 0000 216a 	bral 0xfefe9c22			; ODD_user_sp
+fefe7ab6:	60ff 0000 216a 	bral 0xfefe9c22			; ODD_stash_fp
 fefe7abc:	4bf9 6000 0000 	lea 0x60000000,%a5
 fefe7ac2:	263c 0000 07ff 	movel #2047,%d3
 fefe7ac8:	240d           	movel %a5,%d2
@@ -9957,7 +9959,7 @@ fefe7b2a:	4dfa 0008      	lea %pc@(0xfefe7b34),%fp
 fefe7b2e:	60ff 0000 2018 	bral 0xfefe9b48			; ODD_test
 fefe7b34:	283c 5a97 2c5a 	movel #1519856730,%d4
 fefe7b3a:	4dfa 0008      	lea %pc@(0xfefe7b44),%fp
-fefe7b3e:	60ff 0000 20e2 	bral 0xfefe9c22			; ODD_user_sp
+fefe7b3e:	60ff 0000 20e2 	bral 0xfefe9c22			; ODD_stash_fp
 fefe7b44:	4bf9 6000 0000 	lea 0x60000000,%a5
 fefe7b4a:	2a3c 6000 1ffc 	movel #1610620924,%d5
 fefe7b50:	2604           	movel %d4,%d3
@@ -10023,13 +10025,15 @@ fefe7c68:	1400
 fefe7c6a:	4ff9 0002 0000 	lea 0x20000,%sp
 fefe7c70:	41f9 0002 0000 	lea 0x20000,%a0
 fefe7c76:	4dfa 0008      	lea %pc@(0xfefe7c80),%fp
+
+; set up vector table at a0
 fefe7c7a:	60ff 0000 2486 	bral 0xfefea102
 fefe7c80:	41f9 0002 0000 	lea 0x20000,%a0
 fefe7c86:	2a7c 0000 0000 	moveal #0,%a5
 fefe7c8c:	4283           	clrl %d3
 fefe7c8e:	08c7 000c      	bset #12,%d7
 fefe7c92:	4dfa 0008      	lea %pc@(0xfefe7c9c),%fp
-fefe7c96:	60ff 0000 1f8a 	bral 0xfefe9c22			; ODD_user_sp
+fefe7c96:	60ff 0000 1f8a 	bral 0xfefe9c22			; ODD_stash_fp
 fefe7c9c:	23fc 0000 0000 	movel #0,0x61001004
 fefe7ca2:	6100 1004
 fefe7ca6:	200d           	movel %a5,%d0
@@ -10114,13 +10118,15 @@ fefe7dd8:	1400
 fefe7dda:	4ff9 0002 0000 	lea 0x20000,%sp
 fefe7de0:	41f9 0002 0000 	lea 0x20000,%a0
 fefe7de6:	4dfa 0008      	lea %pc@(0xfefe7df0),%fp
+
+; set up vector table at a0
 fefe7dea:	60ff 0000 2316 	bral 0xfefea102
 fefe7df0:	41f9 0002 0000 	lea 0x20000,%a0
 fefe7df6:	2a7c 0000 0000 	moveal #0,%a5
 fefe7dfc:	7601           	moveq #1,%d3
 fefe7dfe:	08c7 000c      	bset #12,%d7
 fefe7e02:	4dfa 0008      	lea %pc@(0xfefe7e0c),%fp
-fefe7e06:	60ff 0000 1e1a 	bral 0xfefe9c22			; ODD_user_sp
+fefe7e06:	60ff 0000 1e1a 	bral 0xfefe9c22			; ODD_stash_fp
 fefe7e0c:	23fc 0000 0000 	movel #0,0x61001004
 fefe7e12:	6100 1004
 fefe7e16:	200d           	movel %a5,%d0
@@ -10285,20 +10291,28 @@ fefe83d2: \r\n ++
 fefe83d4:  <Interrupt Test Phase Complete> 
 fefe83f6:  "   "
 
-fefe83fa:	0000 0807      	orib #7,%d0
-fefe83fe:	001d 6700      	orib #0,%a5@+
-fefe8402:	0012 49fa      	orib #-6,%a2@
-fefe8406:	0324           	btst %d1,%a4@-
+fefe83fa:	0000
+
+; two branches come here
+fefe83fc:	0807 001d      	btst #29,%d7
+
+fefe8400:	6700 0012      	beqw 0xfefe8414
+fefe8404:	49fa 0324      	lea %pc@(0xfefe872a),%a4
+; 0xfefe872a \r\n<Warning: Skipping Bus Error Register Test>
 fefe8408:	4df9 fefe 7c4c 	lea 0xfefe7c4c,%fp
 fefe840e:	60ff 0000 1fc4 	bral 0xfefea3d4		; ODD_print
+
 fefe8414:	1e3c 0006      	moveb #6,%d7
 fefe8418:	49fa 02f6      	lea %pc@(0xfefe8710),%a4
 ; 0xfefe8710 \r\nBus Error Register Test
 fefe841c:	4dfa 0008      	lea %pc@(0xfefe8426),%fp
 fefe8420:	60ff 0000 1726 	bral 0xfefe9b48			; ODD_test
+
 fefe8426:	4ff9 0002 0000 	lea 0x20000,%sp
 fefe842c:	41f9 0002 0000 	lea 0x20000,%a0
 fefe8432:	4dfa 0008      	lea %pc@(0xfefe843c),%fp
+
+; set up vector table at a0
 fefe8436:	60ff 0000 1cca 	bral 0xfefea102
 fefe843c:	41f9 0002 0000 	lea 0x20000,%a0
 fefe8442:	41fa 003c      	lea %pc@(0xfefe8480),%a0
@@ -10309,7 +10323,7 @@ fefe8450:	d1fc 6300 0000 	addal #1660944384,%a0
 fefe8456:	23c8 0002 0008 	movel %a0,0x20008
 fefe845c:	08c7 000c      	bset #12,%d7
 fefe8460:	4dfa 0008      	lea %pc@(0xfefe846a),%fp
-fefe8464:	60ff 0000 17bc 	bral 0xfefe9c22			; ODD_user_sp
+fefe8464:	60ff 0000 17bc 	bral 0xfefe9c22			; ODD_stash_fp
 fefe846a:	4bf9 4000 0000 	lea 0x40000000,%a5
 fefe8470:	1615           	moveb %a5@,%d3
 fefe8472:	49fa 02e4      	lea %pc@(0xfefe8758),%a4
@@ -10343,12 +10357,14 @@ fefe84e2:	4ff9 0002 0000 	lea 0x20000,%sp
 fefe84e8:	13fc 0000 6f00 	moveb #0,0x6f000030
 fefe84ee:	0030
 fefe84f0:	4dfa 0008      	lea %pc@(0xfefe84fa),%fp
-fefe84f4:	60ff 0000 172c 	bral 0xfefe9c22			; ODD_user_sp
+fefe84f4:	60ff 0000 172c 	bral 0xfefe9c22			; ODD_stash_fp
 fefe84fa:	23fc 0000 0000 	movel #0,0x61001004
 fefe8500:	6100 1004
 fefe8504:	4ff9 0002 1000 	lea 0x21000,%sp
 fefe850a:	41f9 0002 0000 	lea 0x20000,%a0
 fefe8510:	4dfa 0008      	lea %pc@(0xfefe851a),%fp
+
+; set up vector table at a0
 fefe8514:	60ff 0000 1bec 	bral 0xfefea102
 fefe851a:	41f9 0002 0000 	lea 0x20000,%a0
 fefe8520:	41f9 0002 0064 	lea 0x20064,%a0
@@ -10360,7 +10376,7 @@ fefe8530:	0280 0001 ffff 	andil #131071,%d0
 fefe8536:	2240           	moveal %d0,%a1
 fefe8538:	d3fc 6300 0000 	addal #1660944384,%a1
 fefe853e:	2089           	movel %a1,%a0@
-fefe8540:	46fc 2000      	movew #8192,%sr
+fefe8540:	46fc 2000      	movew #8192,%sr			; enable interrupts
 fefe8544:	4e71           	nop
 fefe8546:	4e71           	nop
 fefe8548:	4e71           	nop
@@ -10372,7 +10388,7 @@ fefe855c:	49fa 032c      	lea %pc@(0xfefe888a),%a4
 ; 0xfefe888a \r\n error: No level 1 interrupt occured.
 fefe8560:	4dfa 0008      	lea %pc@(0xfefe856a),%fp
 fefe8564:	60ff 0000 1742 	bral 0xfefe9ca8		; ODD_print2
-fefe856a:	46fc 2700      	movew #9984,%sr
+fefe856a:	46fc 2700      	movew #9984,%sr			; disable interrupts
 fefe856e:	13fc 0000 6100 	moveb #0,0x61001400
 fefe8574:	1400
 fefe8576:	4dfa 0008      	lea %pc@(0xfefe8580),%fp
@@ -10389,10 +10405,12 @@ fefe85a2:	49fa 02b4      	lea %pc@(0xfefe8858),%a4
 fefe85a6:	4dfa 0008      	lea %pc@(0xfefe85b0),%fp
 fefe85aa:	60ff 0000 159c 	bral 0xfefe9b48			; ODD_test
 fefe85b0:	4dfa 0008      	lea %pc@(0xfefe85ba),%fp
-fefe85b4:	60ff 0000 166c 	bral 0xfefe9c22			; ODD_user_sp
+fefe85b4:	60ff 0000 166c 	bral 0xfefe9c22			; ODD_stash_fp
 fefe85ba:	4ff9 0002 1000 	lea 0x21000,%sp
 fefe85c0:	41f9 0002 0000 	lea 0x20000,%a0
 fefe85c6:	4dfa 0008      	lea %pc@(0xfefe85d0),%fp
+
+; set up vector table at a0
 fefe85ca:	60ff 0000 1b36 	bral 0xfefea102
 fefe85d0:	41f9 0002 0000 	lea 0x20000,%a0
 fefe85d6:	41f9 0002 0068 	lea 0x20068,%a0
@@ -10436,6 +10454,8 @@ fefe8666:	60ff 0000 15ba 	bral 0xfefe9c22			; ODD_user_sp
 fefe866c:	4ff9 0002 1000 	lea 0x21000,%sp
 fefe8672:	41f9 0002 0000 	lea 0x20000,%a0
 fefe8678:	4dfa 0008      	lea %pc@(0xfefe8682),%fp
+
+; set up vector table at a0
 fefe867c:	60ff 0000 1a84 	bral 0xfefea102
 fefe8682:	41f9 0002 0000 	lea 0x20000,%a0
 fefe8688:	41f9 0002 006c 	lea 0x2006c,%a0
@@ -10558,7 +10578,7 @@ fefe8a0e:	4dfa 0008      	lea %pc@(0xfefe8a18),%fp
 fefe8a12:	60ff 0000 123a 	bral 0xfefe9c4e
 fefe8a18:	4281           	clrl %d1
 fefe8a1a:	4dfa 0008      	lea %pc@(0xfefe8a24),%fp
-fefe8a1e:	60ff 0000 1202 	bral 0xfefe9c22			; ODD_user_sp
+fefe8a1e:	60ff 0000 1202 	bral 0xfefe9c22			; ODD_stash_fp
 fefe8a24:	4280           	clrl %d0
 fefe8a26:	2ac1           	movel %d1,%a5@+
 fefe8a28:	4681           	notl %d1
@@ -10616,7 +10636,7 @@ fefe8ad8:	4286           	clrl %d6
 fefe8ada:	23fc 0080 0000 	movel #8388608,0x61001000
 fefe8ae0:	6100 1000
 fefe8ae4:	4dfa 0008      	lea %pc@(0xfefe8aee),%fp
-fefe8ae8:	60ff 0000 1138 	bral 0xfefe9c22			; ODD_user_sp
+fefe8ae8:	60ff 0000 1138 	bral 0xfefe9c22			; ODD_stash_fp
 fefe8aee:	1006           	moveb %d6,%d0
 fefe8af0:	4dfa 0006      	lea %pc@(0xfefe8af8),%fp
 fefe8af4:	6000 0aa8      	braw 0xfefe959e
@@ -10696,7 +10716,7 @@ fefe8c00:	60ff 0000 0f46 	bral 0xfefe9b48			; ODD_test
 fefe8c06:	4283           	clrl %d3
 fefe8c08:	283c 5a97 2c5a 	movel #1519856730,%d4
 fefe8c0e:	4dfa 0008      	lea %pc@(0xfefe8c18),%fp
-fefe8c12:	60ff 0000 100e 	bral 0xfefe9c22			; ODD_user_sp
+fefe8c12:	60ff 0000 100e 	bral 0xfefe9c22			; ODD_stash_fp
 fefe8c18:	1003           	moveb %d3,%d0
 fefe8c1a:	4dfa 0006      	lea %pc@(0xfefe8c22),%fp
 fefe8c1e:	6000 097e      	braw 0xfefe959e
@@ -10788,7 +10808,7 @@ fefe8d56:	60ff 0000 0df0 	bral 0xfefe9b48			; ODD_test
 fefe8d5c:	4283           	clrl %d3
 fefe8d5e:	4284           	clrl %d4
 fefe8d60:	4dfa 0008      	lea %pc@(0xfefe8d6a),%fp
-fefe8d64:	60ff 0000 0ebc 	bral 0xfefe9c22			; ODD_user_sp
+fefe8d64:	60ff 0000 0ebc 	bral 0xfefe9c22			; ODD_stash_fp
 fefe8d6a:	1003           	moveb %d3,%d0
 fefe8d6c:	4dfa 0006      	lea %pc@(0xfefe8d74),%fp
 fefe8d70:	6000 082c      	braw 0xfefe959e
@@ -10837,7 +10857,7 @@ fefe8de8:	9bfc 0000 0004 	subal #4,%a5
 fefe8dee:	2204           	movel %d4,%d1
 fefe8df0:	4681           	notl %d1
 fefe8df2:	4dfa 0008      	lea %pc@(0xfefe8dfc),%fp
-fefe8df6:	60ff 0000 0e2a 	bral 0xfefe9c22			; ODD_user_sp
+fefe8df6:	60ff 0000 0e2a 	bral 0xfefe9c22			; ODD_stash_fp
 fefe8dfc:	2015           	movel %a5@,%d0
 fefe8dfe:	b081           	cmpl %d1,%d0
 fefe8e00:	6700 0010      	beqw 0xfefe8e12
@@ -10887,7 +10907,7 @@ fefe8ea8:	2abc 0011 2233 	movel #1122867,%a5@
 fefe8eae:	4bf9 0020 0000 	lea 0x200000,%a5
 fefe8eb4:	4bf9 0020 0000 	lea 0x200000,%a5
 fefe8eba:	4dfa 0008      	lea %pc@(0xfefe8ec4),%fp
-fefe8ebe:	60ff 0000 0d62 	bral 0xfefe9c22			; ODD_user_sp
+fefe8ebe:	60ff 0000 0d62 	bral 0xfefe9c22			; ODD_stash_fp
 fefe8ec4:	4280           	clrl %d0
 fefe8ec6:	7233           	moveq #51,%d1
 fefe8ec8:	102d 0003      	moveb %a5@(3),%d0
@@ -10901,7 +10921,7 @@ fefe8ee0:	4dfa 0008      	lea %pc@(0xfefe8eea),%fp
 fefe8ee4:	60ff 0000 0e36 	bral 0xfefe9d1c			; ODD_func
 fefe8eea:	6400 01ac      	bccw 0xfefe9098
 fefe8eee:	4dfa 0008      	lea %pc@(0xfefe8ef8),%fp
-fefe8ef2:	60ff 0000 0d2e 	bral 0xfefe9c22			; ODD_user_sp
+fefe8ef2:	60ff 0000 0d2e 	bral 0xfefe9c22			; ODD_stash_fp
 fefe8ef8:	4280           	clrl %d0
 fefe8efa:	7222           	moveq #34,%d1
 fefe8efc:	102d 0002      	moveb %a5@(2),%d0
@@ -10915,7 +10935,7 @@ fefe8f14:	4dfa 0008      	lea %pc@(0xfefe8f1e),%fp
 fefe8f18:	60ff 0000 0e02 	bral 0xfefe9d1c			; ODD_func
 fefe8f1e:	6400 0178      	bccw 0xfefe9098
 fefe8f22:	4dfa 0008      	lea %pc@(0xfefe8f2c),%fp
-fefe8f26:	60ff 0000 0cfa 	bral 0xfefe9c22			; ODD_user_sp
+fefe8f26:	60ff 0000 0cfa 	bral 0xfefe9c22			; ODD_stash_fp
 fefe8f2c:	4280           	clrl %d0
 fefe8f2e:	7211           	moveq #17,%d1
 fefe8f30:	102d 0001      	moveb %a5@(1),%d0
@@ -10929,7 +10949,7 @@ fefe8f48:	4dfa 0008      	lea %pc@(0xfefe8f52),%fp
 fefe8f4c:	60ff 0000 0dce 	bral 0xfefe9d1c			; ODD_func
 fefe8f52:	6400 0144      	bccw 0xfefe9098
 fefe8f56:	4dfa 0008      	lea %pc@(0xfefe8f60),%fp
-fefe8f5a:	60ff 0000 0cc6 	bral 0xfefe9c22			; ODD_user_sp
+fefe8f5a:	60ff 0000 0cc6 	bral 0xfefe9c22			; ODD_stash_fp
 fefe8f60:	4280           	clrl %d0
 fefe8f62:	7200           	moveq #0,%d1
 fefe8f64:	102d 0000      	moveb %a5@(0),%d0
@@ -10943,7 +10963,7 @@ fefe8f7c:	4dfa 0008      	lea %pc@(0xfefe8f86),%fp
 fefe8f80:	60ff 0000 0d9a 	bral 0xfefe9d1c			; ODD_func
 fefe8f86:	6400 0110      	bccw 0xfefe9098
 fefe8f8a:	4dfa 0008      	lea %pc@(0xfefe8f94),%fp
-fefe8f8e:	60ff 0000 0c92 	bral 0xfefe9c22			; ODD_user_sp
+fefe8f8e:	60ff 0000 0c92 	bral 0xfefe9c22			; ODD_stash_fp
 fefe8f94:	4280           	clrl %d0
 fefe8f96:	223c 0000 2233 	movel #8755,%d1
 fefe8f9c:	302d 0002      	movew %a5@(2),%d0
@@ -10957,7 +10977,7 @@ fefe8fb4:	4dfa 0008      	lea %pc@(0xfefe8fbe),%fp
 fefe8fb8:	60ff 0000 0d62 	bral 0xfefe9d1c			; ODD_func
 fefe8fbe:	6400 00d8      	bccw 0xfefe9098
 fefe8fc2:	4dfa 0008      	lea %pc@(0xfefe8fcc),%fp
-fefe8fc6:	60ff 0000 0c5a 	bral 0xfefe9c22			; ODD_user_sp
+fefe8fc6:	60ff 0000 0c5a 	bral 0xfefe9c22			; ODD_stash_fp
 fefe8fcc:	4280           	clrl %d0
 fefe8fce:	223c 0000 1122 	movel #4386,%d1
 fefe8fd4:	302d 0001      	movew %a5@(1),%d0
@@ -10971,7 +10991,7 @@ fefe8fec:	4dfa 0008      	lea %pc@(0xfefe8ff6),%fp
 fefe8ff0:	60ff 0000 0d2a 	bral 0xfefe9d1c			; ODD_func
 fefe8ff6:	6400 00a0      	bccw 0xfefe9098
 fefe8ffa:	4dfa 0008      	lea %pc@(0xfefe9004),%fp
-fefe8ffe:	60ff 0000 0c22 	bral 0xfefe9c22			; ODD_user_sp
+fefe8ffe:	60ff 0000 0c22 	bral 0xfefe9c22			; ODD_stash_fp
 fefe9004:	223c 1122 3300 	movel #287453952,%d1
 fefe900a:	202d 0001      	movel %a5@(1),%d0
 fefe900e:	b280           	cmpl %d0,%d1
@@ -10984,7 +11004,7 @@ fefe9022:	4dfa 0008      	lea %pc@(0xfefe902c),%fp
 fefe9026:	60ff 0000 0cf4 	bral 0xfefe9d1c			; ODD_func
 fefe902c:	6400 006a      	bccw 0xfefe9098
 fefe9030:	4dfa 0008      	lea %pc@(0xfefe903a),%fp
-fefe9034:	60ff 0000 0bec 	bral 0xfefe9c22			; ODD_user_sp
+fefe9034:	60ff 0000 0bec 	bral 0xfefe9c22			; ODD_stash_fp
 fefe903a:	223c 2233 0011 	movel #573767697,%d1
 fefe9040:	202d 0002      	movel %a5@(2),%d0
 fefe9044:	b280           	cmpl %d0,%d1
@@ -10997,7 +11017,7 @@ fefe9058:	4dfa 0008      	lea %pc@(0xfefe9062),%fp
 fefe905c:	60ff 0000 0cbe 	bral 0xfefe9d1c			; ODD_func
 fefe9062:	6400 0034      	bccw 0xfefe9098
 fefe9066:	4dfa 0008      	lea %pc@(0xfefe9070),%fp
-fefe906a:	60ff 0000 0bb6 	bral 0xfefe9c22			; ODD_user_sp
+fefe906a:	60ff 0000 0bb6 	bral 0xfefe9c22			; ODD_stash_fp
 fefe9070:	223c 3300 1122 	movel #855642402,%d1
 fefe9076:	202d 0003      	movel %a5@(3),%d0
 fefe907a:	b280           	cmpl %d0,%d1
@@ -11017,7 +11037,7 @@ fefe90a8:	4dfa 0008      	lea %pc@(0xfefe90b2),%fp
 fefe90ac:	60ff 0000 0a9a 	bral 0xfefe9b48			; ODD_test
 fefe90b2:	4bf9 0020 0000 	lea 0x200000,%a5
 fefe90b8:	4dfa 0008      	lea %pc@(0xfefe90c2),%fp
-fefe90bc:	60ff 0000 0b64 	bral 0xfefe9c22			; ODD_user_sp
+fefe90bc:	60ff 0000 0b64 	bral 0xfefe9c22			; ODD_stash_fp
 fefe90c2:	4280           	clrl %d0
 fefe90c4:	4295           	clrl %a5@
 fefe90c6:	1b7c 0033 0003 	moveb #51,%a5@(3)
@@ -11033,7 +11053,7 @@ fefe90e8:	4dfa 0008      	lea %pc@(0xfefe90f2),%fp
 fefe90ec:	60ff 0000 0c2e 	bral 0xfefe9d1c			; ODD_func
 fefe90f2:	6400 027c      	bccw 0xfefe9370
 fefe90f6:	4dfa 0008      	lea %pc@(0xfefe9100),%fp
-fefe90fa:	60ff 0000 0b26 	bral 0xfefe9c22			; ODD_user_sp
+fefe90fa:	60ff 0000 0b26 	bral 0xfefe9c22			; ODD_stash_fp
 fefe9100:	4280           	clrl %d0
 fefe9102:	4295           	clrl %a5@
 fefe9104:	1b7c 0022 0002 	moveb #34,%a5@(2)
@@ -11049,7 +11069,7 @@ fefe9126:	4dfa 0008      	lea %pc@(0xfefe9130),%fp
 fefe912a:	60ff 0000 0bf0 	bral 0xfefe9d1c			; ODD_func
 fefe9130:	6400 023e      	bccw 0xfefe9370
 fefe9134:	4dfa 0008      	lea %pc@(0xfefe913e),%fp
-fefe9138:	60ff 0000 0ae8 	bral 0xfefe9c22			; ODD_user_sp
+fefe9138:	60ff 0000 0ae8 	bral 0xfefe9c22			; ODD_stash_fp
 fefe913e:	4280           	clrl %d0
 fefe9140:	4295           	clrl %a5@
 fefe9142:	1b7c 0011 0001 	moveb #17,%a5@(1)
@@ -11065,7 +11085,7 @@ fefe9164:	4dfa 0008      	lea %pc@(0xfefe916e),%fp
 fefe9168:	60ff 0000 0bb2 	bral 0xfefe9d1c			; ODD_func
 fefe916e:	6400 0200      	bccw 0xfefe9370
 fefe9172:	4dfa 0008      	lea %pc@(0xfefe917c),%fp
-fefe9176:	60ff 0000 0aaa 	bral 0xfefe9c22			; ODD_user_sp
+fefe9176:	60ff 0000 0aaa 	bral 0xfefe9c22			; ODD_stash_fp
 fefe917c:	4280           	clrl %d0
 fefe917e:	4295           	clrl %a5@
 fefe9180:	1b7c 00aa 0000 	moveb #-86,%a5@(0)
@@ -11081,7 +11101,7 @@ fefe91a2:	4dfa 0008      	lea %pc@(0xfefe91ac),%fp
 fefe91a6:	60ff 0000 0b74 	bral 0xfefe9d1c			; ODD_func
 fefe91ac:	6400 01c2      	bccw 0xfefe9370
 fefe91b0:	4dfa 0008      	lea %pc@(0xfefe91ba),%fp
-fefe91b4:	60ff 0000 0a6c 	bral 0xfefe9c22			; ODD_user_sp
+fefe91b4:	60ff 0000 0a6c 	bral 0xfefe9c22			; ODD_stash_fp
 fefe91ba:	4280           	clrl %d0
 fefe91bc:	4295           	clrl %a5@
 fefe91be:	3b7c aa11 0000 	movew #-21999,%a5@(0)
@@ -11097,7 +11117,7 @@ fefe91e0:	4dfa 0008      	lea %pc@(0xfefe91ea),%fp
 fefe91e4:	60ff 0000 0b36 	bral 0xfefe9d1c			; ODD_func
 fefe91ea:	6400 0184      	bccw 0xfefe9370
 fefe91ee:	4dfa 0008      	lea %pc@(0xfefe91f8),%fp
-fefe91f2:	60ff 0000 0a2e 	bral 0xfefe9c22			; ODD_user_sp
+fefe91f2:	60ff 0000 0a2e 	bral 0xfefe9c22			; ODD_stash_fp
 fefe91f8:	4280           	clrl %d0
 fefe91fa:	4295           	clrl %a5@
 fefe91fc:	3b7c 2233 0002 	movew #8755,%a5@(2)
@@ -11113,7 +11133,7 @@ fefe921e:	4dfa 0008      	lea %pc@(0xfefe9228),%fp
 fefe9222:	60ff 0000 0af8 	bral 0xfefe9d1c			; ODD_func
 fefe9228:	6400 0146      	bccw 0xfefe9370
 fefe922c:	4dfa 0008      	lea %pc@(0xfefe9236),%fp
-fefe9230:	60ff 0000 09f0 	bral 0xfefe9c22			; ODD_user_sp
+fefe9230:	60ff 0000 09f0 	bral 0xfefe9c22			; ODD_stash_fp
 fefe9236:	4295           	clrl %a5@
 fefe9238:	42ad 0004      	clrl %a5@(4)
 fefe923c:	3b7c 33aa 0003 	movew #13226,%a5@(3)
@@ -11129,7 +11149,7 @@ fefe925e:	4dfa 0008      	lea %pc@(0xfefe9268),%fp
 fefe9262:	60ff 0000 0ab8 	bral 0xfefe9d1c			; ODD_func
 fefe9268:	6400 0106      	bccw 0xfefe9370
 fefe926c:	4dfa 0008      	lea %pc@(0xfefe9276),%fp
-fefe9270:	60ff 0000 09b0 	bral 0xfefe9c22			; ODD_user_sp
+fefe9270:	60ff 0000 09b0 	bral 0xfefe9c22			; ODD_stash_fp
 fefe9276:	4295           	clrl %a5@
 fefe9278:	42ad 0004      	clrl %a5@(4)
 fefe927c:	3b7c 33aa 0003 	movew #13226,%a5@(3)
@@ -11145,7 +11165,7 @@ fefe92a0:	4dfa 0008      	lea %pc@(0xfefe92aa),%fp
 fefe92a4:	60ff 0000 0a76 	bral 0xfefe9d1c			; ODD_func
 fefe92aa:	6400 00c4      	bccw 0xfefe9370
 fefe92ae:	4dfa 0008      	lea %pc@(0xfefe92b8),%fp
-fefe92b2:	60ff 0000 096e 	bral 0xfefe9c22			; ODD_user_sp
+fefe92b2:	60ff 0000 096e 	bral 0xfefe9c22			; ODD_stash_fp
 fefe92b8:	4295           	clrl %a5@
 fefe92ba:	42ad 0004      	clrl %a5@(4)
 fefe92be:	2b7c 1122 33aa 	movel #287454122,%a5@(1)
@@ -11162,7 +11182,7 @@ fefe92e2:	4dfa 0008      	lea %pc@(0xfefe92ec),%fp
 fefe92e6:	60ff 0000 0a34 	bral 0xfefe9d1c			; ODD_func
 fefe92ec:	6400 0082      	bccw 0xfefe9370
 fefe92f0:	4dfa 0008      	lea %pc@(0xfefe92fa),%fp
-fefe92f4:	60ff 0000 092c 	bral 0xfefe9c22			; ODD_user_sp
+fefe92f4:	60ff 0000 092c 	bral 0xfefe9c22			; ODD_stash_fp
 fefe92fa:	4295           	clrl %a5@
 fefe92fc:	42ad 0004      	clrl %a5@(4)
 fefe9300:	2b7c 2233 aa11 	movel #573811217,%a5@(2)
@@ -11179,7 +11199,7 @@ fefe9324:	4dfa 0008      	lea %pc@(0xfefe932e),%fp
 fefe9328:	60ff 0000 09f2 	bral 0xfefe9d1c			; ODD_func
 fefe932e:	6400 0040      	bccw 0xfefe9370
 fefe9332:	4dfa 0008      	lea %pc@(0xfefe933c),%fp
-fefe9336:	60ff 0000 08ea 	bral 0xfefe9c22			; ODD_user_sp
+fefe9336:	60ff 0000 08ea 	bral 0xfefe9c22			; ODD_stash_fp
 fefe933c:	4295           	clrl %a5@
 fefe933e:	42ad 0004      	clrl %a5@(4)
 fefe9342:	2b7c 33aa 1122 	movel #866783522,%a5@(3)
@@ -11196,17 +11216,20 @@ fefe9366:	4dfa 0008      	lea %pc@(0xfefe9370),%fp
 fefe936a:	60ff 0000 09b0 	bral 0xfefe9d1c			; ODD_func
 fefe9370:	0807 0009      	btst #9,%d7
 fefe9374:	6600 fd3c      	bnew 0xfefe90b2
-fefe9378:	41f9 fefe 6f58 	lea 0xfefe6f58,%a0
+
+fefe9378:	41f9 fefe 6f58 	lea 0xfefe6f58,%a0		; big table
 fefe937e:	2a08           	movel %a0,%d5
 fefe9380:	0285 0001 ffff 	andil #131071,%d5
 fefe9386:	2045           	moveal %d5,%a0
-fefe9388:	d1fc 6300 0000 	addal #1660944384,%a0
+fefe9388:	d1fc 6300 0000 	addal #1660944384,%a0	; relocate
+
 fefe938e:	43f9 0002 c400 	lea 0x2c400,%a1
-fefe9394:	203c 0000 00dc 	movel #220,%d0
+fefe9394:	203c 0000 00dc 	movel #220,%d0			; count
 fefe939a:	22d8           	movel %a0@+,%a1@+
 fefe939c:	5980           	subql #4,%d0
-fefe939e:	6600 fffa      	bnew 0xfefe939a
+fefe939e:	6600 fffa      	bnew 0xfefe939a			; loop up
 fefe93a2:	60ff ffff f058 	bral 0xfefe83fc
+
 fefe93a8:	41f8 0000      	lea 0x0,%a0
 fefe93ac:	243c 0000 0003 	movel #3,%d2
 fefe93b2:	4286           	clrl %d6
@@ -11612,7 +11635,7 @@ fefe9c1e:	2c4c           	moveal %a4,%fp
 fefe9c20:	4ed6           	jmp %fp@			; return
 
 ; many ODD calls
-; I will call this "ODD_user_sp
+; I will call this "ODD_stash_fp
 ; it sets the M/I bit (going to master mode)
 ; then it sets the SP from the fp
 ; then clears the M/I bit (going back to interrupt mode)
@@ -11896,12 +11919,14 @@ fefe9ee4:	0800
 fefe9ee6:	0807 0007      	btst #7,%d7			; Flags
 fefe9eea:	6600 0012      	bnew 0xfefe9efe
 
+; Fetch the stashed return value (from ODD_stash_fp)
+; and return there
 fefe9eee:	46fc 3700      	movew #14080,%sr		; select master state
 fefe9ef2:	204f           	moveal %sp,%a0
 fefe9ef4:	46fc 2700      	movew #9984,%sr			; select interrupt state
 
 fefe9ef8:	003c 0001      	orib #1,%ccr
-fefe9efc:	4ed0           	jmp %a0@
+fefe9efc:	4ed0           	jmp %a0@			; return to stashed value
 
 ; branch from above
 fefe9efe:	003c 0001      	orib #1,%ccr
@@ -12056,20 +12081,29 @@ fefea0f8:	343c 0180      	movew #384,%d2
 fefea0fc:	51ca fffe      	dbf %d2,0xfefea0fc
 fefea100:	4ed6           	jmp %fp@
 
-fefea102:	43f9 6300 0000 	lea 0x63000000,%a1
-fefea108:	2408           	movel %a0,%d2
+; -------------------------------------------------
+; vector_setup
+; puts vector table at a0
+; a0 is always 0x20000
+; what is funny is that even though this
+; routine returns a0 unchanged,
+; all calls reload it immediately after it returns.
+
+fefea102:	43f9 6300 0000 	lea 0x63000000,%a1	; from here
+fefea108:	2408           	movel %a0,%d2		; save for vbr
 fefea10a:	223c 0000 0080 	movel #128,%d1
-fefea110:	2019           	movel %a1@+,%d0
+fefea110:	2019           	movel %a1@+,%d0		; loop - fetch
 fefea112:	c0b9 0001 ffff 	andl 0x1ffff,%d0
 fefea118:	2440           	moveal %d0,%a2
-fefea11a:	d5fc 6300 0000 	addal #1660944384,%a2
+fefea11a:	d5fc 6300 0000 	addal #1660944384,%a2	; relocate
 fefea120:	200a           	movel %a2,%d0
-fefea122:	20c0           	movel %d0,%a0@+
+fefea122:	20c0           	movel %d0,%a0@+		; store
 fefea124:	5381           	subql #1,%d1
-fefea126:	6600 ffe8      	bnew 0xfefea110
-fefea12a:	6000 0002      	braw 0xfefea12e
+fefea126:	6600 ffe8      	bnew 0xfefea110			; branch up
+
+fefea12a:	6000 0002      	braw 0xfefea12e		; haha
 fefea12e:	4e7b 2801      	movec %d2,%vbr
-fefea132:	2042           	moveal %d2,%a0
+fefea132:	2042           	moveal %d2,%a0		; restore
 fefea134:	4ed6           	jmp %fp@
 
 fefea136:	203c 6300 0000 	movel #1660944384,%d0
@@ -14024,7 +14058,7 @@ fefeb644:	2a01           	movel %d1,%d5
 fefeb646:	08c7 0007      	bset #7,%d7
 fefeb64a:	4281           	clrl %d1
 fefeb64c:	4dfa 0008      	lea %pc@(0xfefeb656),%fp
-fefeb650:	60ff ffff e5d0 	bral 0xfefe9c22			; ODD_user_sp
+fefeb650:	60ff ffff e5d0 	bral 0xfefe9c22			; ODD_stash_fp
 fefeb656:	4280           	clrl %d0
 fefeb658:	2ac1           	movel %d1,%a5@+
 fefeb65a:	4681           	notl %d1
@@ -14094,7 +14128,7 @@ fefeb74c:	2afc 0011 2233 	movel #1122867,%a5@+
 fefeb752:	2abc 0011 2233 	movel #1122867,%a5@
 fefeb758:	2a40           	moveal %d0,%a5
 fefeb75a:	4dfa 0008      	lea %pc@(0xfefeb764),%fp
-fefeb75e:	60ff ffff e4c2 	bral 0xfefe9c22			; ODD_user_sp
+fefeb75e:	60ff ffff e4c2 	bral 0xfefe9c22			; ODD_stash_fp
 fefeb764:	4280           	clrl %d0
 fefeb766:	7233           	moveq #51,%d1
 fefeb768:	102d 0003      	moveb %a5@(3),%d0
@@ -14114,7 +14148,7 @@ fefeb79c:	4dfa 0008      	lea %pc@(0xfefeb7a6),%fp
 fefeb7a0:	60ff ffff e57a 	bral 0xfefe9d1c			; ODD_func
 fefeb7a6:	6400 028c      	bccw 0xfefeba34
 fefeb7aa:	4dfa 0008      	lea %pc@(0xfefeb7b4),%fp
-fefeb7ae:	60ff ffff e472 	bral 0xfefe9c22			; ODD_user_sp
+fefeb7ae:	60ff ffff e472 	bral 0xfefe9c22			; ODD_stash_fp
 fefeb7b4:	4280           	clrl %d0
 fefeb7b6:	7222           	moveq #34,%d1
 fefeb7b8:	102d 0002      	moveb %a5@(2),%d0
@@ -14134,7 +14168,7 @@ fefeb7ec:	4dfa 0008      	lea %pc@(0xfefeb7f6),%fp
 fefeb7f0:	60ff ffff e52a 	bral 0xfefe9d1c			; ODD_func
 fefeb7f6:	6400 023c      	bccw 0xfefeba34
 fefeb7fa:	4dfa 0008      	lea %pc@(0xfefeb804),%fp
-fefeb7fe:	60ff ffff e422 	bral 0xfefe9c22			; ODD_user_sp
+fefeb7fe:	60ff ffff e422 	bral 0xfefe9c22			; ODD_stash_fp
 fefeb804:	4280           	clrl %d0
 fefeb806:	7211           	moveq #17,%d1
 fefeb808:	102d 0001      	moveb %a5@(1),%d0
@@ -14154,7 +14188,7 @@ fefeb83c:	4dfa 0008      	lea %pc@(0xfefeb846),%fp
 fefeb840:	60ff ffff e4da 	bral 0xfefe9d1c			; ODD_func
 fefeb846:	6400 01ec      	bccw 0xfefeba34
 fefeb84a:	4dfa 0008      	lea %pc@(0xfefeb854),%fp
-fefeb84e:	60ff ffff e3d2 	bral 0xfefe9c22			; ODD_user_sp
+fefeb84e:	60ff ffff e3d2 	bral 0xfefe9c22			; ODD_stash_fp
 fefeb854:	4280           	clrl %d0
 fefeb856:	7200           	moveq #0,%d1
 fefeb858:	102d 0000      	moveb %a5@(0),%d0
@@ -14174,7 +14208,7 @@ fefeb88c:	4dfa 0008      	lea %pc@(0xfefeb896),%fp
 fefeb890:	60ff ffff e48a 	bral 0xfefe9d1c			; ODD_func
 fefeb896:	6400 019c      	bccw 0xfefeba34
 fefeb89a:	4dfa 0008      	lea %pc@(0xfefeb8a4),%fp
-fefeb89e:	60ff ffff e382 	bral 0xfefe9c22			; ODD_user_sp
+fefeb89e:	60ff ffff e382 	bral 0xfefe9c22			; ODD_stash_fp
 fefeb8a4:	4280           	clrl %d0
 fefeb8a6:	223c 0000 2233 	movel #8755,%d1
 fefeb8ac:	302d 0002      	movew %a5@(2),%d0
@@ -14194,7 +14228,7 @@ fefeb8e0:	4dfa 0008      	lea %pc@(0xfefeb8ea),%fp
 fefeb8e4:	60ff ffff e436 	bral 0xfefe9d1c			; ODD_func
 fefeb8ea:	6400 0148      	bccw 0xfefeba34
 fefeb8ee:	4dfa 0008      	lea %pc@(0xfefeb8f8),%fp
-fefeb8f2:	60ff ffff e32e 	bral 0xfefe9c22			; ODD_user_sp
+fefeb8f2:	60ff ffff e32e 	bral 0xfefe9c22			; ODD_stash_fp
 fefeb8f8:	4280           	clrl %d0
 fefeb8fa:	223c 0000 1122 	movel #4386,%d1
 fefeb900:	302d 0001      	movew %a5@(1),%d0
@@ -14214,7 +14248,7 @@ fefeb934:	4dfa 0008      	lea %pc@(0xfefeb93e),%fp
 fefeb938:	60ff ffff e3e2 	bral 0xfefe9d1c			; ODD_func
 fefeb93e:	6400 00f4      	bccw 0xfefeba34
 fefeb942:	4dfa 0008      	lea %pc@(0xfefeb94c),%fp
-fefeb946:	60ff ffff e2da 	bral 0xfefe9c22			; ODD_user_sp
+fefeb946:	60ff ffff e2da 	bral 0xfefe9c22			; ODD_stash_fp
 fefeb94c:	223c 1122 3300 	movel #287453952,%d1
 fefeb952:	202d 0001      	movel %a5@(1),%d0
 fefeb956:	b280           	cmpl %d0,%d1
@@ -14233,7 +14267,7 @@ fefeb986:	4dfa 0008      	lea %pc@(0xfefeb990),%fp
 fefeb98a:	60ff ffff e390 	bral 0xfefe9d1c			; ODD_func
 fefeb990:	6400 00a2      	bccw 0xfefeba34
 fefeb994:	4dfa 0008      	lea %pc@(0xfefeb99e),%fp
-fefeb998:	60ff ffff e288 	bral 0xfefe9c22			; ODD_user_sp
+fefeb998:	60ff ffff e288 	bral 0xfefe9c22			; ODD_stash_fp
 fefeb99e:	223c 2233 0011 	movel #573767697,%d1
 fefeb9a4:	202d 0002      	movel %a5@(2),%d0
 fefeb9a8:	b280           	cmpl %d0,%d1
@@ -14252,7 +14286,7 @@ fefeb9d8:	4dfa 0008      	lea %pc@(0xfefeb9e2),%fp
 fefeb9dc:	60ff ffff e33e 	bral 0xfefe9d1c			; ODD_func
 fefeb9e2:	6400 0050      	bccw 0xfefeba34
 fefeb9e6:	4dfa 0008      	lea %pc@(0xfefeb9f0),%fp
-fefeb9ea:	60ff ffff e236 	bral 0xfefe9c22			; ODD_user_sp
+fefeb9ea:	60ff ffff e236 	bral 0xfefe9c22			; ODD_stash_fp
 fefeb9f0:	223c 3300 1122 	movel #855642402,%d1
 fefeb9f6:	202d 0003      	movel %a5@(3),%d0
 fefeb9fa:	b280           	cmpl %d0,%d1
@@ -14288,7 +14322,7 @@ fefeba6e:	08c7 0007      	bset #7,%d7
 fefeba72:	4dfa 0006      	lea %pc@(0xfefeba7a),%fp
 fefeba76:	6000 05d8      	braw 0xfefec050
 fefeba7a:	4dfa 0008      	lea %pc@(0xfefeba84),%fp
-fefeba7e:	60ff ffff e1a2 	bral 0xfefe9c22			; ODD_user_sp
+fefeba7e:	60ff ffff e1a2 	bral 0xfefe9c22			; ODD_stash_fp
 fefeba84:	4280           	clrl %d0
 fefeba86:	4295           	clrl %a5@
 fefeba88:	1b7c 0033 0003 	moveb #51,%a5@(3)
@@ -14310,7 +14344,7 @@ fefebac6:	4dfa 0008      	lea %pc@(0xfefebad0),%fp
 fefebaca:	60ff ffff e250 	bral 0xfefe9d1c			; ODD_func
 fefebad0:	6400 0394      	bccw 0xfefebe66
 fefebad4:	4dfa 0008      	lea %pc@(0xfefebade),%fp
-fefebad8:	60ff ffff e148 	bral 0xfefe9c22			; ODD_user_sp
+fefebad8:	60ff ffff e148 	bral 0xfefe9c22			; ODD_stash_fp
 fefebade:	4280           	clrl %d0
 fefebae0:	4295           	clrl %a5@
 fefebae2:	1b7c 0022 0002 	moveb #34,%a5@(2)
@@ -14332,7 +14366,7 @@ fefebb20:	4dfa 0008      	lea %pc@(0xfefebb2a),%fp
 fefebb24:	60ff ffff e1f6 	bral 0xfefe9d1c			; ODD_func
 fefebb2a:	6400 033a      	bccw 0xfefebe66
 fefebb2e:	4dfa 0008      	lea %pc@(0xfefebb38),%fp
-fefebb32:	60ff ffff e0ee 	bral 0xfefe9c22			; ODD_user_sp
+fefebb32:	60ff ffff e0ee 	bral 0xfefe9c22			; ODD_stash_fp
 fefebb38:	4280           	clrl %d0
 fefebb3a:	4295           	clrl %a5@
 fefebb3c:	1b7c 0011 0001 	moveb #17,%a5@(1)
@@ -14354,7 +14388,7 @@ fefebb7a:	4dfa 0008      	lea %pc@(0xfefebb84),%fp
 fefebb7e:	60ff ffff e19c 	bral 0xfefe9d1c			; ODD_func
 fefebb84:	6400 02e0      	bccw 0xfefebe66
 fefebb88:	4dfa 0008      	lea %pc@(0xfefebb92),%fp
-fefebb8c:	60ff ffff e094 	bral 0xfefe9c22			; ODD_user_sp
+fefebb8c:	60ff ffff e094 	bral 0xfefe9c22			; ODD_stash_fp
 fefebb92:	4280           	clrl %d0
 fefebb94:	4295           	clrl %a5@
 fefebb96:	1b7c 00aa 0000 	moveb #-86,%a5@(0)
@@ -14376,7 +14410,7 @@ fefebbd4:	4dfa 0008      	lea %pc@(0xfefebbde),%fp
 fefebbd8:	60ff ffff e142 	bral 0xfefe9d1c			; ODD_func
 fefebbde:	6400 0286      	bccw 0xfefebe66
 fefebbe2:	4dfa 0008      	lea %pc@(0xfefebbec),%fp
-fefebbe6:	60ff ffff e03a 	bral 0xfefe9c22			; ODD_user_sp
+fefebbe6:	60ff ffff e03a 	bral 0xfefe9c22			; ODD_stash_fp
 fefebbec:	4280           	clrl %d0
 fefebbee:	4295           	clrl %a5@
 fefebbf0:	3b7c aa11 0000 	movew #-21999,%a5@(0)
@@ -14398,7 +14432,7 @@ fefebc2e:	4dfa 0008      	lea %pc@(0xfefebc38),%fp
 fefebc32:	60ff ffff e0e8 	bral 0xfefe9d1c			; ODD_func
 fefebc38:	6400 022c      	bccw 0xfefebe66
 fefebc3c:	4dfa 0008      	lea %pc@(0xfefebc46),%fp
-fefebc40:	60ff ffff dfe0 	bral 0xfefe9c22			; ODD_user_sp
+fefebc40:	60ff ffff dfe0 	bral 0xfefe9c22			; ODD_stash_fp
 fefebc46:	4280           	clrl %d0
 fefebc48:	4295           	clrl %a5@
 fefebc4a:	3b7c 2233 0002 	movew #8755,%a5@(2)
@@ -14420,7 +14454,7 @@ fefebc88:	4dfa 0008      	lea %pc@(0xfefebc92),%fp
 fefebc8c:	60ff ffff e08e 	bral 0xfefe9d1c			; ODD_func
 fefebc92:	6400 01d2      	bccw 0xfefebe66
 fefebc96:	4dfa 0008      	lea %pc@(0xfefebca0),%fp
-fefebc9a:	60ff ffff df86 	bral 0xfefe9c22			; ODD_user_sp
+fefebc9a:	60ff ffff df86 	bral 0xfefe9c22			; ODD_stash_fp
 fefebca0:	4295           	clrl %a5@
 fefebca2:	42ad 0004      	clrl %a5@(4)
 fefebca6:	3b7c 33ba 0003 	movew #13242,%a5@(3)
@@ -14442,7 +14476,7 @@ fefebce4:	4dfa 0008      	lea %pc@(0xfefebcee),%fp
 fefebce8:	60ff ffff e032 	bral 0xfefe9d1c			; ODD_func
 fefebcee:	6400 0176      	bccw 0xfefebe66
 fefebcf2:	4dfa 0008      	lea %pc@(0xfefebcfc),%fp
-fefebcf6:	60ff ffff df2a 	bral 0xfefe9c22			; ODD_user_sp
+fefebcf6:	60ff ffff df2a 	bral 0xfefe9c22			; ODD_stash_fp
 fefebcfc:	4295           	clrl %a5@
 fefebcfe:	42ad 0004      	clrl %a5@(4)
 fefebd02:	3b7c 33aa 0003 	movew #13226,%a5@(3)
@@ -14464,7 +14498,7 @@ fefebd42:	4dfa 0008      	lea %pc@(0xfefebd4c),%fp
 fefebd46:	60ff ffff dfd4 	bral 0xfefe9d1c			; ODD_func
 fefebd4c:	6400 0118      	bccw 0xfefebe66
 fefebd50:	4dfa 0008      	lea %pc@(0xfefebd5a),%fp
-fefebd54:	60ff ffff decc 	bral 0xfefe9c22			; ODD_user_sp
+fefebd54:	60ff ffff decc 	bral 0xfefe9c22			; ODD_stash_fp
 fefebd5a:	4295           	clrl %a5@
 fefebd5c:	42ad 0004      	clrl %a5@(4)
 fefebd60:	2b7c 1122 33aa 	movel #287454122,%a5@(1)
@@ -14488,7 +14522,7 @@ fefebda0:	4dfa 0008      	lea %pc@(0xfefebdaa),%fp
 fefebda4:	60ff ffff df76 	bral 0xfefe9d1c			; ODD_func
 fefebdaa:	6400 00ba      	bccw 0xfefebe66
 fefebdae:	4dfa 0008      	lea %pc@(0xfefebdb8),%fp
-fefebdb2:	60ff ffff de6e 	bral 0xfefe9c22			; ODD_user_sp
+fefebdb2:	60ff ffff de6e 	bral 0xfefe9c22			; ODD_stash_fp
 fefebdb8:	4295           	clrl %a5@
 fefebdba:	42ad 0004      	clrl %a5@(4)
 fefebdbe:	2b7c 2233 aa11 	movel #573811217,%a5@(2)
@@ -14511,7 +14545,7 @@ fefebdfe:	4dfa 0008      	lea %pc@(0xfefebe08),%fp
 fefebe02:	60ff ffff df18 	bral 0xfefe9d1c			; ODD_func
 fefebe08:	6400 005c      	bccw 0xfefebe66
 fefebe0c:	4dfa 0008      	lea %pc@(0xfefebe16),%fp
-fefebe10:	60ff ffff de10 	bral 0xfefe9c22			; ODD_user_sp
+fefebe10:	60ff ffff de10 	bral 0xfefe9c22			; ODD_stash_fp
 fefebe16:	4295           	clrl %a5@
 fefebe18:	42ad 0004      	clrl %a5@(4)
 fefebe1c:	2b7c 33aa 1122 	movel #866783522,%a5@(3)
@@ -14553,7 +14587,7 @@ fefebeae:	260d           	movel %a5,%d3
 fefebeb0:	0683 0002 0000 	addil #131072,%d3
 fefebeb6:	4281           	clrl %d1
 fefebeb8:	4dfa 0008      	lea %pc@(0xfefebec2),%fp
-fefebebc:	60ff ffff dd64 	bral 0xfefe9c22			; ODD_user_sp
+fefebebc:	60ff ffff dd64 	bral 0xfefe9c22			; ODD_stash_fp
 fefebec2:	4280           	clrl %d0
 fefebec4:	2ac1           	movel %d1,%a5@+
 fefebec6:	4681           	notl %d1
@@ -14612,7 +14646,7 @@ fefebf88:	260d           	movel %a5,%d3
 fefebf8a:	0683 0010 0000 	addil #1048576,%d3
 fefebf90:	4281           	clrl %d1
 fefebf92:	4dfa 0008      	lea %pc@(0xfefebf9c),%fp
-fefebf96:	60ff ffff dc8a 	bral 0xfefe9c22			; ODD_user_sp
+fefebf96:	60ff ffff dc8a 	bral 0xfefe9c22			; ODD_stash_fp
 
 fefebf9c:	4280           	clrl %d0
 fefebf9e:	2ac1           	movel %d1,%a5@+
@@ -16397,7 +16431,7 @@ fefede38:	4dfa 0008      	lea %pc@(0xfefede42),%fp
 fefede3c:	60ff ffff bd0a 	bral 0xfefe9b48			; ODD_test
 
 fefede42:	4dfa 0008      	lea %pc@(0xfefede4c),%fp
-fefede46:	60ff ffff bdda 	bral 0xfefe9c22			; ODD_user_sp
+fefede46:	60ff ffff bdda 	bral 0xfefe9c22			; ODD_stash_fp
 
 fefede4c:	41f9 6400 0000 	lea 0x64000000,%a0
 fefede52:	2248           	moveal %a0,%a1
@@ -16487,7 +16521,7 @@ fefedf68:	4dfa 0008      	lea %pc@(0xfefedf72),%fp
 fefedf6c:	60ff ffff bbda 	bral 0xfefe9b48			; ODD_test
 
 fefedf72:	4dfa 0008      	lea %pc@(0xfefedf7c),%fp
-fefedf76:	60ff ffff bcaa 	bral 0xfefe9c22			; ODD_user_sp
+fefedf76:	60ff ffff bcaa 	bral 0xfefe9c22			; ODD_stash_fp
 
 fefedf7c:	41f9 6500 2000 	lea 0x65002000,%a0
 fefedf82:	3010           	movew %a0@,%d0
@@ -16504,7 +16538,7 @@ fefedfa2:	1e3c 0023      	moveb #35,%d7
 fefedfa6:	4dfa 0008      	lea %pc@(0xfefedfb0),%fp
 fefedfaa:	60ff ffff bb9c 	bral 0xfefe9b48			; ODD_test
 fefedfb0:	4dfa 0008      	lea %pc@(0xfefedfba),%fp
-fefedfb4:	60ff ffff bc6c 	bral 0xfefe9c22			; ODD_user_sp
+fefedfb4:	60ff ffff bc6c 	bral 0xfefe9c22			; ODD_stash_fp
 
 fefedfba:	23fc 0000 0080 	movel #128,0x66001000
 fefedfc0:	6600 1000
@@ -16568,7 +16602,7 @@ fefee094:	1e3c 0024      	moveb #36,%d7
 fefee098:	4dfa 0008      	lea %pc@(0xfefee0a2),%fp
 fefee09c:	60ff ffff baaa 	bral 0xfefe9b48			; ODD_test
 fefee0a2:	4dfa 0008      	lea %pc@(0xfefee0ac),%fp
-fefee0a6:	60ff ffff bb7a 	bral 0xfefe9c22			; ODD_user_sp
+fefee0a6:	60ff ffff bb7a 	bral 0xfefe9c22			; ODD_stash_fp
 fefee0ac:	1039 6e00 0000 	moveb 0x6e000000,%d0
 fefee0b2:	223c 0000 0001 	movel #1,%d1
 fefee0b8:	0c00 0080      	cmpib #-128,%d0
@@ -16632,7 +16666,7 @@ fefee1c0:	1e3c 0025      	moveb #37,%d7
 fefee1c4:	4dfa 0008      	lea %pc@(0xfefee1ce),%fp
 fefee1c8:	60ff ffff b97e 	bral 0xfefe9b48			; ODD_test
 fefee1ce:	4dfa 0008      	lea %pc@(0xfefee1d8),%fp
-fefee1d2:	60ff ffff ba4e 	bral 0xfefe9c22			; ODD_user_sp
+fefee1d2:	60ff ffff ba4e 	bral 0xfefe9c22			; ODD_stash_fp
 fefee1d8:	223c 0000 0000 	movel #0,%d1
 fefee1de:	13c1 6f00 003c 	moveb %d1,0x6f00003c
 fefee1e4:	363c 03e8      	movew #1000,%d3

@@ -245,8 +245,12 @@ fefe0204:	245f           	moveal %sp@+,%a2
 fefe0206:	4e75           	rts
 
 ; subroutine, called from 2 places below
+; zero entire SYSENA regiter
+; just like a hardware reset would
+
 fefe0208:	33fc 0000 fef1 	movew #0,0xfef16000		; SYSENA Virt
 fefe020e:	6000
+
 fefe0210:	23fc 0000 0000 	movel #0,0xfef7200e
 fefe0216:	fef7 200e
 
@@ -324,6 +328,8 @@ fefe02b8:	33fc 0003 fef6 	movew #3,0xfef60bfa
 fefe02be:	0bfa
 fefe02c0:	600e           	bras 0xfefe02d0
 
+; clear bit 15 in SYSENA ("boot" state)
+; (reset should do this anyway
 fefe02c2:	41f9 fef1 6000 	lea 0xfef16000,%a0		; SYSENA Virt
 fefe02c8:	3010           	movew %a0@,%d0
 fefe02ca:	0880 000f      	bclr #0xf,%d0
@@ -331,10 +337,10 @@ fefe02ce:	3080           	movew %d0,%a0@
 
 fefe02d0:	203c 0000 0080 	movel #0x80,%d0
 fefe02d6:	23c0 fef7 20be 	movel %d0,0xfef720be
-fefe02dc:	13fc 00ff fef7 	moveb #-1,0xfef7200f
+fefe02dc:	13fc 00ff fef7 	moveb #0xff,0xfef7200f
 fefe02e2:	200f
 
-; move the VBR to ram
+; the VBR points to ram after this
 fefe02e4:	207c fef6 0c00 	moveal #0xfef60c00,%a0
 fefe02ea:	4e7b 8801      	movec %a0,%vbr
 
@@ -732,6 +738,7 @@ fefe07fc:	4e75           	rts
 fefe07fe:	f000 2400      	pflusha
 fefe0802:	4e75           	rts
 
+; get_VBR - one call
 fefe0804:	4e7a 8801      	movec %vbr,%a0
 fefe0808:	2010           	movel %a0@,%d0
 fefe080a:	4e75           	rts
@@ -761,6 +768,8 @@ fefe085e:	2040           	moveal %d0,%a0
 fefe0860:	2010           	movel %a0@,%d0
 fefe0862:	4e75           	rts
 
+; subroutine
+; get_TIA ??
 fefe0864:	206f 0004      	moveal %sp@(4),%a0
 fefe0868:	f010 8717      	ptestr #7,%a0@,1,%a0
 fefe086c:	2f48 0004      	movel %a0,%sp@(4)
@@ -858,6 +867,9 @@ fefe09c8:	2040           	moveal %d0,%a0
 fefe09ca:	20af 0008      	movel %sp@(8),%a0@
 fefe09ce:	4e75           	rts
 
+; subroutine
+; translate virtual to physical
+; v2phys()
 fefe09d0:	4e56 fff4      	linkw %fp,#-12
 fefe09d4:	48d7 00c0      	moveml %d6-%d7,%sp@
 fefe09d8:	2e2e 0008      	movel %fp@(8),%d7
@@ -1200,7 +1212,7 @@ fefe0d24:	4eb9 fefe 11ca 	jsr 0xfefe11ca			; clancy
 fefe0d2a:	2e00           	movel %d0,%d7			; d7 = d0 (save)
 fefe0d2c:	4eb9 fefe 0bcc 	jsr 0xfefe0bcc			; get_SYSENA
 
-; clear top bit in SYSENA
+; clear top bit in SYSENA ("boot" state)
 fefe0d32:	0280 0000 7fff 	andil #0x7fff,%d0
 
 fefe0d38:	2f00           	movel %d0,%sp@-
@@ -3338,6 +3350,9 @@ fefe2586:	7000           	moveq #0,%d0
 fefe2588:	4e5e           	unlk %fp
 fefe258a:	4e75           	rts
 
+; must read a number from user
+; user_num()
+
 fefe258c:	4e56 ffec      	linkw %fp,#-20
 fefe2590:	48d7 20f0      	moveml %d4-%d7/%a5,%sp@
 fefe2594:	7c00           	moveq #0,%d6
@@ -3657,7 +3672,7 @@ fefe292e:	9280           	subl %d0,%d1
 fefe2930:	2043           	moveal %d3,%a0
 fefe2932:	2050           	moveal %a0@,%a0
 fefe2934:	4870 1c00      	pea %a0@(0,%d1:l:4)
-fefe2938:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe2938:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe293e:	2f00           	movel %d0,%sp@-
 fefe2940:	4eb9 fefe 2a68 	jsr 0xfefe2a68
 fefe2946:	504f           	addqw #8,%sp
@@ -4040,11 +4055,16 @@ fefe2d26:	23fc fef6 5a00 	movel #0xfef65a00,0xfef7223a
 fefe2d2c:	fef7 223a
 fefe2d30:	23f9 feff 537c 	movel 0xfeff537c,0xfef72406
 fefe2d36:	fef7 2406
+
+; Set bits 1010 ...
+; the top bit is 8000 (boot state), this cancels boot state
+; the nex bit is 2000, enables system DVMA
 fefe2d3a:	4eb9 fefe 0bcc 	jsr 0xfefe0bcc			; get_SYSENA
 fefe2d40:	0040 a000      	oriw #0xa000,%d0
 fefe2d44:	2f00           	movel %d0,%sp@-
 fefe2d46:	4eb9 fefe 0b98 	jsr 0xfefe0b98			; set_SYSENA
 fefe2d4c:	584f           	addqw #4,%sp
+
 fefe2d4e:	302e 0064      	movew %fp@(100),%d0
 fefe2d52:	0240 0fff      	andiw #0xfff,%d0
 fefe2d56:	0c40 0003      	cmpiw #3,%d0
@@ -4783,7 +4803,7 @@ fefe36b4:	48d7 30e0      	moveml %d5-%d7/%a4-%a5,%sp@
 fefe36b8:	2a6e 0008      	moveal %fp@(8),%a5
 fefe36bc:	2a2e 000c      	movel %fp@(12),%d5
 fefe36c0:	2c2e 0010      	movel %fp@(16),%d6
-fefe36c4:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe36c4:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe36ca:	2e00           	movel %d0,%d7
 fefe36cc:	6e00 0138      	bgtw 0xfefe3806
 fefe36d0:	287c fef7 253a 	moveal #0xfef7253a,%a4
@@ -4827,7 +4847,7 @@ fefe3740:	4eb9 fefe 2562 	jsr 0xfefe2562
 fefe3746:	7e0d           	moveq #13,%d7
 fefe3748:	b087           	cmpl %d7,%d0
 fefe374a:	6730           	beqs 0xfefe377c
-fefe374c:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe374c:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe3752:	2e00           	movel %d0,%d7
 fefe3754:	6c00 00b0      	bgew 0xfefe3806
 fefe3758:	4878 000a      	pea 0xa
@@ -4862,7 +4882,7 @@ fefe37b2:	6716           	beqs 0xfefe37ca
 fefe37b4:	722d           	moveq #45,%d1
 fefe37b6:	b081           	cmpl %d1,%d0
 fefe37b8:	6710           	beqs 0xfefe37ca
-fefe37ba:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe37ba:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe37c0:	2e00           	movel %d0,%d7
 fefe37c2:	6c30           	bges 0xfefe37f4
 fefe37c4:	4a94           	tstl %a4@
@@ -4901,7 +4921,7 @@ fefe381c:	4e75           	rts
 
 fefe381e:	4e56 fff4      	linkw %fp,#-12
 fefe3822:	48d7 00e0      	moveml %d5-%d7,%sp@
-fefe3826:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe3826:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe382c:	7e0f           	moveq #15,%d7
 fefe382e:	c087           	andl %d7,%d0
 fefe3830:	206e 000c      	moveal %fp@(12),%a0
@@ -5214,9 +5234,11 @@ fefe3c02:	7000           	moveq #0,%d0
 fefe3c04:	604e           	bras 0xfefe3c54
 fefe3c06:	0215 005f      	andib #0x5f,%a5@
 fefe3c0a:	1d55 fffb      	moveb %a5@,%fp@(-5)
-fefe3c0e:	0c15 005e      	cmpib #0x5e,%a5@
+
+fefe3c0e:	0c15 005e      	cmpib #0x5e,%a5@		; '^'
 fefe3c12:	660a           	bnes 0xfefe3c1e
-fefe3c14:	4eb9 fefe 48f6 	jsr 0xfefe48f6
+fefe3c14:	4eb9 fefe 48f6 	jsr 0xfefe48f6			; caret_menu
+
 fefe3c1a:	7000           	moveq #0,%d0
 fefe3c1c:	6036           	bras 0xfefe3c54
 fefe3c1e:	0c2e 0041 fffb 	cmpib #0x41,%fp@(-5)
@@ -5378,7 +5400,7 @@ fefe3e26:	4480           	negl %d0
 fefe3e28:	2a40           	moveal %d0,%a5
 fefe3e2a:	287c fef7 215e 	moveal #0xfef7215e,%a4
 fefe3e30:	288d           	movel %a5,%a4@
-fefe3e32:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe3e32:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe3e38:	2a40           	moveal %d0,%a5
 fefe3e3a:	e387           	asll #1,%d7
 fefe3e3c:	267c fef7 2532 	moveal #0xfef72532,%a3
@@ -5423,7 +5445,7 @@ fefe3eb6:	1a80           	moveb %d0,%a5@
 fefe3eb8:	0cb9 0000 0460 	cmpil #0x460,0xfef720be
 fefe3ebe:	fef7 20be
 fefe3ec2:	6600 00a0      	bnew 0xfefe3f64
-fefe3ec6:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe3ec6:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe3ecc:	2e00           	movel %d0,%d7
 fefe3ece:	6d00 00a4      	bltw 0xfefe3f74
 fefe3ed2:	0c15 0049      	cmpib #0x49,%a5@
@@ -5520,7 +5542,7 @@ fefe4006:	4e75           	rts
 fefe4008:	4e56 fffc      	linkw %fp,#-4
 fefe400c:	2e87           	movel %d7,%sp@
 fefe400e:	4239 fef7 2579 	clrb 0xfef72579
-fefe4014:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe4014:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe401a:	2e00           	movel %d0,%d7
 fefe401c:	6e08           	bgts 0xfefe4026
 fefe401e:	4ab9 fef7 253a 	tstl 0xfef7253a
@@ -5535,7 +5557,7 @@ fefe403c:	4e75           	rts
 
 fefe403e:	4e56 fffc      	linkw %fp,#-4
 fefe4042:	2e87           	movel %d7,%sp@
-fefe4044:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe4044:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe404a:	2e00           	movel %d0,%d7
 fefe404c:	6e12           	bgts 0xfefe4060
 fefe404e:	4ab9 fef7 253a 	tstl 0xfef7253a
@@ -5565,11 +5587,11 @@ fefe40a2:	4e75           	rts
 
 fefe40a4:	4e56 fff0      	linkw %fp,#-16
 fefe40a8:	48d7 20e0      	moveml %d5-%d7/%a5,%sp@
-fefe40ac:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe40ac:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe40b2:	2e00           	movel %d0,%d7
-fefe40b4:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe40b4:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe40ba:	2c00           	movel %d0,%d6
-fefe40bc:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe40bc:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe40c2:	2a00           	movel %d0,%d5
 fefe40c4:	4eb9 fefe 2576 	jsr 0xfefe2576
 fefe40ca:	4eb9 fefe 2536 	jsr 0xfefe2536
@@ -5666,7 +5688,7 @@ fefe41d6:	4eb9 fefe 2b04 	jsr 0xfefe2b04
 ; printf ( "%8x now.\n" )
 fefe41dc:	504f           	addqw #8,%sp
 fefe41de:	6000 009e      	braw 0xfefe427e
-fefe41e2:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe41e2:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe41e8:	2e00           	movel %d0,%d7
 fefe41ea:	4a8d           	tstl %a5
 fefe41ec:	6730           	beqs 0xfefe421e
@@ -5715,7 +5737,7 @@ fefe4288:	4e75           	rts
 
 fefe428a:	4e56 fffc      	linkw %fp,#-4
 fefe428e:	2e8d           	movel %a5,%sp@
-fefe4290:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe4290:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe4296:	720b           	moveq #11,%d1
 fefe4298:	b081           	cmpl %d1,%d0
 fefe429a:	6200 00be      	bhiw 0xfefe435a
@@ -5779,7 +5801,7 @@ fefe4384:	0c15 0042      	cmpib #0x42,%a5@
 fefe4388:	667c           	bnes 0xfefe4406
 fefe438a:	287c fef7 215e 	moveal #0xfef7215e,%a4
 fefe4390:	28bc 0008 0000 	movel #0x80000,%a4@
-fefe4396:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe4396:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe439c:	2e00           	movel %d0,%d7
 fefe439e:	267c fef7 201b 	moveal #0xfef7201b,%a3
 fefe43a4:	2f07           	movel %d7,%sp@-
@@ -5804,7 +5826,7 @@ fefe43dc:	4eb9 fefe 2562 	jsr 0xfefe2562
 fefe43e2:	1a80           	moveb %d0,%a5@
 fefe43e4:	0c15 000d      	cmpib #0xd,%a5@
 fefe43e8:	6718           	beqs 0xfefe4402
-fefe43ea:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe43ea:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe43f0:	2c00           	movel %d0,%d6
 fefe43f2:	6d00 0098      	bltw 0xfefe448c
 fefe43f6:	2f06           	movel %d6,%sp@-
@@ -5815,7 +5837,7 @@ fefe4402:	de94           	addl %a4@,%d7
 fefe4404:	609e           	bras 0xfefe43a4
 fefe4406:	287c fef7 215e 	moveal #0xfef7215e,%a4
 fefe440c:	28bc 0200 0000 	movel #0x2000000,%a4@
-fefe4412:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe4412:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe4418:	2e00           	movel %d0,%d7
 fefe441a:	267c fef7 201b 	moveal #0xfef7201b,%a3
 fefe4420:	6016           	bras 0xfefe4438
@@ -5847,7 +5869,7 @@ fefe4474:	4eb9 fefe 2562 	jsr 0xfefe2562
 fefe447a:	1a80           	moveb %d0,%a5@
 fefe447c:	0c15 000d      	cmpib #0xd,%a5@
 fefe4480:	67b4           	beqs 0xfefe4436
-fefe4482:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe4482:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe4488:	2c00           	movel %d0,%d6
 fefe448a:	6c96           	bges 0xfefe4422
 fefe448c:	7000           	moveq #0,%d0
@@ -5864,7 +5886,7 @@ fefe44ae:	6006           	bras 0xfefe44b6
 fefe44b0:	2e3c ffff e000 	movel #0xffffe000,%d7
 fefe44b6:	287c fef7 215e 	moveal #0xfef7215e,%a4
 fefe44bc:	2887           	movel %d7,%a4@
-fefe44be:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe44be:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe44c4:	2e00           	movel %d0,%d7
 fefe44c6:	2a7c fef7 2530 	moveal #0xfef72530,%a5
 fefe44cc:	267c fef7 201b 	moveal #0xfef7201b,%a3
@@ -5893,7 +5915,7 @@ fefe4510:	4eb9 fefe 2562 	jsr 0xfefe2562
 fefe4516:	1a80           	moveb %d0,%a5@
 fefe4518:	0c15 000d      	cmpib #0xd,%a5@
 fefe451c:	671a           	beqs 0xfefe4538
-fefe451e:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe451e:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe4524:	2c00           	movel %d0,%d6
 fefe4526:	72ff           	moveq #-1,%d1
 fefe4528:	bc81           	cmpl %d1,%d6
@@ -5935,7 +5957,7 @@ fefe459c:	584f           	addqw #4,%sp
 fefe459e:	607a           	bras 0xfefe461a
 fefe45a0:	287c fef7 2162 	moveal #0xfef72162,%a4
 fefe45a6:	4294           	clrl %a4@
-fefe45a8:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe45a8:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe45ae:	0480 010f c000 	subil #0x10fc000,%d0
 fefe45b4:	2c00           	movel %d0,%d6
 fefe45b6:	0c86 fef0 4000 	cmpil #0xfef04000,%d6
@@ -6005,7 +6027,7 @@ fefe4682:	4e75           	rts
 
 fefe4684:	4e56 fffc      	linkw %fp,#-4
 fefe4688:	2e87           	movel %d7,%sp@
-fefe468a:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe468a:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe4690:	2e00           	movel %d0,%d7
 fefe4692:	6f0c           	bles 0xfefe46a0
 fefe4694:	7207           	moveq #7,%d1
@@ -6064,11 +6086,11 @@ fefe473e:	42b9 fef7 2024 	clrl 0xfef72024
 fefe4744:	60cc           	bras 0xfefe4712
 fefe4746:	4e56 ffe0      	linkw %fp,#-32
 fefe474a:	48d7 30fc      	moveml %d2-%d7/%a4-%a5,%sp@
-fefe474e:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe474e:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe4754:	7ef0           	moveq #-16,%d7
 fefe4756:	c087           	andl %d7,%d0
 fefe4758:	2840           	moveal %d0,%a4
-fefe475a:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe475a:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe4760:	c087           	andl %d7,%d0
 fefe4762:	2400           	movel %d0,%d2
 fefe4764:	4eb9 fefe 2576 	jsr 0xfefe2576
@@ -6189,7 +6211,7 @@ fefe48a0:	4e75           	rts
 fefe48a2:	2c05           	movel %d5,%d6
 fefe48a4:	6000 fefe      	braw 0xfefe47a4
 fefe48a8:	4e56 0000      	linkw %fp,#0
-fefe48ac:	4eb9 fefe 258c 	jsr 0xfefe258c
+fefe48ac:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe48b2:	23c0 fef7 257c 	movel %d0,0xfef7257c
 fefe48b8:	2079 fef7 20c6 	moveal 0xfef720c6,%a0
 fefe48be:	4230 0170 fef7 	clrb %a0@(fffffffffef72028)
@@ -6212,12 +6234,22 @@ fefe48f4:	4e75           	rts
 
 ; ---------------------------------------------------------
 ; subroutine with short menu
+; You know, A, T, R are available when you type a "^" prefix
+; also C and I here, but not advertised
+; caret_menu()
+;
+; ^A -- display Virt and Phys addresses
+; ^C (secret)
+; ^I (secret) - info about build
+; ^R -- read on board device registers
+; ^T <addr> translate virtual to physical
 
 fefe48f6:	4e56 ffd4      	linkw %fp,#-44
 fefe48fa:	48d7 30c0      	moveml %d6-%d7/%a4-%a5,%sp@
 fefe48fe:	4eb9 fefe 2576 	jsr 0xfefe2576
 fefe4904:	4eb9 fefe 2536 	jsr 0xfefe2536
-fefe490a:	725f           	moveq #95,%d1
+
+fefe490a:	725f           	moveq #0x5f,%d1		; force upper case
 fefe490c:	c001           	andb %d1,%d0
 fefe490e:	13c0 fef7 2530 	moveb %d0,0xfef72530
 fefe4914:	49c0           	extbl %d0
@@ -6237,17 +6269,18 @@ fefe4932:	7e54           	moveq #84,%d7		; 'T'
 fefe4934:	b087           	cmpl %d7,%d0
 fefe4936:	6700 00a8      	beqw 0xfefe49e0
 
+; invalid
 fefe493a:	2f39 feff 55f8 	movel 0xfeff55f8,%sp@-
 fefe4940:	4eb9 fefe 2b04 	jsr 0xfefe2b04
 ; printf ( "Monitor: Invalid command.\n" )
 fefe4946:	584f           	addqw #4,%sp
-fefe4948:	6000 0248      	braw 0xfefe4b92
+fefe4948:	6000 0248      	braw 0xfefe4b92		; return
 
 ; Handle the 'A' command
 fefe494c:	4eb9 fefe 12b0 	jsr 0xfefe12b0		; print address summary
-fefe4952:	6000 023e      	braw 0xfefe4b92
+fefe4952:	6000 023e      	braw 0xfefe4b92		; return
 
-; Handle the 'R' command
+; Handle the 'R' command (read on board regs)
 fefe4956:	486e fff8      	pea %fp@(-8)
 fefe495a:	4eb9 fefe 0798 	jsr 0xfefe0798		; get_mmu_CRP
 fefe4960:	584f           	addqw #4,%sp
@@ -6264,17 +6297,21 @@ fefe4978:	4879 feff 578d 	pea 0xfeff578d
 fefe497e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
 
 fefe4984:	4fef 0010      	lea %sp@(16),%sp
-fefe4988:	4eb9 fefe 0804 	jsr 0xfefe0804
+fefe4988:	4eb9 fefe 0804 	jsr 0xfefe0804				; get_VBR
 fefe498e:	2f00           	movel %d0,%sp@-
+
 fefe4990:	7000           	moveq #0,%d0
-fefe4992:	1039 fef1 8400 	moveb 0xfef18400,%d0
+fefe4992:	1039 fef1 8400 	moveb 0xfef18400,%d0		; Bus Error VA
 fefe4998:	2f00           	movel %d0,%sp@-
+
 fefe499a:	7000           	moveq #0,%d0
-fefe499c:	1039 fef0 b400 	moveb 0xfef0b400,%d0
+fefe499c:	1039 fef0 b400 	moveb 0xfef0b400,%d0		; SYS int VA
 fefe49a2:	2f00           	movel %d0,%sp@-
+
 fefe49a4:	7000           	moveq #0,%d0
-fefe49a6:	3039 fef1 6000 	movew 0xfef16000,%d0		; SYSENA Virt
+fefe49a6:	3039 fef1 6000 	movew 0xfef16000,%d0		; SYSENA Virt addr
 fefe49ac:	2f00           	movel %d0,%sp@-
+
 fefe49ae:	4879 feff 57ac 	pea 0xfeff57ac
 ; 0xfeff57ac SYS ENA: (0x%x) INT: (0x%x) BERR: (0x%x) VBR: (0x%x)\n
 fefe49b4:	4eb9 fefe 2b04 	jsr 0xfefe2b04
@@ -6287,12 +6324,13 @@ fefe49d0:	2f39 fef0 9000 	movel 0xfef09000,%sp@-
 fefe49d6:	4879 feff 57e2 	pea 0xfeff57e2
 fefe49dc:	6000 01ae      	braw 0xfefe4b8c
 
-; Handle the 'T' command
-fefe49e0:	4eb9 fefe 258c 	jsr 0xfefe258c
+; Handle the 'T' command (translate virt to phys)
+fefe49e0:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe49e6:	2e00           	movel %d0,%d7
 fefe49e8:	2f07           	movel %d7,%sp@-
-fefe49ea:	4eb9 fefe 09d0 	jsr 0xfefe09d0
+fefe49ea:	4eb9 fefe 09d0 	jsr 0xfefe09d0		; v2phys
 fefe49f0:	584f           	addqw #4,%sp
+
 fefe49f2:	2d40 fff0      	movel %d0,%fp@(-16)
 fefe49f6:	41ee fff0      	lea %fp@(-16),%a0
 fefe49fa:	2d48 ffec      	movel %a0,%fp@(-20)
@@ -6300,19 +6338,25 @@ fefe49fe:	0280 ffff ff00 	andil #0xffffff00,%d0
 fefe4a04:	3207           	movew %d7,%d1
 fefe4a06:	0281 0000 1fff 	andil #0x1fff,%d1
 fefe4a0c:	d081           	addl %d1,%d0
+
 fefe4a0e:	2f00           	movel %d0,%sp@-
 fefe4a10:	2f07           	movel %d7,%sp@-
 fefe4a12:	4879 feff 580e 	pea 0xfeff580e
 fefe4a18:	4eb9 fefe 2b04 	jsr 0xfefe2b04
 ; printf ( "Virtual Addr 0x%x is mapped to Physical Addr 0x%x.\n" )
+
 fefe4a1e:	4fef 000c      	lea %sp@(12),%sp
+
 fefe4a22:	2f07           	movel %d7,%sp@-
 fefe4a24:	4eb9 fefe 08ac 	jsr 0xfefe08ac
 fefe4a2a:	584f           	addqw #4,%sp
+
 fefe4a2c:	2f00           	movel %d0,%sp@-
+
 fefe4a2e:	2f07           	movel %d7,%sp@-
 fefe4a30:	4eb9 fefe 0864 	jsr 0xfefe0864
 fefe4a36:	584f           	addqw #4,%sp
+
 fefe4a38:	2f00           	movel %d0,%sp@-
 fefe4a3a:	4879 feff 5842 	pea 0xfeff5842
 fefe4a40:	4eb9 fefe 2b04 	jsr 0xfefe2b04
@@ -6367,9 +6411,10 @@ fefe4ae4:	4879 feff 58f9 	pea 0xfeff58f9
 fefe4aea:	4eb9 fefe 2b04 	jsr 0xfefe2b04
 ; printf ( ".Descriptor Type   = %d\n" )
 fefe4af0:	504f           	addqw #8,%sp
-fefe4af2:	6000 009e      	braw 0xfefe4b92
+fefe4af2:	6000 009e      	braw 0xfefe4b92		; return
 
 ; Handle the 'C' command
+; (secret) -- and so far a mystery
 fefe4af6:	4eb9 fefe 258c 	jsr 0xfefe258c
 fefe4afc:	2d40 ffe8      	movel %d0,%fp@(-24)
 fefe4b00:	4eb9 fefe 258c 	jsr 0xfefe258c
@@ -6378,19 +6423,23 @@ fefe4b0a:	4eb9 fefe 258c 	jsr 0xfefe258c
 fefe4b10:	2c00           	movel %d0,%d6
 fefe4b12:	2a7c fef7 2532 	moveal #0xfef72532,%a5
 
-fefe4b18:	2e06           	movel %d6,%d7
+; start loop
+fefe4b18:	2e06           	movel %d6,%d7		; loop here
 fefe4b1a:	5386           	subql #1,%d6
 fefe4b1c:	4a87           	tstl %d7
-fefe4b1e:	6b72           	bmis 0xfefe4b92
+fefe4b1e:	6b72           	bmis 0xfefe4b92		; return
+
 fefe4b20:	2e2e ffe4      	movel %fp@(-28),%d7
 fefe4b24:	52ae ffe4      	addql #1,%fp@(-28)
 fefe4b28:	286e ffe8      	moveal %fp@(-24),%a4
 fefe4b2c:	52ae ffe8      	addql #1,%fp@(-24)
 fefe4b30:	4878 0001      	pea 0x1
-fefe4b34:	2f15           	movel %a5@,%sp@-
+
+fefe4b34:	2f15           	movel %a5@,%sp@-	; ignored
 fefe4b36:	4854           	pea %a4@
-fefe4b38:	4eb9 fefe 00fc 	jsr 0xfefe00fc
+fefe4b38:	4eb9 fefe 00fc 	jsr 0xfefe00fc		; readb
 fefe4b3e:	504f           	addqw #8,%sp
+
 fefe4b40:	2f00           	movel %d0,%sp@-
 fefe4b42:	2f15           	movel %a5@,%sp@-
 fefe4b44:	2f07           	movel %d7,%sp@-
@@ -6400,11 +6449,10 @@ fefe4b50:	2e3c 0018 6a00 	movel #0x186a00,%d7
 fefe4b56:	2239 feff 5490 	movel 0xfeff5490,%d1
 fefe4b5c:	e2a7           	asrl %d1,%d7
 
-; delay loop, then up
 fefe4b5e:	5387           	subql #1,%d7
 fefe4b60:	4a87           	tstl %d7
-fefe4b62:	6fb4           	bles 0xfefe4b18
-fefe4b64:	60f8           	bras 0xfefe4b5e
+fefe4b62:	6fb4           	bles 0xfefe4b18		; loop up
+fefe4b64:	60f8           	bras 0xfefe4b5e		; next
 
 ; Handle the 'I' command
 ; (prints info about the build)
@@ -6426,10 +6474,12 @@ fefe4b86:	4879 feff 5912 	pea 0xfeff5912
 fefe4b8c:	4eb9 fefe 2b04 	jsr 0xfefe2b04
 ; printf ( "Compiled on %s using %s:%s\n" )
 
+; return
 fefe4b92:	7000           	moveq #0,%d0
 fefe4b94:	4cee 30c0 ffd4 	moveml %fp@(-44),%d6-%d7/%a4-%a5
 fefe4b9a:	4e5e           	unlk %fp
 fefe4b9c:	4e75           	rts
+; END of caret_menu
 
 fefe4b9e:	0000
 
@@ -7107,19 +7157,25 @@ fefe5354:	670c           	beqs 0xfefe5362
 fefe5356:	4878 000b      	pea 0xb
 fefe535a:	4eb9 fefe 062c 	jsr 0xfefe062c
 fefe5360:	584f           	addqw #4,%sp
+
+; clear bit 0x800 - enable video memory
 fefe5362:	4eb9 fefe 0bcc 	jsr 0xfefe0bcc			; get_SYSENA
 fefe5368:	0280 ffff f7ff 	andil #0xfffff7ff,%d0
 fefe536e:	2f00           	movel %d0,%sp@-
 fefe5370:	4eb9 fefe 0b98 	jsr 0xfefe0b98			; set_SYSENA
+
 fefe5376:	584f           	addqw #4,%sp
 fefe5378:	51cf fffe      	dbf %d7,0xfefe5378
 fefe537c:	4247           	clrw %d7
 fefe537e:	5387           	subql #1,%d7
 fefe5380:	64f6           	bccs 0xfefe5378
+
+; set bit 0x800 - enable video memory
 fefe5382:	4eb9 fefe 0bcc 	jsr 0xfefe0bcc			; get_SYSENA
 fefe5388:	0040 0800      	oriw #0x800,%d0
 fefe538c:	2f00           	movel %d0,%sp@-
 fefe538e:	4eb9 fefe 0b98 	jsr 0xfefe0b98			; set_SYSENA
+
 fefe5394:	584f           	addqw #4,%sp
 fefe5396:	7e00           	moveq #0,%d7
 fefe5398:	2007           	movel %d7,%d0
@@ -8032,14 +8088,19 @@ fefe5e56:	4fef 000c      	lea %sp@(12),%sp
 fefe5e5a:	4eb9 fefe 6320 	jsr 0xfefe6320
 fefe5e60:	2047           	moveal %d7,%a0
 fefe5e62:	0890 0007      	bclr #7,%a0@
+
+; set bits to cancel boot state and
+; enable DVMA
 fefe5e66:	4eb9 fefe 0bcc 	jsr 0xfefe0bcc			; get_SYSENA
 fefe5e6c:	0040 a000      	oriw #0xa000,%d0
 fefe5e70:	2f00           	movel %d0,%sp@-
 fefe5e72:	4eb9 fefe 0b98 	jsr 0xfefe0b98			; set_SYSENA
 fefe5e78:	584f           	addqw #4,%sp
-fefe5e7a:	207c fef0 b400 	moveal #0xfef0b400,%a0
+
+fefe5e7a:	207c fef0 b400 	moveal #0xfef0b400,%a0	; Sys int reg
 fefe5e80:	0210 007f      	andib #0x7f,%a0@
 fefe5e84:	0010 0080      	orib #0x80,%a0@
+
 fefe5e88:	1e39 fef0 6010 	moveb 0xfef06010,%d7
 fefe5e8e:	6000 0394      	braw 0xfefe6224
 fefe5e92:	55ae 0060      	subql #2,%fp@(96)
@@ -8299,7 +8360,7 @@ fefe6224:	0cb9 0000 0003 	cmpil #3,0xfef7210e
 fefe622a:	fef7 210e
 fefe622e:	6638           	bnes 0xfefe6268
 fefe6230:	4855           	pea %a5@
-fefe6232:	4eb9 fefe 09d0 	jsr 0xfefe09d0
+fefe6232:	4eb9 fefe 09d0 	jsr 0xfefe09d0		; v2phys
 fefe6238:	584f           	addqw #4,%sp
 fefe623a:	2e00           	movel %d0,%d7
 fefe623c:	4879 7e70 a041 	pea 0x7e70a041
@@ -8428,7 +8489,7 @@ fefe63e4:	0280 0000 00ff 	andil #0xff,%d0
 fefe63ea:	2f00           	movel %d0,%sp@-
 fefe63ec:	4854           	pea %a4@
 fefe63ee:	2f07           	movel %d7,%sp@-
-fefe63f0:	4eb9 fefe 09d0 	jsr 0xfefe09d0
+fefe63f0:	4eb9 fefe 09d0 	jsr 0xfefe09d0		; v2phys
 fefe63f6:	584f           	addqw #4,%sp
 fefe63f8:	0280 ffff e000 	andil #0xffffe000,%d0
 fefe63fe:	3207           	movew %d7,%d1
@@ -8461,7 +8522,7 @@ fefe6454:	0280 0000 00ff 	andil #0xff,%d0
 fefe645a:	2f00           	movel %d0,%sp@-
 fefe645c:	4854           	pea %a4@
 fefe645e:	2f07           	movel %d7,%sp@-
-fefe6460:	4eb9 fefe 09d0 	jsr 0xfefe09d0
+fefe6460:	4eb9 fefe 09d0 	jsr 0xfefe09d0		; v2phys
 fefe6466:	584f           	addqw #4,%sp
 fefe6468:	0280 ffff e000 	andil #0xffffe000,%d0
 fefe646e:	3207           	movew %d7,%d1
@@ -8891,11 +8952,14 @@ fefe69a0:	2016
 fefe69a2:	6040           	bras 0xfefe69e4
 fefe69a4:	08ad 0005 0003 	bclr #5,%a5@(3)
 fefe69aa:	6038           	bras 0xfefe69e4
+
+; enable video memory
 fefe69ac:	4eb9 fefe 0bcc 	jsr 0xfefe0bcc			; get_SYSENA
 fefe69b2:	0040 0800      	oriw #0x800,%d0
 fefe69b6:	2f00           	movel %d0,%sp@-
 fefe69b8:	4eb9 fefe 0b98 	jsr 0xfefe0b98			; set_SYSENA
 fefe69be:	584f           	addqw #4,%sp
+
 fefe69c0:	6022           	bras 0xfefe69e4
 fefe69c2:	08ed 0005 0003 	bset #5,%a5@(3)
 fefe69c8:	08ad 0002 0003 	bclr #2,%a5@(3)
@@ -9534,9 +9598,12 @@ fefe70be:	4e7b 0801      	movec %d0,%vbr
 ; set up sp
 fefe70c2:	4ff9 0002 0000 	lea 0x20000,%sp
 
+; clear these bits in SYSENA
+; DVMA, DIAG, CACHE, vme LOOPBACK
 fefe70c8:	3c3c 2170      	movew #0x2170,%d6
 fefe70cc:	4646           	notw %d6
 fefe70ce:	cd79 6100 0000 	andw %d6,0x61000000		; SYSENA
+
 fefe70d4:	303c 7fff      	movew #0x7fff,%d0
 fefe70d8:	4281           	clrl %d1
 fefe70da:	123c 000f      	moveb #0xf,%d1
@@ -9859,7 +9926,7 @@ fefe7446:	3400           	movew %d0,%d2			; d2 = low16(d0)
 fefe7448:	b342           	eorw %d1,%d2
 fefe744a:	6700 0012      	beqw 0xfefe745e
 
-; We print this is d1 != d2
+; We print this if d1 != d2
 ; note that this printf recognizes register specifications
 ; in the format
 
@@ -11701,9 +11768,13 @@ fefe9a8a:	4dfa 0006      	lea %pc@(0xfefe9a92),%fp
 fefe9a8e:	6000 0944      	braw 0xfefea3d4		; ODD_print
 fefe9a92:	4ff9 0003 0000 	lea 0x30000,%sp
 fefe9a98:	0887 0010      	bclr #0x10,%d7
+
+; clear boot state (puts us into boot state)
+; clear DIAG switch bit (3/80 has no diag switch)
 fefe9a9c:	3c3c 8100      	movew #0x8100,%d6
 fefe9aa0:	4646           	notw %d6
 fefe9aa2:	cd79 6100 0000 	andw %d6,0x61000000		; SYSENA
+
 fefe9aa8:	0887 000d      	bclr #0xd,%d7
 fefe9aac:	60ff ffff d958 	bral 0xfefe7406
 
@@ -11717,10 +11788,12 @@ fefe9ac0:	49fa 12ff      	lea %pc@(0xfefeadc1),%a4
 ; 0xfefeadc1 \r\n_exit_boot: disabling boot state.
 fefe9ac4:	4dfa 0006      	lea %pc@(0xfefe9acc),%fp
 fefe9ac8:	6000 090a      	braw 0xfefea3d4		; ODD_print
+
 fefe9acc:	3039 6100 0000 	movew 0x61000000,%d0		; SYSENA
-fefe9ad2:	0240 feff      	andiw #0xfeff,%d0
-fefe9ad6:	0040 8000      	oriw #0x8000,%d0
+fefe9ad2:	0240 feff      	andiw #0xfeff,%d0			; clear DIAG switch bit
+fefe9ad6:	0040 8000      	oriw #0x8000,%d0			; set boot state bit (not boot state)
 fefe9ada:	33c0 6100 0000 	movew %d0,0x61000000		; SYSENA
+
 fefe9ae0:	4cdf 7fff      	moveml %sp@+,%d0-%fp
 fefe9ae4:	4e5e           	unlk %fp
 fefe9ae6:	4e75           	rts
@@ -11742,10 +11815,12 @@ fefe9b0e:	2618           	movel %a0@+,%d3
 fefe9b10:	49fa 10eb      	lea %pc@(0xfefeabfd),%a4
 fefe9b14:	4dfa 0006      	lea %pc@(0xfefe9b1c),%fp
 fefe9b18:	6000 0ae2      	braw 0xfefea5fc
+
 fefe9b1c:	3039 6100 0000 	movew 0x61000000,%d0		; SYSENA
-fefe9b22:	0040 8000      	oriw #0x8000,%d0
-fefe9b26:	0240 feff      	andiw #0xfeff,%d0
+fefe9b22:	0040 8000      	oriw #0x8000,%d0			; set boot state bit
+fefe9b26:	0240 feff      	andiw #0xfeff,%d0			; clear DIAG switch bit
 fefe9b2a:	33c0 6100 0000 	movew %d0,0x61000000		; SYSENA
+
 fefe9b30:	205f           	moveal %sp@+,%a0
 fefe9b32:	4e90           	jsr %a0@
 fefe9b34:	49fa 10a3      	lea %pc@(0xfefeabd9),%a4
@@ -11763,8 +11838,10 @@ fefe9b46:	4e75           	rts
 ; called with string pointer in a4 to announce the test
 ; it uses the ODD call method
 
-fefe9b48:	0279 feff 6100 	andiw #-257,0x61000000		; SYSENA
+; clear DIAG switch bit
+fefe9b48:	0279 feff 6100 	andiw #0xfeff,0x61000000		; SYSENA
 fefe9b4e:	0000
+
 fefe9b50:	08c7 0006      	bset #6,%d7
 fefe9b54:	08c7 0007      	bset #7,%d7
 fefe9b58:	1c07           	moveb %d7,%d6
@@ -11882,8 +11959,11 @@ fefe9ca6:	4ed6           	jmp %fp@			; return
 ; many many ODD branches to here
 ; ODD_print2
 ; this is NOT misassembled
+
+; set DIAG switch bit
 fefe9ca8:	0079 0100 6100 	oriw #256,0x61000000		; SYSENA
 fefe9cae:	0000
+
 fefe9cb0:	0807 000c      	btst #0xc,%d7
 fefe9cb4:	6600 000a      	bnew 0xfefe9cc0
 fefe9cb8:	0807 0007      	btst #7,%d7
@@ -12129,6 +12209,7 @@ fefe9efe:	003c 0001      	orib #1,%ccr
 fefe9f02:	4ed6           	jmp %fp@
 
 ; branch here from above
+; clear these bits (SDVMA, DIAG, SYSCACHE)
 fefe9f04:	3c3c 2140      	movew #0x2140,%d6
 fefe9f08:	4646           	notw %d6
 fefe9f0a:	cd79 6100 0000 	andw %d6,0x61000000		; SYSENA
@@ -12801,7 +12882,8 @@ fefea702:	4e5e           	unlk %fp
 fefea704:	4e75           	rts
 
 fefea706:	0000 0000      	orib #0,%d0
-fefea70a:	0030 fefe d7f0 	orib #-2,@(fffffffffefec8c4)
+
+fefea70a:	0030 fefe d7f0 	orib #-2,@(fefec8c4)
 fefea710:	fefe c8c4
 fefea714:	0000 0061      	orib #0x61,%d0
 fefea718:	fefe           	.short 0xfefe
@@ -13772,6 +13854,7 @@ fefeb0b4:	203c 0000 0080 	movel #0x80,%d0
 fefeb0ba:	2f40 0004      	movel %d0,%sp@(4)
 fefeb0be:	363c 0000      	movew #0,%d3
 fefeb0c2:	4281           	clrl %d1
+
 fefeb0c4:	3239 6100 0000 	movew 0x61000000,%d1		; SYSENA
 fefeb0ca:	4e7a 8802      	movec %caar,%a0
 fefeb0ce:	b1fc 5555 0000 	cmpal #0x55550000,%a0
@@ -13779,41 +13862,56 @@ fefeb0d4:	6700 00a4      	beqw 0xfefeb17a
 fefeb0d8:	0807 001a      	btst #0x1a,%d7
 fefeb0dc:	6600 00a8      	bnew 0xfefeb186
 fefeb0e0:	363c 0004      	movew #4,%d3
+
 fefeb0e4:	49fa 0378      	lea %pc@(0xfefeb45e),%a4
+; 0xfefeb45e Type a Character within 10 seconds to enter the Menu Tests...(e for echo mode)\r\n
 fefeb0e8:	4dfa 0008      	lea %pc@(0xfefeb0f2),%fp
 fefeb0ec:	60ff ffff f2e6 	bral 0xfefea3d4		; ODD_print
+
 fefeb0f2:	203c 0000 ffff 	movel #0xffff,%d0
 fefeb0f8:	0883 001f      	bclr #0x1f,%d3
+
 fefeb0fc:	1239 6200 2004 	moveb 0x62002004,%d1	; SCC
 fefeb102:	0801 0000      	btst #0,%d1
 fefeb106:	6600 0022      	bnew 0xfefeb12a
+
 fefeb10a:	323c 0180      	movew #0x180,%d1
-fefeb10e:	51c9 fffe      	dbf %d1,0xfefeb10e
+fefeb10e:	51c9 fffe      	dbf %d1,0xfefeb10e		; delay
+
 fefeb112:	1239 6200 2000 	moveb 0x62002000,%d1	; SCC
 fefeb118:	0801 0000      	btst #0,%d1
 fefeb11c:	6600 001c      	bnew 0xfefeb13a
+
 fefeb120:	5380           	subql #1,%d0
 fefeb122:	6e00 ffd8      	bgtw 0xfefeb0fc
 fefeb126:	6000 005e      	braw 0xfefeb186
+
 fefeb12a:	303c 0180      	movew #0x180,%d0
 fefeb12e:	51c8 fffe      	dbf %d0,0xfefeb12e
 fefeb132:	1039 6200 2006 	moveb 0x62002006,%d0	; SCC
 fefeb138:	6012           	bras 0xfefeb14c
+
 fefeb13a:	323c 0180      	movew #0x180,%d1
 fefeb13e:	51c8 fffe      	dbf %d0,0xfefeb13e
 fefeb142:	08c3 001f      	bset #0x1f,%d3
 fefeb146:	1039 6200 2002 	moveb 0x62002002,%d0	; SCC
+
 fefeb14c:	0200 007f      	andib #0x7f,%d0
-fefeb150:	0c00 0065      	cmpib #0x65,%d0
+fefeb150:	0c00 0065      	cmpib #0x65,%d0			; 'e'
 fefeb154:	6600 0014      	bnew 0xfefeb16a
+
 fefeb158:	08c7 001f      	bset #0x1f,%d7
 fefeb15c:	49fa 0351      	lea %pc@(0xfefeb4af),%a4
+; 0xfefeb4af \r\nEcho mode: Output will echo to Video!\r\n
 fefeb160:	4dfa 0008      	lea %pc@(0xfefeb16a),%fp
 fefeb164:	60ff ffff f26e 	bral 0xfefea3d4		; ODD_print
+
 fefeb16a:	4dfa 0008      	lea %pc@(0xfefeb174),%fp
 fefeb16e:	60ff ffff f54e 	bral 0xfefea6be
+
 fefeb174:	363c 0005      	movew #5,%d3
 fefeb178:	6010           	bras 0xfefeb18a
+
 fefeb17a:	207c 0000 0900 	moveal #0x900,%a0
 fefeb180:	20bc 5555 0000 	movel #0x55550000,%a0@
 fefeb186:	363c 0000      	movew #0,%d3
@@ -14655,6 +14753,7 @@ fefec0b2:	2a4e           	moveal %fp,%a5
 fefec0b4:	0807 001d      	btst #0x1d,%d7
 fefec0b8:	6700 0012      	beqw 0xfefec0cc
 fefec0bc:	49fa 05bd      	lea %pc@(0xfefec67b),%a4
+; 0xfefec67b \r\n<Warning: Skipping P4 Video RAM Board Probe>
 fefec0c0:	4df9 fefe 9a12 	lea 0xfefe9a12,%fp
 fefec0c6:	60ff ffff e30c 	bral 0xfefea3d4		; ODD_print
 fefec0cc:	4ff9 0002 0000 	lea 0x20000,%sp
@@ -14674,13 +14773,16 @@ fefec106:	0887 001e      	bclr #0x1e,%d7
 fefec10a:	0887 0019      	bclr #0x19,%d7
 fefec10e:	0887 001f      	bclr #0x1f,%d7
 fefec112:	49fa 03ec      	lea %pc@(0xfefec500),%a4
+; 0xfefec500 \r\n<P4 High Resolution Monochrome Video RAM Board Detected>
 fefec116:	0c03 0000      	cmpib #0,%d3
 fefec11a:	6700 006c      	beqw 0xfefec188
 fefec11e:	49fa 041b      	lea %pc@(0xfefec53b),%a4
+; 0xfefec53b \r\n<P4 Low Resolution Monochrome Video RAM Board Detected>
 fefec122:	0c03 0001      	cmpib #1,%d3
 fefec126:	6700 0060      	beqw 0xfefec188
 fefec12a:	08c7 001e      	bset #0x1e,%d7
 fefec12e:	49fa 0445      	lea %pc@(0xfefec575),%a4
+; 0xfefec575 \r\n<P4 Low Res Color Video RAM Board Detected>
 fefec132:	0c03 0041      	cmpib #0x41,%d3
 fefec136:	6700 0050      	beqw 0xfefec188
 fefec13a:	0c03 0048      	cmpib #0x48,%d3
@@ -14899,338 +15001,45 @@ fefec4f0:	41f9 fefe a142 	lea 0xfefea142,%a0
 fefec4f6:	23c8 0002 c408 	movel %a0,0x2c408
 fefec4fc:	2c4d           	moveal %a5,%fp
 fefec4fe:	4ed6           	jmp %fp@
-fefec500:	0d0a 3c50      	movepw %a2@(15440),%d6
-fefec504:	3420           	movew %a0@-,%d2
-fefec506:	4869 6768      	pea %a1@(26472)
-fefec50a:	2052           	moveal %a2@,%a0
-fefec50c:	6573           	bcss 0xfefec581
-fefec50e:	6f6c           	bles 0xfefec57c
-fefec510:	7574           	.short 0x7574
-fefec512:	696f           	bvss 0xfefec583
-fefec514:	6e20           	bgts 0xfefec536
-fefec516:	4d6f           	.short 0x4d6f
-fefec518:	6e6f           	bgts 0xfefec589
-fefec51a:	6368           	blss 0xfefec584
-fefec51c:	726f           	moveq #111,%d1
-fefec51e:	6d65           	blts 0xfefec585
-fefec520:	2056           	moveal %fp@,%a0
-fefec522:	6964           	bvss 0xfefec588
-fefec524:	656f           	bcss 0xfefec595
-fefec526:	2052           	moveal %a2@,%a0
-fefec528:	414d           	.short 0x414d
-fefec52a:	2042           	moveal %d2,%a0
-fefec52c:	6f61           	bles 0xfefec58f
-fefec52e:	7264           	moveq #100,%d1
-fefec530:	2044           	moveal %d4,%a0
-fefec532:	6574           	bcss 0xfefec5a8
-fefec534:	6563           	bcss 0xfefec599
-fefec536:	7465           	moveq #101,%d2
-fefec538:	643e           	bccs 0xfefec578
-fefec53a:	000d           	.short 0x000d
-fefec53c:	0a3c 5034      	eorib #0x34,%ccr
-fefec540:	204c           	moveal %a4,%a0
-fefec542:	6f77           	bles 0xfefec5bb
-fefec544:	2052           	moveal %a2@,%a0
-fefec546:	6573           	bcss 0xfefec5bb
-fefec548:	6f6c           	bles 0xfefec5b6
-fefec54a:	7574           	.short 0x7574
-fefec54c:	696f           	bvss 0xfefec5bd
-fefec54e:	6e20           	bgts 0xfefec570
-fefec550:	4d6f           	.short 0x4d6f
-fefec552:	6e6f           	bgts 0xfefec5c3
-fefec554:	6368           	blss 0xfefec5be
-fefec556:	726f           	moveq #111,%d1
-fefec558:	6d65           	blts 0xfefec5bf
-fefec55a:	2056           	moveal %fp@,%a0
-fefec55c:	6964           	bvss 0xfefec5c2
-fefec55e:	656f           	bcss 0xfefec5cf
-fefec560:	2052           	moveal %a2@,%a0
-fefec562:	414d           	.short 0x414d
-fefec564:	2042           	moveal %d2,%a0
-fefec566:	6f61           	bles 0xfefec5c9
-fefec568:	7264           	moveq #100,%d1
-fefec56a:	2044           	moveal %d4,%a0
-fefec56c:	6574           	bcss 0xfefec5e2
-fefec56e:	6563           	bcss 0xfefec5d3
-fefec570:	7465           	moveq #101,%d2
-fefec572:	643e           	bccs 0xfefec5b2
-fefec574:	000d           	.short 0x000d
-fefec576:	0a3c 5034      	eorib #0x34,%ccr
-fefec57a:	204c           	moveal %a4,%a0
-fefec57c:	6f77           	bles 0xfefec5f5
-fefec57e:	2052           	moveal %a2@,%a0
-fefec580:	6573           	bcss 0xfefec5f5
-fefec582:	2043           	moveal %d3,%a0
-fefec584:	6f6c           	bles 0xfefec5f2
-fefec586:	6f72           	bles 0xfefec5fa
-fefec588:	2056           	moveal %fp@,%a0
-fefec58a:	6964           	bvss 0xfefec5f0
-fefec58c:	656f           	bcss 0xfefec5fd
-fefec58e:	2052           	moveal %a2@,%a0
-fefec590:	414d           	.short 0x414d
-fefec592:	2042           	moveal %d2,%a0
-fefec594:	6f61           	bles 0xfefec5f7
-fefec596:	7264           	moveq #100,%d1
-fefec598:	2044           	moveal %d4,%a0
-fefec59a:	6574           	bcss 0xfefec610
-fefec59c:	6563           	bcss 0xfefec601
-fefec59e:	7465           	moveq #101,%d2
-fefec5a0:	643e           	bccs 0xfefec5e0
-fefec5a2:	000d           	.short 0x000d
-fefec5a4:	0a3c 5034      	eorib #0x34,%ccr
-fefec5a8:	2049           	moveal %a1,%a0
-fefec5aa:	6269           	bhis 0xfefec615
-fefec5ac:	7320           	.short 0x7320
-fefec5ae:	436f           	.short 0x436f
-fefec5b0:	6c6f           	bges 0xfefec621
-fefec5b2:	7220           	moveq #32,%d1
-fefec5b4:	5669 6465      	addqw #3,%a1@(25701)
-fefec5b8:	6f20           	bles 0xfefec5da
-fefec5ba:	626f           	bhis 0xfefec62b
-fefec5bc:	6172           	bsrs 0xfefec630
-fefec5be:	6420           	bccs 0xfefec5e0
-fefec5c0:	6465           	bccs 0xfefec627
-fefec5c2:	7465           	moveq #101,%d2
-fefec5c4:	6374           	blss 0xfefec63a
-fefec5c6:	6564           	bcss 0xfefec62c
-fefec5c8:	3e00           	movew %d0,%d7
-fefec5ca:	0d0a 3c50      	movepw %a2@(15440),%d6
-fefec5ce:	3420           	movew %a0@-,%d2
-fefec5d0:	4c65           	.short 0x4c65
-fefec5d2:	676f           	beqs 0xfefec643
-fefec5d4:	2043           	moveal %d3,%a0
-fefec5d6:	6f6c           	bles 0xfefec644
-fefec5d8:	6f72           	bles 0xfefec64c
-fefec5da:	2056           	moveal %fp@,%a0
-fefec5dc:	6964           	bvss 0xfefec642
-fefec5de:	656f           	bcss 0xfefec64f
-fefec5e0:	2062           	moveal %a2@-,%a0
-fefec5e2:	6f61           	bles 0xfefec645
-fefec5e4:	7264           	moveq #100,%d1
-fefec5e6:	205b           	moveal %a3@+,%a0
-fefec5e8:	2564 305d      	movel %a4@-,%a2@(12381)
-fefec5ec:	2064           	moveal %a4@-,%a0
-fefec5ee:	6574           	bcss 0xfefec664
-fefec5f0:	6563           	bcss 0xfefec655
-fefec5f2:	7465           	moveq #101,%d2
-fefec5f4:	643e           	bccs 0xfefec634
-fefec5f6:	000d           	.short 0x000d
-fefec5f8:	0a3c 494c      	eorib #0x4c,%ccr
-fefec5fc:	4c45           	.short 0x4c45
-fefec5fe:	4741           	.short 0x4741
-fefec600:	4c20           	.short 0x4c20
-fefec602:	5034 2049      	addqb #8,%a4@(49,%d2:w)
-fefec606:	4420           	negb %a0@-
-fefec608:	4465           	negw %a5@-
-fefec60a:	7465           	moveq #101,%d2
-fefec60c:	6374           	blss 0xfefec682
-fefec60e:	6564           	bcss 0xfefec674
-fefec610:	205b           	moveal %a3@+,%a0
-fefec612:	3078 2564      	moveaw 0x2564,%a0
-fefec616:	335d 2053      	movew %a5@+,%a1@(8275)
-fefec61a:	6b69           	bmis 0xfefec685
-fefec61c:	7070           	moveq #112,%d0
-fefec61e:	696e           	bvss 0xfefec68e
-fefec620:	6720           	beqs 0xfefec642
-fefec622:	5669 6465      	addqw #3,%a1@(25701)
-fefec626:	6f20           	bles 0xfefec648
-fefec628:	5465           	addqw #2,%a5@-
-fefec62a:	7374           	.short 0x7374
-fefec62c:	733e           	.short 0x733e
-fefec62e:	000d           	.short 0x000d
-fefec630:	0a3c 5034      	eorib #0x34,%ccr
-fefec634:	2056           	moveal %fp@,%a0
-fefec636:	6964           	bvss 0xfefec69c
-fefec638:	656f           	bcss 0xfefec6a9
-fefec63a:	2052           	moveal %a2@,%a0
-fefec63c:	414d           	.short 0x414d
-fefec63e:	2042           	moveal %d2,%a0
-fefec640:	6f61           	bles 0xfefec6a3
-fefec642:	7264           	moveq #100,%d1
-fefec644:	204e           	moveal %fp,%a0
-fefec646:	4f54           	.short 0x4f54
-fefec648:	2044           	moveal %d4,%a0
-fefec64a:	6574           	bcss 0xfefec6c0
-fefec64c:	6563           	bcss 0xfefec6b1
-fefec64e:	7465           	moveq #101,%d2
-fefec650:	643e           	bccs 0xfefec690
-fefec652:	000d           	.short 0x000d
-fefec654:	0a50 3420      	eoriw #0x3420,%a0@
-fefec658:	4672 616d 6520 	notw %a2@(6520)@(0)
-fefec65e:	4275 6666      	clrw %a5@(66,%d6:w:8)
-fefec662:	6572           	bcss 0xfefec6d6
-fefec664:	2057           	moveal %sp@,%a0
-fefec666:	7269           	moveq #105,%d1
-fefec668:	7465           	moveq #101,%d2
-fefec66a:	2f57 7269      	movel %sp@,%sp@(29289)
-fefec66e:	7465           	moveq #101,%d2
-fefec670:	2f52 6561      	movel %a2@,%sp@(25953)
-fefec674:	6420           	bccs 0xfefec696
-fefec676:	5465           	addqw #2,%a5@-
-fefec678:	7374           	.short 0x7374
-fefec67a:	000d           	.short 0x000d
-fefec67c:	0a3c 5761      	eorib #0x61,%ccr
-fefec680:	726e           	moveq #110,%d1
-fefec682:	696e           	bvss 0xfefec6f2
-fefec684:	673a           	beqs 0xfefec6c0
-fefec686:	2053           	moveal %a3@,%a0
-fefec688:	6b69           	bmis 0xfefec6f3
-fefec68a:	7070           	moveq #112,%d0
-fefec68c:	696e           	bvss 0xfefec6fc
-fefec68e:	6720           	beqs 0xfefec6b0
-fefec690:	5034 2056      	addqb #8,%a4@(56,%d2:w)
-fefec694:	6964           	bvss 0xfefec6fa
-fefec696:	656f           	bcss 0xfefec707
-fefec698:	2052           	moveal %a2@,%a0
-fefec69a:	414d           	.short 0x414d
-fefec69c:	2042           	moveal %d2,%a0
-fefec69e:	6f61           	bles 0xfefec701
-fefec6a0:	7264           	moveq #100,%d1
-fefec6a2:	2050           	moveal %a0@,%a0
-fefec6a4:	726f           	moveq #111,%d1
-fefec6a6:	6265           	bhis 0xfefec70d
-fefec6a8:	3e00           	movew %d0,%d7
-fefec6aa:	0d0a 5034      	movepw %a2@(20532),%d6
-fefec6ae:	2046           	moveal %d6,%a0
-fefec6b0:	7261           	moveq #97,%d1
-fefec6b2:	6d65           	blts 0xfefec719
-fefec6b4:	2042           	moveal %d2,%a0
-fefec6b6:	7566           	.short 0x7566
-fefec6b8:	6665           	bnes 0xfefec71f
-fefec6ba:	7220           	moveq #32,%d1
-fefec6bc:	4164           	.short 0x4164
-fefec6be:	6472           	bccs 0xfefec732
-fefec6c0:	6573           	bcss 0xfefec735
-fefec6c2:	7320           	.short 0x7320
-fefec6c4:	5465           	addqw #2,%a5@-
-fefec6c6:	7374           	.short 0x7374
-fefec6c8:	000d           	.short 0x000d
-fefec6ca:	0a50 3420      	eoriw #0x3420,%a0@
-fefec6ce:	4672 616d 6520 	notw %a2@(6520)@(0)
-fefec6d4:	4275 6666      	clrw %a5@(66,%d6:w:8)
-fefec6d8:	6572           	bcss 0xfefec74c
-fefec6da:	2033 2d50      	movel %a3@(0),%d0
-fefec6de:	6174           	bsrs 0xfefec754
-fefec6e0:	7465           	moveq #101,%d2
-fefec6e2:	726e           	moveq #110,%d1
-fefec6e4:	2054           	moveal %a4@,%a0
-fefec6e6:	6573           	bcss 0xfefec75b
-fefec6e8:	7400           	moveq #0,%d2
-fefec6ea:	0d0a 5034      	movepw %a2@(20532),%d6
-fefec6ee:	2046           	moveal %d6,%a0
-fefec6f0:	7261           	moveq #97,%d1
-fefec6f2:	6d65           	blts 0xfefec759
-fefec6f4:	2042           	moveal %d2,%a0
-fefec6f6:	7566           	.short 0x7566
-fefec6f8:	6665           	bnes 0xfefec75f
-fefec6fa:	7220           	moveq #32,%d1
-fefec6fc:	4d61           	.short 0x4d61
-fefec6fe:	7263           	moveq #99,%d1
-fefec700:	6820           	bvcs 0xfefec722
-fefec702:	5465           	addqw #2,%a5@-
-fefec704:	7374           	.short 0x7374
-fefec706:	000d           	.short 0x000d
-fefec708:	0a50 3420      	eoriw #0x3420,%a0@
-fefec70c:	4672 616d 6520 	notw %a2@(6520)@(0)
-fefec712:	4275 6666      	clrw %a5@(66,%d6:w:8)
-fefec716:	6572           	bcss 0xfefec78a
-fefec718:	2052           	moveal %a2@,%a0
-fefec71a:	6561           	bcss 0xfefec77d
-fefec71c:	6420           	bccs 0xfefec73e
-fefec71e:	4279 7465 2041 	clrw 0x74652041
-fefec724:	6c69           	bges 0xfefec78f
-fefec726:	676e           	beqs 0xfefec796
-fefec728:	6d65           	blts 0xfefec78f
-fefec72a:	6e74           	bgts 0xfefec7a0
-fefec72c:	2054           	moveal %a4@,%a0
-fefec72e:	6573           	bcss 0xfefec7a3
-fefec730:	7400           	moveq #0,%d2
-fefec732:	0d0a 5034      	movepw %a2@(20532),%d6
-fefec736:	2046           	moveal %d6,%a0
-fefec738:	7261           	moveq #97,%d1
-fefec73a:	6d65           	blts 0xfefec7a1
-fefec73c:	2042           	moveal %d2,%a0
-fefec73e:	7566           	.short 0x7566
-fefec740:	6665           	bnes 0xfefec7a7
-fefec742:	7220           	moveq #32,%d1
-fefec744:	5772 6974 6520 	subqw #3,%a2@(65204279)@(0)
-fefec74a:	4279
-fefec74c:	7465           	moveq #101,%d2
-fefec74e:	2041           	moveal %d1,%a0
-fefec750:	6c69           	bges 0xfefec7bb
-fefec752:	676e           	beqs 0xfefec7c2
-fefec754:	6d65           	blts 0xfefec7bb
-fefec756:	6e74           	bgts 0xfefec7cc
-fefec758:	2054           	moveal %a4@,%a0
-fefec75a:	6573           	bcss 0xfefec7cf
-fefec75c:	7400           	moveq #0,%d2
-fefec75e:	0d0a 5034      	movepw %a2@(20532),%d6
-fefec762:	2045           	moveal %d5,%a0
-fefec764:	6e61           	bgts 0xfefec7c7
-fefec766:	626c           	bhis 0xfefec7d4
-fefec768:	6520           	bcss 0xfefec78a
-fefec76a:	506c 616e      	addqw #8,%a4@(24942)
-fefec76e:	6520           	bcss 0xfefec790
-fefec770:	5772 6974 652f 	subqw #3,%a2@(652f5772)@(0)
-fefec776:	5772
-fefec778:	6974           	bvss 0xfefec7ee
-fefec77a:	652f           	bcss 0xfefec7ab
-fefec77c:	5265           	addqw #1,%a5@-
-fefec77e:	6164           	bsrs 0xfefec7e4
-fefec780:	2054           	moveal %a4@,%a0
-fefec782:	6573           	bcss 0xfefec7f7
-fefec784:	7400           	moveq #0,%d2
-fefec786:	0d0a 5034      	movepw %a2@(20532),%d6
-fefec78a:	2043           	moveal %d3,%a0
-fefec78c:	6f6c           	bles 0xfefec7fa
-fefec78e:	6f72           	bles 0xfefec802
-fefec790:	2050           	moveal %a0@,%a0
-fefec792:	6c61           	bges 0xfefec7f5
-fefec794:	6e65           	bgts 0xfefec7fb
-fefec796:	2057           	moveal %sp@,%a0
-fefec798:	7269           	moveq #105,%d1
-fefec79a:	7465           	moveq #101,%d2
-fefec79c:	2f57 7269      	movel %sp@,%sp@(29289)
-fefec7a0:	7465           	moveq #101,%d2
-fefec7a2:	2f52 6561      	movel %a2@,%sp@(25953)
-fefec7a6:	6420           	bccs 0xfefec7c8
-fefec7a8:	5465           	addqw #2,%a5@-
-fefec7aa:	7374           	.short 0x7374
-fefec7ac:	000d           	.short 0x000d
-fefec7ae:	0a20 5465      	eorib #0x65,%a0@-
-fefec7b2:	7374           	.short 0x7374
-fefec7b4:	2052           	moveal %a2@,%a0
-fefec7b6:	616e           	bsrs 0xfefec826
-fefec7b8:	6765           	beqs 0xfefec81f
-fefec7ba:	205b           	moveal %a3@+,%a0
-fefec7bc:	2564 325d      	movel %a4@-,%a2@(12893)
-fefec7c0:	2074 6872      	moveal %a4@(72,%d6:l),%a0
-fefec7c4:	7520           	.short 0x7520
-fefec7c6:	5b25           	subqb #5,%a5@-
-fefec7c8:	6431           	bccs 0xfefec7fb
-fefec7ca:	5d20           	subqb #6,%a0@-
-fefec7cc:	6c65           	bges 0xfefec833
-fefec7ce:	6e67           	bgts 0xfefec837
-fefec7d0:	7468           	moveq #104,%d2
-fefec7d2:	205b           	moveal %a3@+,%a0
-fefec7d4:	2564 305d      	movel %a4@-,%a2@(12381)
-fefec7d8:	000d           	.short 0x000d
-fefec7da:	0a20 5265      	eorib #0x65,%a0@-
-fefec7de:	6769           	beqs 0xfefec849
-fefec7e0:	7374           	.short 0x7374
-fefec7e2:	6572           	bcss 0xfefec856
-fefec7e4:	2065           	moveal %a5@-,%a0
-fefec7e6:	7272           	moveq #114,%d1
-fefec7e8:	6f72           	bles 0xfefec85c
-fefec7ea:	2044           	moveal %d4,%a0
-fefec7ec:	3320           	movew %a0@-,%a1@-
-fefec7ee:	3d20           	movew %a0@-,%fp@-
-fefec7f0:	5b25           	subqb #5,%a5@-
-fefec7f2:	6430           	bccs 0xfefec824
-fefec7f4:	5d20           	subqb #6,%a0@-
-fefec7f6:	4435 203d      	negb %a5@(3d,%d2:w)
-fefec7fa:	205b           	moveal %a3@+,%a0
-fefec7fc:	2564 325d      	movel %a4@-,%a2@(12893)
+
+
+fefec500: \r\n ++
+fefec502: <P4 High Resolution Monochrome Video RAM Board Detected>
+fefec53b: \r\n ++
+fefec53d: <P4 Low Resolution Monochrome Video RAM Board Detected>
+fefec575: \r\n ++
+fefec577: <P4 Low Res Color Video RAM Board Detected>
+fefec5a3: \r\n ++
+fefec5a5: <P4 Ibis Color Video board detected>
+fefec5ca: \r\n ++
+fefec5cc: <P4 Lego Color Video board [%d0] detected>
+fefec5f7: \r\n ++
+fefec5f9: <ILLEGAL P4 ID Detected [0x%d3] Skipping Video Tests>
+fefec62f: \r\n ++
+fefec631: <P4 Video RAM Board NOT Detected>
+fefec653: \r\n ++
+fefec655: P4 Frame Buffer Write/Write/Read Test
+fefec67b: \r\n ++
+fefec67d: <Warning: Skipping P4 Video RAM Board Probe>
+fefec6aa: \r\n ++
+fefec6ac: P4 Frame Buffer Address Test
+fefec6c9: \r\n ++
+fefec6cb: P4 Frame Buffer 3-Pattern Test
+fefec6ea: \r\n ++
+fefec6ec: P4 Frame Buffer March Test
+fefec707: \r\n ++
+fefec709: P4 Frame Buffer Read Byte Alignment Test
+fefec732: \r\n ++
+fefec734: P4 Frame Buffer Write Byte Alignment Test
+fefec75e: \r\n ++
+fefec760: P4 Enable Plane Write/Write/Read Test
+fefec786: \r\n ++
+fefec788: P4 Color Plane Write/Write/Read Test
+fefec7ad: \r\n ++
+fefec7af:  Test Range [%d2] thru [%d1] length [%d0]
+fefec7d9: \r\n ++
+fefec7db:  Register error D3 = [%d0] D5 = [%d2]
+
 fefec800:	0000 0000      	orib #0,%d0
 fefec804:	0002 1000      	orib #0,%d2
 fefec808:	fefe           	.short 0xfefe
@@ -15326,6 +15135,7 @@ fefec8bc:	fefe           	.short 0xfefe
 fefec8be:	d69e           	addl %fp@+,%d3
 fefec8c0:	fefe           	.short 0xfefe
 fefec8c2:	d69e           	addl %fp@+,%d3
+
 fefec8c4:	4287           	clrl %d7
 fefec8c6:	3e7c 0009      	moveaw #9,%sp
 fefec8ca:	4e7b f002      	movec %sp,%cacr
@@ -15334,20 +15144,53 @@ fefec8d0:	4e7b 0802      	movec %d0,%caar
 fefec8d4:	203c fefe c804 	movel #0xfefec804,%d0
 fefec8da:	4e7b 0801      	movec %d0,%vbr
 fefec8de:	4ff9 0002 1000 	lea 0x21000,%sp
+
+; should display changing pattern on PP
 fefec8e4:	303c 7fff      	movew #0x7fff,%d0
 fefec8e8:	13c0 6f00 003c 	moveb %d0,0x6f00003c	; PP_data
+
 fefec8ee:	223c 0000 2000 	movel #0x2000,%d1
-fefec8f4:	51c9 fffe      	dbf %d1,0xfefec8f4
+fefec8f4:	51c9 fffe      	dbf %d1,0xfefec8f4		; delay
+
 fefec8f8:	e358           	rolw #1,%d0
 fefec8fa:	0c00 00ff      	cmpib #-1,%d0
-fefec8fe:	6b00 ffe8      	bmiw 0xfefec8e8
+fefec8fe:	6b00 ffe8      	bmiw 0xfefec8e8			; loop up
+
+; announce scope loops
 fefec902:	49fa 0f08      	lea %pc@(0xfefed80c),%a4
+; 0xfefed80c ~~\r\nSun-3/80 SCOPELOOPS
 fefec906:	4dfa 0008      	lea %pc@(0xfefec910),%fp
 fefec90a:	60ff ffff dac8 	bral 0xfefea3d4		; ODD_print
 fefec910:	0887 0009      	bclr #9,%d7
+
 fefec914:	1c3c 0000      	moveb #0,%d6
 fefec918:	13c6 6f00 003c 	moveb %d6,0x6f00003c	; PP_data
+
+; Display scope loop menu
 fefec91e:	49fa 0f04      	lea %pc@(0xfefed824),%a4
+; 0xfefed824
+; \r\n\nScope loop menu. Enter selection or press <Esc> to exit.\r\n
+; (0) The loops only run once\r\n
+; (1) The loops run until the system is reset\r\n
+; ===== Memory Operations =====\r\n
+; (a) Write to Address\r\n
+; (b) Read from Address\r\n
+; (c) Read/Modify/Write Address\r\n
+; (d) Fill Memory Address 00 thru 255 with Data 00 to 255\r\n
+; ===== Video Operations =====\r\n
+; (e) Write to Video Memory Address\r\n
+; (f) Read from Video Memory Address\r\n
+; (g) Write Video Pattern & Enable Video\r\n
+; (h) High Res Video Vertical Bar Pattern\r\n
+; (i) High Res Video Horizontal Bar Pattern\r\n
+; (j) High Res Video Screen Outline Pattern\r\n
+; (k) High Res Video Grey Pattern\r\n
+; (l) Low Res Video Horizontal Bar Pattern\r\n
+; (m) Low Res Video Screen Outline Pattern\r\n
+; (n) Low Res Video Grey Pattern\r\n
+; (o) Display a Character on Video\r\n
+; (p) Video Scoll\r\n
+; Enter selection: 
 fefec922:	4dfa 0008      	lea %pc@(0xfefec92c),%fp
 fefec926:	60ff ffff daac 	bral 0xfefea3d4		; ODD_print
 fefec92c:	4dfa 0006      	lea %pc@(0xfefec934),%fp
@@ -16799,6 +16642,8 @@ fefee60c:	4879 feff 5df8 	pea 0xfeff5df8
 fefee612:	4eb9 fefe ea36 	jsr 0xfefeea36
 fefee618:	584f           	addqw #4,%sp
 fefee61a:	6000 0400      	braw 0xfefeea1c
+
+; is the DIAG bit set ?
 fefee61e:	4eb9 fefe 0bcc 	jsr 0xfefe0bcc			; get_SYSENA
 fefee624:	0280 0000 0100 	andil #0x100,%d0
 fefee62a:	0c80 0000 0100 	cmpil #0x100,%d0

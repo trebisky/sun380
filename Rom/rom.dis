@@ -956,12 +956,15 @@ fefe0a3a:	0287 fe00 0000 	andil #0xfe000000,%d7
 fefe0a40:	7219           	moveq #25,%d1
 fefe0a42:	e2af           	lsrl %d1,%d7
 fefe0a44:	e78f           	lsll #3,%d7
+
 fefe0a46:	486e fff8      	pea %fp@(-8)
 fefe0a4a:	4eb9 fefe 0798 	jsr 0xfefe0798		; get_mmu_CRP
 fefe0a50:	584f           	addqw #4,%sp
+
 fefe0a52:	2f2e fffc      	movel %fp@(-4),%sp@-
-fefe0a56:	4eb9 fefe 0ca6 	jsr 0xfefe0ca6
+fefe0a56:	4eb9 fefe 0ca6 	jsr 0xfefe0ca6		; root_fix
 fefe0a5c:	584f           	addqw #4,%sp
+
 fefe0a5e:	d087           	addl %d7,%d0
 fefe0a60:	5880           	addql #4,%d0
 fefe0a62:	2d40 fff4      	movel %d0,%fp@(-12)
@@ -975,6 +978,7 @@ fefe0a78:	4e75           	rts
 
 fefe0a7a:	4e56 fff8      	linkw %fp,#-8
 fefe0a7e:	2e87           	movel %d7,%sp@
+
 fefe0a80:	2e2e 0008      	movel %fp@(8),%d7
 fefe0a84:	0287 01f8 0000 	andil #0x1f80000,%d7
 fefe0a8a:	7213           	moveq #19,%d1
@@ -989,23 +993,31 @@ fefe0a9e:	2040           	moveal %d0,%a0
 fefe0aa0:	2f10           	movel %a0@,%sp@-
 fefe0aa2:	4eb9 fefe 0c74 	jsr 0xfefe0c74
 fefe0aa8:	584f           	addqw #4,%sp
+
 fefe0aaa:	2e2e fff8      	movel %fp@(-8),%d7
 fefe0aae:	4e5e           	unlk %fp
 fefe0ab0:	4e75           	rts
 
+; --------------------------------------
+; subroutine - many calls
 fefe0ab2:	4e56 fff4      	linkw %fp,#-12
 fefe0ab6:	48d7 00c0      	moveml %d6-%d7,%sp@
-fefe0aba:	2e2e 0008      	movel %fp@(8),%d7
+
+fefe0aba:	2e2e 0008      	movel %fp@(8),%d7		; d7 = arg
+
 fefe0abe:	2f07           	movel %d7,%sp@-
-fefe0ac0:	61b8           	bsrs 0xfefe0a7a
+fefe0ac0:	61b8           	bsrs 0xfefe0a7a			; above ^^
 fefe0ac2:	584f           	addqw #4,%sp
+
 fefe0ac4:	0280 ffff e000 	andil #0xffffe000,%d0
 fefe0aca:	0c80 6000 0000 	cmpil #0x60000000,%d0
 fefe0ad0:	6610           	bnes 0xfefe0ae2
-fefe0ad2:	2f2e 000c      	movel %fp@(12),%sp@-
+
+fefe0ad2:	2f2e 000c      	movel %fp@(12),%sp@-	; arg2
 fefe0ad6:	2f07           	movel %d7,%sp@-
 fefe0ad8:	4eb9 fefe 105e 	jsr 0xfefe105e
 fefe0ade:	504f           	addqw #8,%sp
+
 fefe0ae0:	6024           	bras 0xfefe0b06
 fefe0ae2:	2c07           	movel %d7,%d6
 fefe0ae4:	0286 0007 e000 	andil #0x7e000,%d6
@@ -1028,12 +1040,15 @@ fefe0b10:	4e75           	rts
 
 fefe0b12:	4e56 fff0      	linkw %fp,#-16
 fefe0b16:	2e82           	movel %d2,%sp@
+
 fefe0b18:	486e fff8      	pea %fp@(-8)
 fefe0b1c:	4eb9 fefe 0798 	jsr 0xfefe0798		; get_mmu_CRP
 fefe0b22:	584f           	addqw #4,%sp
+
 fefe0b24:	2f2e fffc      	movel %fp@(-4),%sp@-
-fefe0b28:	4eb9 fefe 0ca6 	jsr 0xfefe0ca6
+fefe0b28:	4eb9 fefe 0ca6 	jsr 0xfefe0ca6		; root_fix
 fefe0b2e:	584f           	addqw #4,%sp
+
 fefe0b30:	222e 0008      	movel %fp@(8),%d1
 fefe0b34:	0281 fe00 0000 	andil #0xfe000000,%d1
 fefe0b3a:	7419           	moveq #25,%d2
@@ -1184,39 +1199,63 @@ fefe0c6a:	4cee 30c0 ffec 	moveml %fp@(-20),%d6-%d7/%a4-%a5
 fefe0c70:	4e5e           	unlk %fp
 fefe0c72:	4e75           	rts
 
+; -------------------------------------------
+; subroutine
 fefe0c74:	4e56 fff8      	linkw %fp,#-8
 fefe0c78:	2e87           	movel %d7,%sp@
-fefe0c7a:	2e2e 0008      	movel %fp@(8),%d7
+
+fefe0c7a:	2e2e 0008      	movel %fp@(8),%d7		; arg
+
 fefe0c7e:	486e fffc      	pea %fp@(-4)
 fefe0c82:	4eb9 fefe 07c0 	jsr 0xfefe07c0			; fetch_TC
 fefe0c88:	584f           	addqw #4,%sp
+
+; is MMU active ?
 fefe0c8a:	0800 001f      	btst #0x1f,%d0
 fefe0c8e:	670c           	beqs 0xfefe0c9c
+
 fefe0c90:	0287 0000 1fff 	andil #0x1fff,%d7
 fefe0c96:	0487 0109 c000 	subil #0x109c000,%d7
+
 fefe0c9c:	2007           	movel %d7,%d0
+
 fefe0c9e:	2e2e fff8      	movel %fp@(-8),%d7
 fefe0ca2:	4e5e           	unlk %fp
 fefe0ca4:	4e75           	rts
 
+; -------------------------------------------
+; returns fef64000 if MMU is active
+; returns arg if not
+; root_fix()
+
 fefe0ca6:	4e56 fff8      	linkw %fp,#-8
+
 fefe0caa:	486e fffc      	pea %fp@(-4)
 fefe0cae:	4eb9 fefe 07c0 	jsr 0xfefe07c0			; fetch_TC
 fefe0cb4:	584f           	addqw #4,%sp
+
+; is MMU active
 fefe0cb6:	0800 001f      	btst #0x1f,%d0
 fefe0cba:	6708           	beqs 0xfefe0cc4
 fefe0cbc:	203c fef6 4000 	movel #0xfef64000,%d0
 fefe0cc2:	6004           	bras 0xfefe0cc8
 fefe0cc4:	202e 0008      	movel %fp@(8),%d0
+
 fefe0cc8:	4e5e           	unlk %fp
 fefe0cca:	4e75           	rts
+
+; -------------------------------------------
+; This sure looks like a delay loop
+; (never used)
 
 fefe0ccc:	4e56 fffc      	linkw %fp,#-4
 fefe0cd0:	222e 0008      	movel %fp@(8),%d1
 fefe0cd4:	6002           	bras 0xfefe0cd8
+
 fefe0cd6:	5381           	subql #1,%d1
 fefe0cd8:	4a81           	tstl %d1
 fefe0cda:	66fa           	bnes 0xfefe0cd6
+
 fefe0cdc:	7000           	moveq #0,%d0
 fefe0cde:	4e5e           	unlk %fp
 fefe0ce0:	4e75           	rts
@@ -1258,12 +1297,12 @@ fefe0d1e:	fffc
 
 fefe0d20:	2a2e 0008      	movel %fp@(8),%d5	; arg -> d5
 
-; call "clancy"
+; call "mem_sizer"
 ; No args, but returns value in d0
 ; The return value is manipulated to give the
 ; base address for the translation table.
 
-fefe0d24:	4eb9 fefe 11ca 	jsr 0xfefe11ca			; clancy
+fefe0d24:	4eb9 fefe 11ca 	jsr 0xfefe11ca			; mem_sizer
 
 fefe0d2a:	2e00           	movel %d0,%d7			; d7 = d0 (save)
 fefe0d2c:	4eb9 fefe 0bcc 	jsr 0xfefe0bcc			; get_SYSENA
@@ -1275,8 +1314,10 @@ fefe0d38:	2f00           	movel %d0,%sp@-
 fefe0d3a:	4eb9 fefe 0b98 	jsr 0xfefe0b98			; set_SYSENA
 fefe0d40:	584f           	addqw #4,%sp
 
-; Adjust the value from clancy,
+; Adjust the value from mem_sizer,
 ; this will be what we put in the second 32 bits of CRP and SRP
+; This basically does an "alloc" of the last 0x6000 bytes of
+; what mem_sizer returns
 fefe0d42:	2c07           	movel %d7,%d6			; d6 = d7
 fefe0d44:	0486 0000 6000 	subil #0x6000,%d6		; d6 -= 0x6000
 
@@ -1297,6 +1338,8 @@ fefe0d54:	584f           	addqw #4,%sp
 ; We pass fp@(-12), but the 64 bits continues
 ; to include fp@(-8) !!
 
+; Construct the root pointer on the stack
+;  (it has no contents yet)
 ; This is the first 32 bits.
 fefe0d56:	2d7c 7fff 0003 	movel #0x7fff0003,%fp@(-12)
 fefe0d5c:	fff4
@@ -1314,13 +1357,14 @@ fefe0d6e:	486e fff4      	pea %fp@(-12)
 fefe0d72:	4eb9 fefe 07b6 	jsr 0xfefe07b6		; set_mmu_SRP
 fefe0d78:	584f           	addqw #4,%sp
 
-fefe0d7a:	2f06           	movel %d6,%sp@-
-fefe0d7c:	4879 feff 3a60 	pea 0xfeff3a60		; data
+fefe0d7a:	2f06           	movel %d6,%sp@-		; MMU table base
+
+fefe0d7c:	4879 feff 3a60 	pea 0xfeff3a60		; data in ROM
 fefe0d82:	4eb9 fefe 0f94 	jsr 0xfefe0f94		; reloc_val
 fefe0d88:	584f           	addqw #4,%sp
 
 fefe0d8a:	2f00           	movel %d0,%sp@-
-fefe0d8c:	4eb9 fefe 0e76 	jsr 0xfefe0e76
+fefe0d8c:	4eb9 fefe 0e76 	jsr 0xfefe0e76		; klondike
 fefe0d92:	504f           	addqw #8,%sp
 
 fefe0d94:	2f06           	movel %d6,%sp@-
@@ -1329,7 +1373,7 @@ fefe0d9c:	4eb9 fefe 0f94 	jsr 0xfefe0f94		; reloc_val
 fefe0da2:	584f           	addqw #4,%sp
 
 fefe0da4:	2f00           	movel %d0,%sp@-
-fefe0da6:	4eb9 fefe 0eda 	jsr 0xfefe0eda
+fefe0da6:	4eb9 fefe 0eda 	jsr 0xfefe0eda		; yukon
 fefe0dac:	504f           	addqw #8,%sp
 
 fefe0dae:	4879 feff 3ac4 	pea 0xfeff3ac4
@@ -1337,7 +1381,7 @@ fefe0db4:	4eb9 fefe 0f94 	jsr 0xfefe0f94		; reloc_val
 fefe0dba:	584f           	addqw #4,%sp
 
 fefe0dbc:	2f00           	movel %d0,%sp@-
-fefe0dbe:	4eb9 fefe 0f3a 	jsr 0xfefe0f3a
+fefe0dbe:	4eb9 fefe 0f3a 	jsr 0xfefe0f3a			; nome
 fefe0dc4:	584f           	addqw #4,%sp
 
 fefe0dc6:	2f06           	movel %d6,%sp@-
@@ -1346,7 +1390,7 @@ fefe0dce:	4eb9 fefe 0f94 	jsr 0xfefe0f94		; reloc_val
 fefe0dd4:	584f           	addqw #4,%sp
 
 fefe0dd6:	2f00           	movel %d0,%sp@-
-fefe0dd8:	4eb9 fefe 0eda 	jsr 0xfefe0eda
+fefe0dd8:	4eb9 fefe 0eda 	jsr 0xfefe0eda		; yukon
 fefe0dde:	504f           	addqw #8,%sp
 
 fefe0de0:	4879 feff 3b24 	pea 0xfeff3b24
@@ -1354,7 +1398,7 @@ fefe0de6:	4eb9 fefe 0f94 	jsr 0xfefe0f94		; reloc_val
 fefe0dec:	584f           	addqw #4,%sp
 
 fefe0dee:	2f00           	movel %d0,%sp@-
-fefe0df0:	4eb9 fefe 0f3a 	jsr 0xfefe0f3a
+fefe0df0:	4eb9 fefe 0f3a 	jsr 0xfefe0f3a			; nome
 fefe0df6:	584f           	addqw #4,%sp
 
 fefe0df8:	2007           	movel %d7,%d0
@@ -1400,7 +1444,10 @@ fefe0e72:	4e5e           	unlk %fp
 fefe0e74:	4e75           	rts
 ; end of donkey
 
-; subroutine
+; --------------------------------------------------
+; subroutine - 1 call
+; klondike()
+
 fefe0e76:	4e56 ffe8      	linkw %fp,#-24
 fefe0e7a:	48d7 20f8      	moveml %d3-%d7/%a5,%sp@
 fefe0e7e:	2a6e 0008      	moveal %fp@(8),%a5
@@ -1432,6 +1479,9 @@ fefe0ece:	7000           	moveq #0,%d0
 fefe0ed0:	4cee 20f8 ffe8 	moveml %fp@(-24),%d3-%d7/%a5
 fefe0ed6:	4e5e           	unlk %fp
 fefe0ed8:	4e75           	rts
+
+; subroutine - 2 calls
+; yukon()
 
 fefe0eda:	4e56 ffec      	linkw %fp,#-20
 fefe0ede:	48d7 20f0      	moveml %d4-%d7/%a5,%sp@
@@ -1465,31 +1515,42 @@ fefe0f30:	4cee 20f0 ffec 	moveml %fp@(-20),%d4-%d7/%a5
 fefe0f36:	4e5e           	unlk %fp
 fefe0f38:	4e75           	rts
 
+; subroutine - 5 calls
+; nome ()
 fefe0f3a:	4e56 fff0      	linkw %fp,#-16
 fefe0f3e:	48d7 20e0      	moveml %d5-%d7/%a5,%sp@
-fefe0f42:	2a6e 0008      	moveal %fp@(8),%a5
+
+fefe0f42:	2a6e 0008      	moveal %fp@(8),%a5		; a5 = arg
 fefe0f46:	6038           	bras 0xfefe0f80
-fefe0f48:	7c00           	moveq #0,%d6
-fefe0f4a:	2a15           	movel %a5@,%d5
-fefe0f4c:	2e2d 0004      	movel %a5@(4),%d7
+
+; loop
+fefe0f48:	7c00           	moveq #0,%d6			; d6 = 0
+fefe0f4a:	2a15           	movel %a5@,%d5			; d5 = a5[0]
+fefe0f4c:	2e2d 0004      	movel %a5@(4),%d7		; d6 = a5[1]
 fefe0f50:	6024           	bras 0xfefe0f76
-fefe0f52:	1007           	moveb %d7,%d0
-fefe0f54:	7203           	moveq #3,%d1
-fefe0f56:	c081           	andl %d1,%d0
+
+fefe0f52:	1007           	moveb %d7,%d0			; d0 = d7
+fefe0f54:	7203           	moveq #3,%d1			; d1 = 3
+fefe0f56:	c081           	andl %d1,%d0			; d0 &= 0x3
 fefe0f58:	6602           	bnes 0xfefe0f5c
-fefe0f5a:	7e00           	moveq #0,%d7
+fefe0f5a:	7e00           	moveq #0,%d7			; d7 = 0
+
 fefe0f5c:	2f07           	movel %d7,%sp@-
 fefe0f5e:	2f05           	movel %d5,%sp@-
 fefe0f60:	4eb9 fefe 0ab2 	jsr 0xfefe0ab2
 fefe0f66:	504f           	addqw #8,%sp
-fefe0f68:	5286           	addql #1,%d6
+
+fefe0f68:	5286           	addql #1,%d6			; d6++
 fefe0f6a:	0685 0000 2000 	addil #0x2000,%d5
 fefe0f70:	0687 0000 2000 	addil #0x2000,%d7
-fefe0f76:	bcad 0008      	cmpl %a5@(8),%d6
+
+fefe0f76:	bcad 0008      	cmpl %a5@(8),%d6		; test a5[2]
 fefe0f7a:	65d6           	bcss 0xfefe0f52
-fefe0f7c:	4bed 000c      	lea %a5@(12),%a5
-fefe0f80:	0c95 ffff ffff 	cmpil #-1,%a5@
-fefe0f86:	66c0           	bnes 0xfefe0f48
+fefe0f7c:	4bed 000c      	lea %a5@(12),%a5		; a5 = &a5[3]
+
+fefe0f80:	0c95 ffff ffff 	cmpil #-1,%a5@			; test *a5
+fefe0f86:	66c0           	bnes 0xfefe0f48		; loop up
+
 fefe0f88:	7000           	moveq #0,%d0
 fefe0f8a:	4cee 20e0 fff0 	moveml %fp@(-16),%d5-%d7/%a5
 fefe0f90:	4e5e           	unlk %fp
@@ -1619,7 +1680,7 @@ fefe111c:	7e04           	moveq #4,%d7
 fefe111e:	bc87           	cmpl %d7,%d6
 fefe1120:	6c74           	bges 0xfefe1196
 fefe1122:	2f06           	movel %d6,%sp@-
-fefe1124:	4eb9 fefe 120c 	jsr 0xfefe120c
+fefe1124:	4eb9 fefe 120c 	jsr 0xfefe120c			; get_ee_ram
 fefe112a:	584f           	addqw #4,%sp
 fefe112c:	2f00           	movel %d0,%sp@-
 fefe112e:	4eb9 fefe 1276 	jsr 0xfefe1276			; get_addr
@@ -1681,20 +1742,30 @@ fefe11c8:	4e75           	rts
 
 ; ----------------------------------------
 ; subroutine - 4 calls
-; clancy() -- no arguments
+; mem_sizer() -- no arguments
 
 fefe11ca:	4e56 fff4      	linkw %fp,#-12
 fefe11ce:	48d7 00e0      	moveml %d5-%d7,%sp@
 
+; d7 is index, d6 is loop counter
 fefe11d2:	7e03           	moveq #3,%d7		; d7 = 3
 fefe11d4:	7c00           	moveq #0,%d6		; d6 = 0
 
-fefe11d6:	2f07           	movel %d7,%sp@-		; loop starts
-fefe11d8:	4eb9 fefe 120c 	jsr 0xfefe120c
+; This basically scans the 2 bit fields in EEPROM byte 0
+; in reverse, looking for the first non-zero field
+; loop starts
+fefe11d6:	2f07           	movel %d7,%sp@-		; index, 3, 2 ...
+fefe11d8:	4eb9 fefe 120c 	jsr 0xfefe120c		; get_ee_ram
 fefe11de:	584f           	addqw #4,%sp
 
+; done on first non-zero return value
 fefe11e0:	2a00           	movel %d0,%d5		; d5 = d0
 fefe11e2:	6712           	beqs 0xfefe11f6
+
+; This translates the 2 bit code as follows
+; 1 --> 1M
+; 2 --> 4M
+; 3 --> 16M
 
 fefe11e4:	2f05           	movel %d5,%sp@-
 fefe11e6:	4eb9 fefe 1276 	jsr 0xfefe1276		; get_addr
@@ -1705,9 +1776,9 @@ fefe11f0:	e3af           	lsll %d1,%d7
 fefe11f2:	de80           	addl %d0,%d7
 fefe11f4:	600a           	bras 0xfefe1200		; return
 
-fefe11f6:	5387           	subql #1,%d7
-fefe11f8:	5286           	addql #1,%d6
-fefe11fa:	7a04           	moveq #4,%d5
+fefe11f6:	5387           	subql #1,%d7		; d7--
+fefe11f8:	5286           	addql #1,%d6		; d6++
+fefe11fa:	7a04           	moveq #4,%d5		; d5 = 4
 fefe11fc:	bc85           	cmpl %d5,%d6
 fefe11fe:	6dd6           	blts 0xfefe11d6		; loop up
 
@@ -1716,8 +1787,13 @@ fefe1202:	4cee 00e0 fff4 	moveml %fp@(-12),%d5-%d7
 fefe1208:	4e5e           	unlk %fp
 fefe120a:	4e75           	rts
 
+; ------------------------------------------------
 ; subroutine - 2 calls
-; one argument
+; one argument -- an index 0,1,2,3
+; pulls a 2 bit field out of EEPROM byte 0
+; this gets set up in the RAM startup/test
+; get_ee_ram()
+
 fefe120c:	4e56 fff8      	linkw %fp,#-8
 fefe1210:	2e87           	movel %d7,%sp@		; save d7
 
@@ -1727,36 +1803,51 @@ fefe121c:	584f           	addqw #4,%sp
 
 fefe121e:	0800 001f      	btst #0x1f,%d0
 fefe1222:	6708           	beqs 0xfefe122c
+
+; EEPROM relocated
 fefe1224:	207c fef0 4000 	moveal #0xfef04000,%a0
 fefe122a:	6006           	bras 0xfefe1232
 
-; 6400_0000 is the address of the EEPROM
+; 6400_0000 is the physical address of the EEPROM
 fefe122c:	207c 6400 0000 	moveal #0x64000000,%a0		; EEPROM
+
+; First byte in EEPROM to d7
 fefe1232:	1e10           	moveb %a0@,%d7
-fefe1234:	202e 0008      	movel %fp@(8),%d0
+
+fefe1234:	202e 0008      	movel %fp@(8),%d0	; arg
 fefe1238:	7203           	moveq #3,%d1
 fefe123a:	b081           	cmpl %d1,%d0
-fefe123c:	622c           	bhis 0xfefe126a
+fefe123c:	622c           	bhis 0xfefe126a		; return if > 3
+
 fefe123e:	303b 0a06      	movew %pc@(0xfefe1246,%d0:l:2),%d0
 fefe1242:	4efb 0002      	jmp %pc@(0xfefe1246,%d0:w)
-fefe1246:	0020 0018      	orib #0x18,%a0@-
-fefe124a:	0010 0008      	orib #8,%a0@
-fefe124e:	ec07           	asrb #6,%d7
+
+; The first instruction above fetches from this table:
+; The second jumps using this as an offset from fefe1246
+fefe1246:	0020 0018
+fefe124a:	0010 0008
+
+fefe124e:	ec07           	asrb #6,%d7			; arg == 3
 fefe1250:	7203           	moveq #3,%d1
 fefe1252:	ce01           	andb %d1,%d7
-fefe1254:	6014           	bras 0xfefe126a
-fefe1256:	e807           	asrb #4,%d7
+fefe1254:	6014           	bras 0xfefe126a		; return
+
+fefe1256:	e807           	asrb #4,%d7			; arg == 2
 fefe1258:	7203           	moveq #3,%d1
 fefe125a:	ce01           	andb %d1,%d7
-fefe125c:	600c           	bras 0xfefe126a
-fefe125e:	e407           	asrb #2,%d7
+fefe125c:	600c           	bras 0xfefe126a		; return
+
+fefe125e:	e407           	asrb #2,%d7			; arg == 1
 fefe1260:	7203           	moveq #3,%d1
 fefe1262:	ce01           	andb %d1,%d7
-fefe1264:	6004           	bras 0xfefe126a
-fefe1266:	7003           	moveq #3,%d0
+fefe1264:	6004           	bras 0xfefe126a		; return
+
+fefe1266:	7003           	moveq #3,%d0		; arg == 0
 fefe1268:	ce00           	andb %d0,%d7
-fefe126a:	49c7           	extbl %d7
+
+fefe126a:	49c7           	extbl %d7		; return
 fefe126c:	2007           	movel %d7,%d0
+
 fefe126e:	2e2e fff8      	movel %fp@(-8),%d7
 fefe1272:	4e5e           	unlk %fp
 fefe1274:	4e75           	rts
@@ -1765,15 +1856,19 @@ fefe1274:	4e75           	rts
 ; subroutine - 2 calls
 ; arg can be 1, 2, or 3
 ; looks up value and returns in d0
+; get_addr ()
 fefe1276:	4e56 fffc      	linkw %fp,#-4
 fefe127a:	202e 0008      	movel %fp@(8),%d0	; d0 = arg
+
 fefe127e:	7201           	moveq #1,%d1		; d1 = 1
 fefe1280:	b081           	cmpl %d1,%d0
 fefe1282:	6722           	beqs 0xfefe12a6
-fefe1284:	7202           	moveq #2,%d1
+
+fefe1284:	7202           	moveq #2,%d1		; d1 = 2
 fefe1286:	b081           	cmpl %d1,%d0
 fefe1288:	6714           	beqs 0xfefe129e
-fefe128a:	7203           	moveq #3,%d1
+
+fefe128a:	7203           	moveq #3,%d1		; d1 = 3
 fefe128c:	b081           	cmpl %d1,%d0
 fefe128e:	6706           	beqs 0xfefe1296
 
@@ -1783,12 +1878,15 @@ fefe1294:	4e75           	rts
 
 ; The tail end of the above, various return codes
 
+; 16M
 fefe1296:	203c 0100 0000 	movel #0x1000000,%d0	; 3 --> this
 fefe129c:	60f4           	bras 0xfefe1292
 
+; 4M
 fefe129e:	203c 0040 0000 	movel #0x400000,%d0		; 2 --> this
 fefe12a4:	60ec           	bras 0xfefe1292
 
+; 1M
 fefe12a6:	203c 0010 0000 	movel #0x100000,%d0		; 1 --> this
 fefe12ac:	60e4           	bras 0xfefe1292
 fefe12ae:	0000
@@ -4154,7 +4252,7 @@ fefe2cd2:	4239 fef7 2000 	clrb 0xfef72000
 fefe2cd8:	23fc 0040 0000 	movel #0x400000,0xfef72242
 fefe2cde:	fef7 2242
 fefe2ce2:	2e3c fef7 223e 	movel #0xfef7223e,%d7
-fefe2ce8:	4eb9 fefe 11ca 	jsr 0xfefe11ca			; clancy
+fefe2ce8:	4eb9 fefe 11ca 	jsr 0xfefe11ca			; mem_sizer
 fefe2cee:	2047           	moveal %d7,%a0
 fefe2cf0:	2080           	movel %d0,%a0@
 fefe2cf2:	4eb9 fefe 10dc 	jsr 0xfefe10dc
@@ -4463,7 +4561,7 @@ fefe3138:	4eb9 fefe 1b74 	jsr 0xfefe1b74
 fefe313e:	4eb9 fefe 6c7c 	jsr 0xfefe6c7c
 fefe3144:	4a80           	tstl %d0
 fefe3146:	6600 0126      	bnew 0xfefe326e
-fefe314a:	4eb9 fefe 11ca 	jsr 0xfefe11ca			; clancy
+fefe314a:	4eb9 fefe 11ca 	jsr 0xfefe11ca			; mem_sizer
 fefe3150:	0480 0000 6000 	subil #0x6000,%d0
 fefe3156:	2e00           	movel %d0,%d7
 fefe3158:	2a3c fef0 4015 	movel #0xfef04015,%d5
@@ -4480,7 +4578,7 @@ fefe3174:	2045           	moveal %d5,%a0
 fefe3176:	1010           	moveb %a0@,%d0
 fefe3178:	49c0           	extbl %d0
 fefe317a:	2400           	movel %d0,%d2
-fefe317c:	4eb9 fefe 11ca 	jsr 0xfefe11ca			; clancy
+fefe317c:	4eb9 fefe 11ca 	jsr 0xfefe11ca			; mem_sizer
 fefe3182:	0480 0000 6000 	subil #0x6000,%d0
 fefe3188:	2600           	movel %d0,%d3
 fefe318a:	6010           	bras 0xfefe319c
@@ -9212,7 +9310,7 @@ fefe6b0a:	6600 00ca      	bnew 0xfefe6bd6
 fefe6b0e:	7000           	moveq #0,%d0
 fefe6b10:	6000 0110      	braw 0xfefe6c22
 fefe6b14:	4879 feff 5d28 	pea 0xfeff5d28
-fefe6b1a:	4eb9 fefe 0f3a 	jsr 0xfefe0f3a
+fefe6b1a:	4eb9 fefe 0f3a 	jsr 0xfefe0f3a			; nome
 fefe6b20:	584f           	addqw #4,%sp
 fefe6b22:	4a15           	tstb %a5@
 fefe6b24:	6708           	beqs 0xfefe6b2e
@@ -9231,7 +9329,7 @@ fefe6b50:	23c7 fef7 210e 	movel %d7,0xfef7210e
 fefe6b56:	42b9 fef7 209e 	clrl 0xfef7209e
 fefe6b5c:	6000 00b8      	braw 0xfefe6c16
 fefe6b60:	4879 feff 5d58 	pea 0xfeff5d58
-fefe6b66:	4eb9 fefe 0f3a 	jsr 0xfefe0f3a
+fefe6b66:	4eb9 fefe 0f3a 	jsr 0xfefe0f3a			; nome
 fefe6b6c:	584f           	addqw #4,%sp
 fefe6b6e:	23fc 0000 0480 	movel #0x480,0xfef725ac
 fefe6b74:	fef7 25ac
@@ -17695,7 +17793,7 @@ fefef050:	48d7 3080      	moveml %d7/%a4-%a5,%sp@
 fefef054:	7e0c           	moveq #12,%d7
 fefef056:	23c7 fef7 210e 	movel %d7,0xfef7210e
 fefef05c:	4879 feff 5d88 	pea 0xfeff5d88
-fefef062:	4eb9 fefe 0f3a 	jsr 0xfefe0f3a
+fefef062:	4eb9 fefe 0f3a 	jsr 0xfefe0f3a			; nome
 fefef068:	584f           	addqw #4,%sp
 fefef06a:	4879 feff 6038 	pea 0xfeff6038
 fefef070:	4eb9 fefe f6bc 	jsr 0xfefef6bc
@@ -23461,6 +23559,8 @@ feff3a56:	4e75           	rts
 
 feff3a58:	0000 0000      	orib #0,%d0
 feff3a5c:	0000 0000      	orib #0,%d0
+
+; This gets moved to MMU tables
 feff3a60:	0000 0000      	orib #0,%d0
 feff3a64:	7fff           	.short 0x7fff
 feff3a66:	fc02           	.short 0xfc02
@@ -25168,6 +25268,6 @@ fefffffa:	ffff
 fefffffc:	ffff
 
 ; looks like a checksum.
-fefffffe:	1ac7           	moveb %d7,%a5@+
+fefffffe:	1ac7
 
 ; THE END

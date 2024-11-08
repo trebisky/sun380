@@ -113,35 +113,41 @@ fefe00f8 fef7 2250   ; 62
 ; This would be simple code to just write in C or
 ; with one or two assembly instructions.
 
+; --------------------------- 7 calls
 ; readb
 fefe00fc:	206f 0004      	moveal %sp@(4),%a0
 fefe0100:	7000           	moveq #0,%d0
 fefe0102:	1010           	moveb %a0@,%d0
 fefe0104:	4e75           	rts
 
+; --------------------------- 5 calls
 ; readw
 fefe0106:	206f 0004      	moveal %sp@(4),%a0
 fefe010a:	7000           	moveq #0,%d0
 fefe010c:	3010           	movew %a0@,%d0
 fefe010e:	4e75           	rts
 
+; --------------------------- 2 calls
 ; readl
 fefe0110:	206f 0004      	moveal %sp@(4),%a0
 fefe0114:	2010           	movel %a0@,%d0
 fefe0116:	4e75           	rts
 
+; --------------------------- 1 call
 ; writeb ( val, xx, addr )
 fefe0118:	206f 0004      	moveal %sp@(4),%a0
 fefe011c:	202f 000c      	movel %sp@(12),%d0
 fefe0120:	1080           	moveb %d0,%a0@
 fefe0122:	4e75           	rts
 
+; --------------------------- 1 call
 ; writew ( val, xx, addr )
 fefe0124:	206f 0004      	moveal %sp@(4),%a0
 fefe0128:	202f 000c      	movel %sp@(12),%d0
 fefe012c:	3080           	movew %d0,%a0@
 fefe012e:	4e75           	rts
 
+; --------------------------- 1 call
 ; writel ( val, xx, addr )
 fefe0130:	206f 0004      	moveal %sp@(4),%a0
 fefe0134:	202f 000c      	movel %sp@(12),%d0
@@ -355,17 +361,31 @@ fefe0280:	67ff 0000 6dde 	beql 0xfefe7060		; BIG_init
 fefe0286:	0c86 0123 4567 	cmpil #0x01234567,%d6
 fefe028c:	67ff 0000 6dd2 	beql 0xfefe7060		; BIG_init
 
-; what is this register?  It gets a lot of attention
-fefe0292:	13fc fffd 6100 	moveb #-3,0x61000800		; system XXX
+; ===============================================
+; if we fall through here, the processor must be
+; largely initialized, i.e. we are doing a "warm reset"
+
+; The DIAG_REG drives an 8 bit display on those sun3x
+; machines that have one (i.e. the 3/470).
+; We have no such thing on the Sun 3/80,
+; so this register does NOTHING!!
+; We write a 0 to turn an LED on,
+; This is 0xfd = 1111_1101
+fefe0292:	13fc fffd 6100 	moveb #-3,0x61000800		; DIAG_REG
 fefe0298:	0800
 
 ; invalidate all ATC entries
 fefe029a:	f000 2400      	pflusha
+
+; write to address 0
+; this will get loaded to the TC
+; (note that this will enable the MMU)
 fefe029e:	207c 0000 0000 	moveal #0,%a0
 fefe02a4:	20bc 80d0 7660 	movel #0x80d07660,%a0@
 
 ; MMU
 fefe02aa:	f010 4100      	pmovefd %a0@,%tc
+
 fefe02ae:	227c 0000 0809 	moveal #0x809,%a1
 fefe02b4:	4e7b 9002      	movec %a1,%cacr
 fefe02b8:	33fc 0003 fef6 	movew #3,0xfef60bfa
@@ -397,9 +417,14 @@ fefe02fe:	4878 2000      	pea 0x2000
 
 fefe0302:	40e7           	movew %sr,%sp@-
 fefe0304:	9efc 0056      	subaw #0x56,%sp
+
+; all registers
 fefe0308:	48ef ffff 0000 	moveml %d0-%sp,%sp@(0)
 fefe030e:	2e0f           	movel %sp,%d7
 fefe0310:	6000 00ee      	braw 0xfefe0400
+
+; -------------
+; subroutine, called once from below
 
 fefe0314:	3e3c 0005      	movew #5,%d7
 fefe0318:	600a           	bras 0xfefe0324
@@ -462,6 +487,8 @@ fefe03f0:	f000 2400      	pflusha
 fefe03f4:	9efc 0056      	subaw #0x56,%sp
 fefe03f8:	48ef ffff 0000 	moveml %d0-%sp,%sp@(0)
 fefe03fe:	9e87           	subl %d7,%d7
+
+; branch here from above
 fefe0400:	06af 0000 0056 	addil #0x56,%sp@(60)
 fefe0406:	003c
 fefe0408:	4e7a 8800      	movec %usp,%a0
@@ -473,22 +500,32 @@ fefe041c:	48ef 0700 0048 	moveml %a0-%a2,%sp@(72)
 
 ; mask off all interrupts
 fefe0422:	007c 0700      	oriw #0x700,%sr
+
 fefe0426:	4a87           	tstl %d7
 fefe0428:	6706           	beqs 0xfefe0430
 fefe042a:	4eb9 fefe 2ca0 	jsr 0xfefe2ca0
 fefe0430:	4eb9 fefe 5cd0 	jsr 0xfefe5cd0
+
 fefe0436:	206f 0044      	moveal %sp@(68),%a0
 fefe043a:	4e7b 8800      	movec %a0,%usp
+
 fefe043e:	202f 0048      	movel %sp@(72),%d0
 fefe0442:	4e7b 0801      	movec %d0,%vbr
+
 fefe0446:	202f 004c      	movel %sp@(76),%d0
 fefe044a:	4e7b 0802      	movec %d0,%caar
+
 fefe044e:	202f 0050      	movel %sp@(80),%d0
 fefe0452:	4e7b 0002      	movec %d0,%cacr
+
 fefe0456:	206f 003c      	moveal %sp@(60),%a0
 fefe045a:	43ef 0056      	lea %sp@(86),%a1
 fefe045e:	b3c8           	cmpal %a0,%a1
 fefe0460:	6716           	beqs 0xfefe0478
+
+; There are only 3 RTE instruction in the bootrom,
+; these two and one at 0xfefe061c
+
 fefe0462:	4268 0006      	clrw %a0@(6)
 fefe0466:	216f 0058 0002 	movel %sp@(88),%a0@(2)
 fefe046c:	30af 0056      	movew %sp@(86),%a0@
@@ -699,34 +736,36 @@ fefe0738:	4e75           	rts
 ; ------------------------------------------------------
 ; Referenced in call table at start of ROM
 ; "terminate", which is the only "call"
-fefe073a:	13fc ffff 6100 	moveb #-1,0x61000800		; system XXX
+; All this with the DIAG_REG is a light show
+fefe073a:	13fc ffff 6100 	moveb #-1,0x61000800		; DIAG_REG
 fefe0740:	0800
 fefe0742:	203c 0fff ffff 	movel #0xfffffff,%d0
 fefe0748:	51c8 fffe      	dbf %d0,0xfefe0748			; delay
 
-fefe074c:	13fc ffcf 6100 	moveb #-49,0x61000800		; system XXX
+fefe074c:	13fc ffcf 6100 	moveb #-49,0x61000800		; DIAG_REG
 fefe0752:	0800
 fefe0754:	203c 0fff ffff 	movel #0xfffffff,%d0
 fefe075a:	51c8 fffe      	dbf %d0,0xfefe075a			; delay
 
-fefe075e:	13fc ff0f 6100 	moveb #15,0x61000800		; system XXX
+fefe075e:	13fc ff0f 6100 	moveb #15,0x61000800		; DIAG_REG
 fefe0764:	0800
 fefe0766:	203c 0fff ffff 	movel #0xfffffff,%d0
 fefe076c:	51c8 fffe      	dbf %d0,0xfefe076c			; delay
 
-fefe0770:	13fc ff0c 6100 	moveb #12,0x61000800		; system XXX
+fefe0770:	13fc ff0c 6100 	moveb #12,0x61000800		; DIAG_REG
 fefe0776:	0800
 fefe0778:	203c 0fff ffff 	movel #0xfffffff,%d0
 fefe077e:	51c8 fffe      	dbf %d0,0xfefe077e			; delay
 
-fefe0782:	13fc ff00 6100 	moveb #0,0x61000800		; system XXX
+fefe0782:	13fc ff00 6100 	moveb #0,0x61000800		; DIAG_REG
 fefe0788:	0800
 fefe078a:	203c 0fff ffff 	movel #0xfffffff,%d0
 fefe0790:	51c8 fffe      	dbf %d0,0xfefe0790			; delay
 
 fefe0794:	60fe           	bras 0xfefe0794			; spin ****
 
-fefe0796:	60a2           	bras 0xfefe073a			; up to die
+; not reached
+fefe0796:	60a2           	bras 0xfefe073a			; up to repeat and die
 
 ; ------------------------------------------------------
 ; various short utilities
@@ -1181,7 +1220,7 @@ fefe0c38:	4eb9 fefe 07c0 	jsr 0xfefe07c0			; fetch_TC
 fefe0c3e:	584f           	addqw #4,%sp
 fefe0c40:	0800 001f      	btst #0x1f,%d0
 fefe0c44:	6708           	beqs 0xfefe0c4e
-fefe0c46:	2a7c fef0 47d8 	moveal #0xfef047d8,%a5			; CLOCK2
+fefe0c46:	2a7c fef0 47d8 	moveal #0xfef047d8,%a5			; TOD2 VA
 fefe0c4c:	6006           	bras 0xfefe0c54
 
 ; This is the physical address of the TOD (Mostek MK48T02)
@@ -2131,7 +2170,7 @@ fefe1600:	4fef 000c      	lea %sp@(12),%sp
 ; the TOD clock in the M48T02
 ; The virtual address is different and is
 ; used in 4 places. See TOD above
-; I call it CLOCK2
+; I call it TOD2
 fefe1604:	4879 6400 07d8 	pea 0x640007d8		; phy
 fefe160a:	4879 fef0 47d8 	pea 0xfef047d8		; virt
 fefe1610:	4879 feff 40ce 	pea 0xfeff40ce
@@ -2361,7 +2400,7 @@ fefe1896:	60ce           	bras 0xfefe1866
 
 fefe1898:	4e56 ffbc      	linkw %fp,#-68
 fefe189c:	48d7 3cf0      	moveml %d4-%d7/%a2-%a5,%sp@
-fefe18a0:	267c fef0 47d8 	moveal #0xfef047d8,%a3			; CLOCK2
+fefe18a0:	267c fef0 47d8 	moveal #0xfef047d8,%a3			; TOD2 VA
 fefe18a6:	7e00           	moveq #0,%d7
 fefe18a8:	49eb 0002      	lea %a3@(2),%a4
 fefe18ac:	45ee ffe8      	lea %fp@(-24),%a2
@@ -4540,8 +4579,11 @@ fefe30ec:	4eb9 fefe 21dc 	jsr 0xfefe21dc			; dingus
 fefe30f2:	6020           	bras 0xfefe3114
 fefe30f4:	2d79 fef7 21d6 	movel 0xfef721d6,%fp@(76)
 fefe30fa:	004c
+
+; register address of subroutine
 fefe30fc:	23fc fefe 38c4 	movel #0xfefe38c4,0xfef722ea
 fefe3102:	fef7 22ea
+
 fefe3106:	42b9 fef7 20d2 	clrl 0xfef720d2
 fefe310c:	42b9 fef7 2086 	clrl 0xfef72086
 fefe3112:	7e00           	moveq #0,%d7
@@ -4550,13 +4592,16 @@ fefe3116:	4cee 3cc0 ffe0 	moveml %fp@(-32),%d6-%d7/%a2-%a5
 fefe311c:	4e5e           	unlk %fp
 fefe311e:	4e75           	rts
 
+; ----------------------------------
 fefe3120:	4e56 ffdc      	linkw %fp,#-36
 fefe3124:	48d7 38fc      	moveml %d2-%d7/%a3-%a5,%sp@
 fefe3128:	7800           	moveq #0,%d4
+
 fefe312a:	4879 feff 54c8 	pea 0xfeff54c8
 fefe3130:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Selftest Completed.\n ++" )
 fefe3136:	584f           	addqw #4,%sp
+
 fefe3138:	4eb9 fefe 1b74 	jsr 0xfefe1b74
 fefe313e:	4eb9 fefe 6c7c 	jsr 0xfefe6c7c
 fefe3144:	4a80           	tstl %d0
@@ -4899,7 +4944,7 @@ fefe354a:	283c fef0 4600 	movel #0xfef04600,%d4
 fefe3550:	602c           	bras 0xfefe357e
 fefe3552:	0c87 fef0 470b 	cmpil #0xfef0470b,%d7
 fefe3558:	6300 014a      	blsw 0xfefe36a4
-fefe355c:	0c87 fef0 47d8 	cmpil #0xfef047d8,%d7			; CLOCK2
+fefe355c:	0c87 fef0 47d8 	cmpil #0xfef047d8,%d7			; TOD2 VA
 fefe3562:	6400 0140      	bccw 0xfefe36a4
 fefe3566:	2e3c fef0 470c 	movel #0xfef0470c,%d7
 fefe356c:	2a3c fef0 47fd 	movel #0xfef047fd,%d5
@@ -4910,7 +4955,7 @@ fefe3580:	287c fef7 2532 	moveal #0xfef72532,%a4
 fefe3586:	6016           	bras 0xfefe359e
 fefe3588:	2f14           	movel %a4@,%sp@-
 fefe358a:	2f07           	movel %d7,%sp@-
-fefe358c:	4eb9 fefe 00fc 	jsr 0xfefe00fc
+fefe358c:	4eb9 fefe 00fc 	jsr 0xfefe00fc			; readb
 fefe3592:	504f           	addqw #8,%sp
 fefe3594:	d006           	addb %d6,%d0
 fefe3596:	0200 00ff      	andib #-1,%d0
@@ -4949,7 +4994,7 @@ fefe35ec:	5284           	addql #1,%d4
 fefe35ee:	2a44           	moveal %d4,%a5
 fefe35f0:	2f14           	movel %a4@,%sp@-
 fefe35f2:	2f07           	movel %d7,%sp@-
-fefe35f4:	4eb9 fefe 00fc 	jsr 0xfefe00fc
+fefe35f4:	4eb9 fefe 00fc 	jsr 0xfefe00fc			; readb
 fefe35fa:	504f           	addqw #8,%sp
 fefe35fc:	e180           	asll #8,%d0
 fefe35fe:	2c00           	movel %d0,%d6
@@ -4964,7 +5009,7 @@ fefe3616:	534d           	subqw #1,%a5
 fefe3618:	2f06           	movel %d6,%sp@-
 fefe361a:	2f14           	movel %a4@,%sp@-
 fefe361c:	2f07           	movel %d7,%sp@-
-fefe361e:	4eb9 fefe 00fc 	jsr 0xfefe00fc
+fefe361e:	4eb9 fefe 00fc 	jsr 0xfefe00fc			; readb
 fefe3624:	4fef 000c      	lea %sp@(12),%sp
 fefe3628:	5280           	addql #1,%d0
 fefe362a:	d086           	addl %d6,%d0
@@ -5013,6 +5058,8 @@ fefe36a6:	4cee 30f0 ffe8 	moveml %fp@(-24),%d4-%d7/%a4-%a5
 fefe36ac:	4e5e           	unlk %fp
 fefe36ae:	4e75           	rts
 
+; ---------------------------------
+; 4 calls
 fefe36b0:	4e56 ffec      	linkw %fp,#-20
 fefe36b4:	48d7 30e0      	moveml %d5-%d7/%a4-%a5,%sp@
 fefe36b8:	2a6e 0008      	moveal %fp@(8),%a5
@@ -5024,10 +5071,12 @@ fefe36cc:	6e00 0138      	bgtw 0xfefe3806
 fefe36d0:	287c fef7 253a 	moveal #0xfef7253a,%a4
 fefe36d6:	4a94           	tstl %a4@
 fefe36d8:	6600 012c      	bnew 0xfefe3806
+
 fefe36dc:	4879 feff 5590 	pea 0xfeff5590
 fefe36e2:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( ": " )
 fefe36e8:	584f           	addqw #4,%sp
+
 fefe36ea:	2005           	movel %d5,%d0
 fefe36ec:	7e02           	moveq #2,%d7
 fefe36ee:	b087           	cmpl %d7,%d0
@@ -5036,28 +5085,35 @@ fefe36f2:	7e04           	moveq #4,%d7
 fefe36f4:	b087           	cmpl %d7,%d0
 fefe36f6:	672c           	beqs 0xfefe3724
 fefe36f8:	2f06           	movel %d6,%sp@-
+
 fefe36fa:	4855           	pea %a5@
-fefe36fc:	4eb9 fefe 0110 	jsr 0xfefe0110
+fefe36fc:	4eb9 fefe 0110 	jsr 0xfefe0110			; readl
 fefe3702:	504f           	addqw #8,%sp
+
 fefe3704:	2f00           	movel %d0,%sp@-
 fefe3706:	4879 feff 559b 	pea 0xfeff559b
 fefe370c:	602a           	bras 0xfefe3738
 fefe370e:	2f06           	movel %d6,%sp@-
+
 fefe3710:	4855           	pea %a5@
-fefe3712:	4eb9 fefe 00fc 	jsr 0xfefe00fc
+fefe3712:	4eb9 fefe 00fc 	jsr 0xfefe00fc			; readb
 fefe3718:	504f           	addqw #8,%sp
+
 fefe371a:	2f00           	movel %d0,%sp@-
 fefe371c:	4879 feff 5593 	pea 0xfeff5593
 fefe3722:	6014           	bras 0xfefe3738
 fefe3724:	2f06           	movel %d6,%sp@-
+
 fefe3726:	4855           	pea %a5@
-fefe3728:	4eb9 fefe 0106 	jsr 0xfefe0106
+fefe3728:	4eb9 fefe 0106 	jsr 0xfefe0106			; readw
 fefe372e:	504f           	addqw #8,%sp
+
 fefe3730:	2f00           	movel %d0,%sp@-
 fefe3732:	4879 feff 5597 	pea 0xfeff5597
 fefe3738:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%4x" )
 fefe373e:	504f           	addqw #8,%sp
+
 fefe3740:	4eb9 fefe 2562 	jsr 0xfefe2562
 fefe3746:	7e0d           	moveq #13,%d7
 fefe3748:	b087           	cmpl %d7,%d0
@@ -5134,8 +5190,10 @@ fefe3814:	4cee 30e0 ffec 	moveml %fp@(-20),%d5-%d7/%a4-%a5
 fefe381a:	4e5e           	unlk %fp
 fefe381c:	4e75           	rts
 
+; ---------------------------------
 fefe381e:	4e56 fff4      	linkw %fp,#-12
 fefe3822:	48d7 00e0      	moveml %d5-%d7,%sp@
+
 fefe3826:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe382c:	7e0f           	moveq #15,%d7
 fefe382e:	c087           	andl %d7,%d0
@@ -5148,31 +5206,41 @@ fefe3840:	e487           	asrl #2,%d7
 fefe3842:	2207           	movel %d7,%d1
 fefe3844:	d281           	addl %d1,%d1
 fefe3846:	de81           	addl %d1,%d7
+
+; points to string "D0"
 fefe3848:	0687 feff 5548 	addil #0xfeff5548,%d7
 fefe384e:	2a3c feff 558d 	movel #0xfeff558d,%d5
 fefe3854:	6024           	bras 0xfefe387a
+
+; loop
 fefe3856:	2f07           	movel %d7,%sp@-
-Skip: fefe3856:	2f07           	movel %d7,%sp@-
 fefe3858:	4eb9 fefe 2b04 	jsr 0xfefe2b04			; printf
 fefe385e:	584f           	addqw #4,%sp
+
 fefe3860:	4878 0005      	pea 0x5
 fefe3864:	4878 0008      	pea 0x8
 fefe3868:	2f06           	movel %d6,%sp@-
 fefe386a:	6100 fe44      	bsrw 0xfefe36b0
 fefe386e:	4fef 000c      	lea %sp@(12),%sp
+
 fefe3872:	4a80           	tstl %d0
 fefe3874:	6708           	beqs 0xfefe387e
 fefe3876:	5687           	addql #3,%d7
 fefe3878:	5886           	addql #4,%d6
+
 fefe387a:	be85           	cmpl %d5,%d7
-fefe387c:	65d8           	bcss 0xfefe3856
+fefe387c:	65d8           	bcss 0xfefe3856			; loop up
+
 fefe387e:	7000           	moveq #0,%d0
 fefe3880:	4cee 00e0 fff4 	moveml %fp@(-12),%d5-%d7
 fefe3886:	4e5e           	unlk %fp
 fefe3888:	4e75           	rts
 
+; ---------------------------------
+
 fefe388a:	4e56 fff0      	linkw %fp,#-16
 fefe388e:	48d7 3880      	moveml %d7/%a3-%a5,%sp@
+
 fefe3892:	2a7c fef7 2020 	moveal #0xfef72020,%a5
 fefe3898:	267c fef7 2028 	moveal #0xfef72028,%a3
 fefe389e:	2a8b           	movel %a3,%a5@
@@ -5186,26 +5254,40 @@ fefe38ae:	66f4           	bnes 0xfefe38a4
 fefe38b0:	2a8b           	movel %a3,%a5@
 fefe38b2:	4eb9 fefe 031a 	jsr 0xfefe031a
 fefe38b8:	7000           	moveq #0,%d0
+
 fefe38ba:	4cee 3880 fff0 	moveml %fp@(-16),%d7/%a3-%a5
 fefe38c0:	4e5e           	unlk %fp
 fefe38c2:	4e75           	rts
 
+; ---------------------------------
+
+; This subroutine is "registered" for use by someone/something
+; first argument is string to print if the first character
+; of the string given as the second argument is a %
+; otherwise it prints "Try again."
+; how about that?!
 fefe38c4:	4e56 fffc      	linkw %fp,#-4
 fefe38c8:	2e8d           	movel %a5,%sp@
-fefe38ca:	206e 000c      	moveal %fp@(12),%a0
-fefe38ce:	0c10 0025      	cmpib #0x25,%a0@
+
+fefe38ca:	206e 000c      	moveal %fp@(12),%a0		; arg2
+fefe38ce:	0c10 0025      	cmpib #0x25,%a0@		; '%'
 fefe38d2:	6606           	bnes 0xfefe38da
-fefe38d4:	2a6e 0008      	moveal %fp@(8),%a5
+
+fefe38d4:	2a6e 0008      	moveal %fp@(8),%a5		; arg1
 fefe38d8:	6006           	bras 0xfefe38e0
+
 fefe38da:	2a7c feff 55a2 	moveal #0xfeff55a2,%a5
+;  feff55a2: Try again.\n
+
 fefe38e0:	4855           	pea %a5@
-Skip: fefe38e0:	4855           	pea %a5@
 fefe38e2:	4eb9 fefe 2b04 	jsr 0xfefe2b04			; printf
 fefe38e8:	584f           	addqw #4,%sp
+
 fefe38ea:	2a6e fffc      	moveal %fp@(-4),%a5
 fefe38ee:	4e5e           	unlk %fp
 fefe38f0:	4e75           	rts
 
+; ---------------------------------
 fefe38f2:	4e56 fffc      	linkw %fp,#-4
 fefe38f6:	2e87           	movel %d7,%sp@
 fefe38f8:	2e2e 0008      	movel %fp@(8),%d7
@@ -5275,7 +5357,7 @@ fefe39c2:	3006           	movew %d6,%d0
 fefe39c4:	5380           	subql #1,%d0
 fefe39c6:	41f5 0800      	lea %a5@(0,%d0:l),%a0
 fefe39ca:	2e08           	movel %a0,%d7
-fefe39cc:	0c87 fef0 47d8 	cmpil #0xfef047d8,%d7			; CLOCK2
+fefe39cc:	0c87 fef0 47d8 	cmpil #0xfef047d8,%d7			; TOD2 VA
 fefe39d2:	650a           	bcss 0xfefe39de
 fefe39d4:	0c87 fef0 47e7 	cmpil #0xfef047e7,%d7
 fefe39da:	6300 0098      	blsw 0xfefe3a74
@@ -5303,7 +5385,7 @@ fefe3a26:	6624           	bnes 0xfefe3a4c
 fefe3a28:	2f04           	movel %d4,%sp@-
 fefe3a2a:	2f05           	movel %d5,%sp@-
 fefe3a2c:	4855           	pea %a5@
-fefe3a2e:	4eb9 fefe 0130 	jsr 0xfefe0130
+fefe3a2e:	4eb9 fefe 0130 	jsr 0xfefe0130				; writel
 fefe3a34:	6040           	bras 0xfefe3a76
 fefe3a36:	0c07 0059      	cmpib #0x59,%d7
 fefe3a3a:	67d0           	beqs 0xfefe3a0c
@@ -5317,14 +5399,14 @@ fefe3a50:	660e           	bnes 0xfefe3a60
 fefe3a52:	2f04           	movel %d4,%sp@-
 fefe3a54:	2f05           	movel %d5,%sp@-
 fefe3a56:	4855           	pea %a5@
-fefe3a58:	4eb9 fefe 0124 	jsr 0xfefe0124
+fefe3a58:	4eb9 fefe 0124 	jsr 0xfefe0124				; writew
 fefe3a5e:	6016           	bras 0xfefe3a76
 fefe3a60:	0c46 0001      	cmpiw #1,%d6
 fefe3a64:	660e           	bnes 0xfefe3a74
 fefe3a66:	2f04           	movel %d4,%sp@-
 fefe3a68:	2f05           	movel %d5,%sp@-
 fefe3a6a:	4855           	pea %a5@
-fefe3a6c:	4eb9 fefe 0118 	jsr 0xfefe0118
+fefe3a6c:	4eb9 fefe 0118 	jsr 0xfefe0118				; writeb
 fefe3a72:	6002           	bras 0xfefe3a76
 fefe3a74:	70ff           	moveq #-1,%d0
 fefe3a76:	4cee 20f0 ffec 	moveml %fp@(-20),%d4-%d7/%a5
@@ -5889,7 +5971,7 @@ fefe41a4:	4a8d           	tstl %a5
 fefe41a6:	671a           	beqs 0xfefe41c2
 fefe41a8:	2f39 fef7 2532 	movel 0xfef72532,%sp@-
 fefe41ae:	4855           	pea %a5@
-fefe41b0:	4eb9 fefe 0106 	jsr 0xfefe0106
+fefe41b0:	4eb9 fefe 0106 	jsr 0xfefe0106			; readw
 fefe41b6:	504f           	addqw #8,%sp
 fefe41b8:	0c80 0000 4e41 	cmpil #0x4e41,%d0
 fefe41be:	6702           	beqs 0xfefe41c2
@@ -5924,7 +6006,7 @@ fefe4222:	267c fef7 207a 	moveal #0xfef7207a,%a3
 fefe4228:	2a7c fef7 2532 	moveal #0xfef72532,%a5
 fefe422e:	2f15           	movel %a5@,%sp@-
 fefe4230:	2f07           	movel %d7,%sp@-
-fefe4232:	4eb9 fefe 0106 	jsr 0xfefe0106
+fefe4232:	4eb9 fefe 0106 	jsr 0xfefe0106			; readw
 fefe4238:	504f           	addqw #8,%sp
 fefe423a:	3680           	movew %d0,%a3@
 fefe423c:	4878 0002      	pea 0x2
@@ -6348,7 +6430,7 @@ fefe47c6:	b881           	cmpl %d1,%d4
 fefe47c8:	6616           	bnes 0xfefe47e0
 fefe47ca:	2f14           	movel %a4@,%sp@-
 fefe47cc:	2f07           	movel %d7,%sp@-
-fefe47ce:	4eb9 fefe 00fc 	jsr 0xfefe00fc
+fefe47ce:	4eb9 fefe 00fc 	jsr 0xfefe00fc			; readb
 fefe47d4:	504f           	addqw #8,%sp
 fefe47d6:	2f00           	movel %d0,%sp@-
 fefe47d8:	4879 feff 577a 	pea 0xfeff577a
@@ -6358,14 +6440,14 @@ fefe47e2:	b881           	cmpl %d1,%d4
 fefe47e4:	6616           	bnes 0xfefe47fc
 fefe47e6:	2f14           	movel %a4@,%sp@-
 fefe47e8:	2f07           	movel %d7,%sp@-
-fefe47ea:	4eb9 fefe 0106 	jsr 0xfefe0106
+fefe47ea:	4eb9 fefe 0106 	jsr 0xfefe0106			; readw
 fefe47f0:	504f           	addqw #8,%sp
 fefe47f2:	2f00           	movel %d0,%sp@-
 fefe47f4:	4879 feff 577f 	pea 0xfeff577f
 fefe47fa:	6014           	bras 0xfefe4810
 fefe47fc:	2f14           	movel %a4@,%sp@-
 fefe47fe:	2f07           	movel %d7,%sp@-
-fefe4800:	4eb9 fefe 0110 	jsr 0xfefe0110
+fefe4800:	4eb9 fefe 0110 	jsr 0xfefe0110			; readl
 fefe4806:	504f           	addqw #8,%sp
 fefe4808:	2f00           	movel %d0,%sp@-
 fefe480a:	4879 feff 5784 	pea 0xfeff5784
@@ -6383,7 +6465,7 @@ fefe482c:	2e06           	movel %d6,%d7
 fefe482e:	6034           	bras 0xfefe4864
 fefe4830:	2f14           	movel %a4@,%sp@-
 fefe4832:	2f07           	movel %d7,%sp@-
-fefe4834:	4eb9 fefe 00fc 	jsr 0xfefe00fc
+fefe4834:	4eb9 fefe 00fc 	jsr 0xfefe00fc			; readb
 fefe483a:	504f           	addqw #8,%sp
 fefe483c:	727f           	moveq #127,%d1
 fefe483e:	c001           	andb %d1,%d0
@@ -8359,7 +8441,7 @@ fefe5eb8:	287c fef7 2086 	moveal #0xfef72086,%a4
 fefe5ebe:	2046           	moveal %d6,%a0
 fefe5ec0:	2f10           	movel %a0@,%sp@-
 fefe5ec2:	2f14           	movel %a4@,%sp@-
-fefe5ec4:	4eb9 fefe 0106 	jsr 0xfefe0106
+fefe5ec4:	4eb9 fefe 0106 	jsr 0xfefe0106			; readw
 fefe5eca:	504f           	addqw #8,%sp
 fefe5ecc:	3239 fef7 207a 	movew 0xfef7207a,%d1
 fefe5ed2:	48c1           	extl %d1
@@ -9789,6 +9871,10 @@ fefe705c:	fefe 7060
 ; --------------------------------------------------
 ; BIG_init ()
 ; several jumps come here from above
+; This looks to me like it is doing the full up
+; initialization, i.e. "cold reset" of the processor
+; maybe
+
 ; First, add and or all the registers !!
 fefe7060:	d1c9           	addal %a1,%a0
 fefe7062:	d1ca           	addal %a2,%a0
@@ -9863,8 +9949,11 @@ fefe70ce:	cd79 6100 0000 	andw %d6,0x61000000		; SYSENA
 
 fefe70d4:	303c 7fff      	movew #0x7fff,%d0
 fefe70d8:	4281           	clrl %d1
+
+; loop count
 fefe70da:	123c 000f      	moveb #0xf,%d1
 
+; loop
 fefe70de:	13fc 00ff 6f00 	moveb #-1,0x6f00003c		; PP_data
 fefe70e4:	003c
 fefe70e6:	13fc 0055 6f00 	moveb #0x55,0x6f00003c		; PP_data
@@ -9881,11 +9970,14 @@ fefe7106:	003c
 ; delay
 fefe7108:	203c ffff ffff 	movel #-1,%d0
 fefe710e:	51c8 fffe      	dbf %d0,0xfefe710e
-fefe7112:	51c9 ffca      	dbf %d1,0xfefe70de
 
+fefe7112:	51c9 ffca      	dbf %d1,0xfefe70de		; loop up
+
+; write 0 twice, just to besure
 fefe7116:	4280           	clrl %d0
 fefe7118:	13c0 6f00 003c 	moveb %d0,0x6f00003c		; PP_data
 fefe711e:	13c0 6f00 003c 	moveb %d0,0x6f00003c		; PP_data
+
 fefe7124:	91c8           	subal %a0,%a0
 fefe7126:	41f9 6e00 0000 	lea 0x6e000000,%a0
 fefe712c:	1010           	moveb %a0@,%d0
@@ -9896,27 +9988,35 @@ fefe713e:	1010           	moveb %a0@,%d0
 fefe7140:	1010           	moveb %a0@,%d0
 
 fefe7142:	0c82 0000 0000 	cmpil #0,%d2
-fefe7148:	6700 0060      	beqw 0xfefe71aa
+fefe7148:	6700 0060      	beqw 0xfefe71aa		; skip ahead
+
 fefe714c:	41f9 6f00 003c 	lea 0x6f00003c,%a0		; PP_data
 fefe7152:	117c 0000 0002 	moveb #0,%a0@(2)
+
 fefe7158:	41f9 6f00 0030 	lea 0x6f000030,%a0		; PP_intr
 fefe715e:	10bc 0000      	moveb #0,%a0@
+
 fefe7162:	41f9 6500 2000 	lea 0x65002000,%a0
 fefe7168:	203c 0000 0000 	movel #0,%d0
 fefe716e:	3140 0002      	movew %d0,%a0@(2)
 fefe7172:	203c 0000 0004 	movel #4,%d0
 fefe7178:	3080           	movew %d0,%a0@
+
 fefe717a:	41f9 6600 0000 	lea 0x66000000,%a0
 fefe7180:	d1fc 0000 1000 	addal #0x1000,%a0
 fefe7186:	20bc 0000 0000 	movel #0,%a0@
 fefe718c:	217c 0000 0000 	movel #0,%a0@(4)
 fefe7192:	0004
 fefe7194:	20bc 0000 0080 	movel #0x80,%a0@
+
 fefe719a:	203c 0000 1000 	movel #0x1000,%d0
-fefe71a0:	51c8 fffe      	dbf %d0,0xfefe71a0
+fefe71a0:	51c8 fffe      	dbf %d0,0xfefe71a0		; delay
+
 fefe71a4:	20bc 0000 0000 	movel #0,%a0@
+
 fefe71aa:	4dfa 0008      	lea %pc@(0xfefe71b4),%fp
-fefe71ae:	60ff 0000 6d8c 	bral 0xfefedf3c
+fefe71ae:	60ff 0000 6d8c 	bral 0xfefedf3c			; _INI_ call
+
 fefe71b4:	0887 001b      	bclr #0x1b,%d7
 fefe71b8:	0c80 0000 0000 	cmpil #0,%d0
 fefe71be:	6700 0006      	beqw 0xfefe71c6
@@ -9932,6 +10032,8 @@ fefe71d2:	10c0           	moveb %d0,%a0@+
 fefe71d4:	10c0           	moveb %d0,%a0@+
 
 ; Check cute byte in EEPROM
+; depending on value, set up d7
+
 fefe71d6:	207c 6400 070b 	moveal #0x6400070b,%a0
 fefe71dc:	1010           	moveb %a0@,%d0
 fefe71de:	0c00 0006      	cmpib #6,%d0
@@ -9951,7 +10053,8 @@ fefe7206:	0887 001d      	bclr #0x1d,%d7
 fefe720a:	08c7 000e      	bset #0xe,%d7
 fefe720e:	08c7 000a      	bset #0xa,%d7
 
-; This is ODD and interesting business.
+; ---
+; We discover the "_INI_" call method .....
 ; We call a routine, but not with the usual jsr
 ; We put the return address into fp, then
 ; we branch there.
@@ -9959,11 +10062,11 @@ fefe720e:	08c7 000a      	bset #0xa,%d7
 
 fefe7212:	1e3c 0028      	moveb #0x28,%d7
 fefe7216:	4dfa 0008      	lea %pc@(0xfefe7220),%fp
-fefe721a:	60ff 0000 292c 	bral 0xfefe9b48			; ODD_test
+fefe721a:	60ff 0000 292c 	bral 0xfefe9b48			; INI_test
 
 fefe7220:	7201           	moveq #1,%d1
 fefe7222:	4dfa 0008      	lea %pc@(0xfefe722c),%fp
-fefe7226:	60ff 0000 29fa 	bral 0xfefe9c22			; ODD_stash_fp
+fefe7226:	60ff 0000 29fa 	bral 0xfefe9c22			; INI_stash_fp
 
 / Do stuff with the serial port
 fefe722c:	740c           	moveq #12,%d2
@@ -9983,18 +10086,21 @@ fefe7258:	1039 6200 2004 	moveb 0x62002004,%d0	; SCC
 fefe725e:	b200           	cmpb %d0,%d1
 fefe7260:	6700 000c      	beqw 0xfefe726e
 
-; maybe print this
+; maybe print this (from a4)
+; But ... what is in a4 ??
 fefe7264:	4dfa 0008      	lea %pc@(0xfefe726e),%fp
-fefe7268:	60ff 0000 2a3e 	bral 0xfefe9ca8		; ODD_print2
+fefe7268:	60ff 0000 2a3e 	bral 0xfefe9ca8		; INI_print2
 
 fefe726e:	4dfa 0008      	lea %pc@(0xfefe7278),%fp
-fefe7272:	60ff 0000 2aa8 	bral 0xfefe9d1c			; ODD_func
+fefe7272:	60ff 0000 2aa8 	bral 0xfefe9d1c			; INI_func
 fefe7278:	e301           	aslb #1,%d1
 fefe727a:	6600 ffa6      	bnew 0xfefe7222		; loop up
 
 fefe727e:	7201           	moveq #1,%d1
+
+; loop
 fefe7280:	4dfa 0008      	lea %pc@(0xfefe728a),%fp
-fefe7284:	60ff 0000 299c 	bral 0xfefe9c22			; ODD_stash_fp
+fefe7284:	60ff 0000 299c 	bral 0xfefe9c22			; INI_stash_fp
 
 ; Do stuff with the other serial channel
 fefe728a:	740c           	moveq #12,%d2
@@ -10013,10 +10119,10 @@ fefe72be:	6700 000c      	beqw 0xfefe72cc
 
 ; maybe print this
 fefe72c2:	4dfa 0008      	lea %pc@(0xfefe72cc),%fp
-fefe72c6:	60ff 0000 29e0 	bral 0xfefe9ca8		; ODD_print2
+fefe72c6:	60ff 0000 29e0 	bral 0xfefe9ca8		; INI_print2
 
 fefe72cc:	4dfa 0008      	lea %pc@(0xfefe72d6),%fp
-fefe72d0:	60ff 0000 2a4a 	bral 0xfefe9d1c			; ODD_func
+fefe72d0:	60ff 0000 2a4a 	bral 0xfefe9d1c			; INI_func
 fefe72d6:	e301           	aslb #1,%d1
 fefe72d8:	6600 ffa6      	bnew 0xfefe7280		; loop up
 
@@ -10024,7 +10130,7 @@ fefe72dc:	08c7 000e      	bset #0xe,%d7
 fefe72e0:	08c7 000a      	bset #0xa,%d7
 fefe72e4:	1e3c 0029      	moveb #0x29,%d7
 fefe72e8:	4dfa 0008      	lea %pc@(0xfefe72f2),%fp
-fefe72ec:	60ff 0000 285a 	bral 0xfefe9b48			; ODD_test
+fefe72ec:	60ff 0000 285a 	bral 0xfefe9b48			; INI_test
 
 ; -- it sure looks like 2 exact copies of the same code follows,
 ;    Once for 0004, then for 0000
@@ -10037,7 +10143,7 @@ fefe72f2:	7201           	moveq #1,%d1
 
 ; loop here from below
 fefe72f4:	4dfa 0008      	lea %pc@(0xfefe72fe),%fp
-fefe72f8:	60ff 0000 2928 	bral 0xfefe9c22			; ODD_stash_fp
+fefe72f8:	60ff 0000 2928 	bral 0xfefe9c22			; INI_stash_fp
 
 fefe72fe:	740c           	moveq #12,%d2			; reg 12
 fefe7300:	13c2 6200 0004 	moveb %d2,0x62000004	; SCC_kb
@@ -10057,10 +10163,10 @@ fefe7330:	b200           	cmpb %d0,%d1
 fefe7332:	6700 000c      	beqw 0xfefe7340
 
 fefe7336:	4dfa 0008      	lea %pc@(0xfefe7340),%fp
-fefe733a:	60ff 0000 296c 	bral 0xfefe9ca8		; ODD_print2
+fefe733a:	60ff 0000 296c 	bral 0xfefe9ca8		; INI_print2
 
 fefe7340:	4dfa 0008      	lea %pc@(0xfefe734a),%fp
-fefe7344:	60ff 0000 29d6 	bral 0xfefe9d1c			; ODD_func
+fefe7344:	60ff 0000 29d6 	bral 0xfefe9d1c			; INI_func
 
 fefe734a:	e301           	aslb #1,%d1
 fefe734c:	6600 ffa6      	bnew 0xfefe72f4		; loop up
@@ -10071,7 +10177,7 @@ fefe7350:	7201           	moveq #1,%d1
 
 ; loop here from below
 fefe7352:	4dfa 0008      	lea %pc@(0xfefe735c),%fp
-fefe7356:	60ff 0000 28ca 	bral 0xfefe9c22			; ODD_stash_fp
+fefe7356:	60ff 0000 28ca 	bral 0xfefe9c22			; INI_stash_fp
 
 fefe735c:	740c           	moveq #12,%d2
 fefe735e:	13c2 6200 0000 	moveb %d2,0x62000000	; SCC_kb
@@ -10091,10 +10197,10 @@ fefe738e:	b200           	cmpb %d0,%d1
 fefe7390:	6700 000c      	beqw 0xfefe739e
 
 fefe7394:	4dfa 0008      	lea %pc@(0xfefe739e),%fp
-fefe7398:	60ff 0000 290e 	bral 0xfefe9ca8		; ODD_print2
+fefe7398:	60ff 0000 290e 	bral 0xfefe9ca8		; INI_print2
 
 fefe739e:	4dfa 0008      	lea %pc@(0xfefe73a8),%fp
-fefe73a2:	60ff 0000 2978 	bral 0xfefe9d1c			; ODD_func
+fefe73a2:	60ff 0000 2978 	bral 0xfefe9d1c			; INI_func
 
 fefe73a8:	e301           	aslb #1,%d1
 fefe73aa:	6600 ffa6      	bnew 0xfefe7352		; loop up
@@ -10156,7 +10262,7 @@ fefe73ee:	60ff 0000 32ce 	bral 0xfefea6be
 fefe73f4:	49fa 037e      	lea %pc@(0xfefe7774),%a4
 ; 0xfefe7774 ~~\r\nSun-3/80 Boot PROM Selftest (Rev. 3.0.2)\r\n (Press <Esc> to abort tests or <Cntrl-L> for the Loop Menu)
 fefe73f8:	4dfa 0008      	lea %pc@(0xfefe7402),%fp
-fefe73fc:	60ff 0000 2fd6 	bral 0xfefea3d4		; ODD_print
+fefe73fc:	60ff 0000 2fd6 	bral 0xfefea3d4		; INI_print
 
 fefe7402:	6000 0002      	braw 0xfefe7406		; haha
 
@@ -10167,7 +10273,7 @@ fefe7406:	1e3c 0001      	moveb #1,%d7
 fefe740a:	49fa 0578      	lea %pc@(0xfefe7984),%a4
 ; 0xfefe7984 \r\nSystem Enable Register Read Test
 fefe740e:	4dfa 0008      	lea %pc@(0xfefe7418),%fp
-fefe7412:	60ff 0000 2734 	bral 0xfefe9b48			; ODD_test
+fefe7412:	60ff 0000 2734 	bral 0xfefe9b48			; INI_test
 
 fefe7418:	4bf9 6100 0000 	lea 0x61000000,%a5		; SYSENA
 fefe741e:	4282           	clrl %d2
@@ -10178,7 +10284,7 @@ fefe7426:	6700 0006      	beqw 0xfefe742e
 fefe742a:	0041 8000      	oriw #0x8000,%d1		; d1 |= 0x8000
 
 fefe742e:	4dfa 0008      	lea %pc@(0xfefe7438),%fp
-fefe7432:	60ff 0000 27ee 	bral 0xfefe9c22			; ODD_stash_fp
+fefe7432:	60ff 0000 27ee 	bral 0xfefe9c22			; INI_stash_fp
 
 ; read the System enable register
 fefe7438:	3015           	movew %a5@,%d0
@@ -10195,10 +10301,10 @@ fefe744a:	6700 0012      	beqw 0xfefe745e
 fefe744e:	49f9 fefe ab1c 	lea 0xfefeab1c,%a4
 ; 0xfefeab1c \r\n exp 0x%d1, obs 0x%d0, xor 0x%d2
 fefe7454:	4dfa 0008      	lea %pc@(0xfefe745e),%fp
-fefe7458:	60ff 0000 284e 	bral 0xfefe9ca8		; ODD_print2
+fefe7458:	60ff 0000 284e 	bral 0xfefe9ca8		; INI_print2
 
 fefe745e:	4dfa 0008      	lea %pc@(0xfefe7468),%fp
-fefe7462:	60ff 0000 28b8 	bral 0xfefe9d1c			; ODD_func
+fefe7462:	60ff 0000 28b8 	bral 0xfefe9d1c			; INI_func
 
 fefe7468:	0807 0009      	btst #9,%d7
 fefe746c:	6600 ffaa      	bnew 0xfefe7418			; loop back up
@@ -10210,10 +10316,10 @@ fefe7470:	1e3c 0002      	moveb #2,%d7
 fefe7474:	49fa 0531      	lea %pc@(0xfefe79a7),%a4
 ; 0xfefe79a7 \r\nPROM Checksum Test
 fefe7478:	4dfa 0008      	lea %pc@(0xfefe7482),%fp
-fefe747c:	60ff 0000 26ca 	bral 0xfefe9b48			; ODD_test
+fefe747c:	60ff 0000 26ca 	bral 0xfefe9b48			; INI_test
 
 fefe7482:	4dfa 0008      	lea %pc@(0xfefe748c),%fp
-fefe7486:	60ff 0000 279a 	bral 0xfefe9c22			; ODD_stash_fp
+fefe7486:	60ff 0000 279a 	bral 0xfefe9c22			; INI_stash_fp
 
 ; It is odd that the ROM is now at 0x6300_0000,
 ; having been relocated somehow.
@@ -10234,10 +10340,10 @@ fefe74b2:	6700 0010      	beqw 0xfefe74c4
 fefe74b6:	49fa 0504      	lea %pc@(0xfefe79bc),%a4
 ; 0xfefe79bc \r\n<Checksum Error: Exp 0x%d0, Obs 0x%d1>
 fefe74ba:	4dfa 0008      	lea %pc@(0xfefe74c4),%fp
-fefe74be:	60ff 0000 27e8 	bral 0xfefe9ca8		; ODD_print2
+fefe74be:	60ff 0000 27e8 	bral 0xfefe9ca8		; INI_print2
 
 fefe74c4:	4dfa 0008      	lea %pc@(0xfefe74ce),%fp
-fefe74c8:	60ff 0000 2852 	bral 0xfefe9d1c			; ODD_func
+fefe74c8:	60ff 0000 2852 	bral 0xfefe9d1c			; INI_func
 fefe74ce:	0807 0009      	btst #9,%d7
 fefe74d2:	6600 ffae      	bnew 0xfefe7482			; loop back up
 
@@ -10251,18 +10357,18 @@ fefe74da:	6700 0010      	beqw 0xfefe74ec
 fefe74de:	49fa 017c      	lea %pc@(0xfefe765c),%a4
 ; 0xfefe765c \n\r<WARNING: The Clock/Calendar Battery is low>
 fefe74e2:	4dfa 0008      	lea %pc@(0xfefe74ec),%fp
-fefe74e6:	60ff 0000 2eec 	bral 0xfefea3d4		; ODD_print
+fefe74e6:	60ff 0000 2eec 	bral 0xfefea3d4		; INI_print
 
 fefe74ec:	49fa 0152      	lea %pc@(0xfefe7640),%a4
 ; 0xfefe7640 \n\rTOD [Clock/Calender] Test
 fefe74f0:	1e3c 0021      	moveb #0x21,%d7
 fefe74f4:	4dfa 0008      	lea %pc@(0xfefe74fe),%fp
-fefe74f8:	60ff 0000 264e 	bral 0xfefe9b48			; ODD_test
+fefe74f8:	60ff 0000 264e 	bral 0xfefe9b48			; INI_test
 
 fefe74fe:	4dfa 0008      	lea %pc@(0xfefe7508),%fp
-fefe7502:	60ff 0000 271e 	bral 0xfefe9c22			; ODD_stash_fp
-; the following address is CLOCK2 in Mostek MK48T02
-fefe7508:	41f9 6400 07f8 	lea 0x640007f8,%a0
+fefe7502:	60ff 0000 271e 	bral 0xfefe9c22			; INI_stash_fp
+
+fefe7508:	41f9 6400 07f8 	lea 0x640007f8,%a0		; TOD2 Phys Addr
 fefe750e:	4280           	clrl %d0
 fefe7510:	1028 0003      	moveb %a0@(3),%d0
 fefe7514:	e198           	roll #8,%d0
@@ -10283,12 +10389,12 @@ fefe754a:	6600 ffe4      	bnew 0xfefe7530
 fefe754e:	49fa 0168      	lea %pc@(0xfefe76b8),%a4
 ; 0xfefe76b8 \n\r <Oscilator is not running!, Re-Initializing TOD Clock Module>
 fefe7552:	4dfa 0016      	lea %pc@(0xfefe756a),%fp
-fefe7556:	60ff 0000 2e7c 	bral 0xfefea3d4		; ODD_print
+fefe7556:	60ff 0000 2e7c 	bral 0xfefea3d4		; INI_print
 fefe755c:	49fa 019c      	lea %pc@(0xfefe76fa),%a4
 ; 0xfefe76fa \n\r <New TOD Module installed, Initializing and Starting the Clock.>
 fefe7560:	4dfa 0008      	lea %pc@(0xfefe756a),%fp
-fefe7564:	60ff 0000 2e6e 	bral 0xfefea3d4		; ODD_print
-fefe756a:	41f9 6400 07f8 	lea 0x640007f8,%a0	; CLOCK2 in Mostek MK48T02
+fefe7564:	60ff 0000 2e6e 	bral 0xfefea3d4		; INI_print
+fefe756a:	41f9 6400 07f8 	lea 0x640007f8,%a0	; TOD2 Phys Addr
 fefe7570:	10bc 0080      	moveb #0x80,%a0@
 fefe7574:	117c 0000 0001 	moveb #0,%a0@(1)
 fefe757a:	117c 0080 0003 	moveb #0x80,%a0@(3)
@@ -10319,7 +10425,7 @@ fefe75f2:	6600 ffea      	bnew 0xfefe75de
 fefe75f6:	49fa 0147      	lea %pc@(0xfefe773f),%a4
 ; 0xfefe773f \n\r<ERROR: TOD Clock Unit or Support Logic BAD>
 fefe75fa:	4dfa 002e      	lea %pc@(0xfefe762a),%fp
-fefe75fe:	60ff 0000 26a8 	bral 0xfefe9ca8		; ODD_print2
+fefe75fe:	60ff 0000 26a8 	bral 0xfefe9ca8		; INI_print2
 fefe7604:	4281           	clrl %d1
 fefe7606:	1228 0003      	moveb %a0@(3),%d1
 fefe760a:	e199           	roll #8,%d1
@@ -10331,9 +10437,9 @@ fefe7618:	6600 0010      	bnew 0xfefe762a
 fefe761c:	49fa 006d      	lea %pc@(0xfefe768b),%a4
 ; 0xfefe768b \n\r<Invalid Times, Start: 0x%d0  Stop: 0x%d1>
 fefe7620:	4dfa 0008      	lea %pc@(0xfefe762a),%fp
-fefe7624:	60ff 0000 2682 	bral 0xfefe9ca8		; ODD_print2
+fefe7624:	60ff 0000 2682 	bral 0xfefe9ca8		; INI_print2
 fefe762a:	4dfa 0008      	lea %pc@(0xfefe7634),%fp
-fefe762e:	60ff 0000 26ec 	bral 0xfefe9d1c			; ODD_func
+fefe762e:	60ff 0000 26ec 	bral 0xfefe9d1c			; INI_func
 fefe7634:	0807 0009      	btst #9,%d7
 fefe7638:	6600 fec4      	bnew 0xfefe74fe
 fefe763c:	6000 03aa      	braw 0xfefe79e8
@@ -10395,13 +10501,13 @@ fefe79e8:	1e3c 0003      	moveb #3,%d7
 fefe79ec:	49fa 01f6      	lea %pc@(0xfefe7be4),%a4
 ; 0xfefe7be4 \r\nI/O Mapper RAM Write/Write/Read Test
 fefe79f0:	4dfa 0008      	lea %pc@(0xfefe79fa),%fp
-fefe79f4:	60ff 0000 2152 	bral 0xfefe9b48			; ODD_test
+fefe79f4:	60ff 0000 2152 	bral 0xfefe9b48			; INI_test
 fefe79fa:	4bf9 6000 0000 	lea 0x60000000,%a5
 fefe7a00:	260d           	movel %a5,%d3
 fefe7a02:	0683 0000 2000 	addil #0x2000,%d3
 fefe7a08:	4281           	clrl %d1
 fefe7a0a:	4dfa 0008      	lea %pc@(0xfefe7a14),%fp
-fefe7a0e:	60ff 0000 2212 	bral 0xfefe9c22			; ODD_stash_fp
+fefe7a0e:	60ff 0000 2212 	bral 0xfefe9c22			; INI_stash_fp
 fefe7a14:	4280           	clrl %d0
 fefe7a16:	2ac1           	movel %d1,%a5@+
 fefe7a18:	4681           	notl %d1
@@ -10416,10 +10522,10 @@ fefe7a30:	6700 0012      	beqw 0xfefe7a44
 fefe7a34:	49f9 fefe 9832 	lea 0xfefe9832,%a4
 ; 0xfefe9832 \r\n addr 0x%a5: exp 0x%d1, obs 0x%d0
 fefe7a3a:	4dfa 0008      	lea %pc@(0xfefe7a44),%fp
-fefe7a3e:	60ff 0000 2268 	bral 0xfefe9ca8		; ODD_print2
+fefe7a3e:	60ff 0000 2268 	bral 0xfefe9ca8		; INI_print2
 fefe7a44:	2002           	movel %d2,%d0
 fefe7a46:	4dfa 0008      	lea %pc@(0xfefe7a50),%fp
-fefe7a4a:	60ff 0000 22d0 	bral 0xfefe9d1c			; ODD_func
+fefe7a4a:	60ff 0000 22d0 	bral 0xfefe9d1c			; INI_func
 fefe7a50:	6400 0046      	bccw 0xfefe7a98
 fefe7a54:	0c81 8000 0000 	cmpil #0x80000000,%d1
 fefe7a5a:	6700 0014      	beqw 0xfefe7a70
@@ -10445,9 +10551,9 @@ fefe7aa0:	1e3c 0004      	moveb #4,%d7
 fefe7aa4:	49fa 0165      	lea %pc@(0xfefe7c0b),%a4
 ; 0xfefe7c0b \r\nI/O Mapper RAM Address Test
 fefe7aa8:	4dfa 0008      	lea %pc@(0xfefe7ab2),%fp
-fefe7aac:	60ff 0000 209a 	bral 0xfefe9b48			; ODD_test
+fefe7aac:	60ff 0000 209a 	bral 0xfefe9b48			; INI_test
 fefe7ab2:	4dfa 0008      	lea %pc@(0xfefe7abc),%fp
-fefe7ab6:	60ff 0000 216a 	bral 0xfefe9c22			; ODD_stash_fp
+fefe7ab6:	60ff 0000 216a 	bral 0xfefe9c22			; INI_stash_fp
 fefe7abc:	4bf9 6000 0000 	lea 0x60000000,%a5
 fefe7ac2:	263c 0000 07ff 	movel #0x7ff,%d3
 fefe7ac8:	240d           	movel %a5,%d2
@@ -10465,9 +10571,9 @@ fefe7af0:	6700 0012      	beqw 0xfefe7b04
 fefe7af4:	49f9 fefe 9832 	lea 0xfefe9832,%a4
 ; 0xfefe9832 \r\n addr 0x%a5: exp 0x%d1, obs 0x%d0
 fefe7afa:	4dfa 0008      	lea %pc@(0xfefe7b04),%fp
-fefe7afe:	60ff 0000 21a8 	bral 0xfefe9ca8		; ODD_print2
+fefe7afe:	60ff 0000 21a8 	bral 0xfefe9ca8		; INI_print2
 fefe7b04:	4dfa 0008      	lea %pc@(0xfefe7b0e),%fp
-fefe7b08:	60ff 0000 2212 	bral 0xfefe9d1c			; ODD_func
+fefe7b08:	60ff 0000 2212 	bral 0xfefe9d1c			; INI_func
 fefe7b0e:	6400 000a      	bccw 0xfefe7b1a
 fefe7b12:	588d           	addql #4,%a5
 fefe7b14:	5383           	subql #1,%d3
@@ -10478,10 +10584,10 @@ fefe7b22:	1e3c 0005      	moveb #5,%d7
 fefe7b26:	49fa 0101      	lea %pc@(0xfefe7c29),%a4
 ; 0xfefe7c29 \r\nI/O Mapper RAM 3-Pattern Test
 fefe7b2a:	4dfa 0008      	lea %pc@(0xfefe7b34),%fp
-fefe7b2e:	60ff 0000 2018 	bral 0xfefe9b48			; ODD_test
+fefe7b2e:	60ff 0000 2018 	bral 0xfefe9b48			; INI_test
 fefe7b34:	283c 5a97 2c5a 	movel #0x5a972c5a,%d4
 fefe7b3a:	4dfa 0008      	lea %pc@(0xfefe7b44),%fp
-fefe7b3e:	60ff 0000 20e2 	bral 0xfefe9c22			; ODD_stash_fp
+fefe7b3e:	60ff 0000 20e2 	bral 0xfefe9c22			; INI_stash_fp
 fefe7b44:	4bf9 6000 0000 	lea 0x60000000,%a5
 fefe7b4a:	2a3c 6000 1ffc 	movel #0x60001ffc,%d5
 fefe7b50:	2604           	movel %d4,%d3
@@ -10509,7 +10615,7 @@ fefe7b90:	6700 0012      	beqw 0xfefe7ba4
 fefe7b94:	49f9 fefe 9832 	lea 0xfefe9832,%a4
 ; 0xfefe9832 \r\n addr 0x%a5: exp 0x%d1, obs 0x%d0
 fefe7b9a:	4dfa 0008      	lea %pc@(0xfefe7ba4),%fp
-fefe7b9e:	60ff 0000 2108 	bral 0xfefe9ca8		; ODD_print2
+fefe7b9e:	60ff 0000 2108 	bral 0xfefe9ca8		; INI_print2
 fefe7ba4:	2202           	movel %d2,%d1
 fefe7ba6:	e099           	rorl #8,%d1
 fefe7ba8:	dbfc 0000 0004 	addal #4,%a5
@@ -10518,7 +10624,7 @@ fefe7bb0:	6700 000a      	beqw 0xfefe7bbc
 fefe7bb4:	51cb ffc8      	dbf %d3,0xfefe7b7e
 fefe7bb8:	6000 ffc0      	braw 0xfefe7b7a
 fefe7bbc:	4dfa 0008      	lea %pc@(0xfefe7bc6),%fp
-fefe7bc0:	60ff 0000 215a 	bral 0xfefe9d1c			; ODD_func
+fefe7bc0:	60ff 0000 215a 	bral 0xfefe9d1c			; INI_func
 fefe7bc6:	6400 000e      	bccw 0xfefe7bd6
 fefe7bca:	e09c           	rorl #8,%d4
 fefe7bcc:	0c84 972c 5a5a 	cmpil #0x972c5a5a,%d4
@@ -10541,7 +10647,7 @@ fefe7c50:	1e3c 0010      	moveb #0x10,%d7
 fefe7c54:	49fa 03e6      	lea %pc@(0xfefe803c),%a4
 ; 0xfefe803c \r\nParity Memory Test
 fefe7c58:	4dfa 0008      	lea %pc@(0xfefe7c62),%fp
-fefe7c5c:	60ff 0000 1eea 	bral 0xfefe9b48			; ODD_test
+fefe7c5c:	60ff 0000 1eea 	bral 0xfefe9b48			; INI_test
 fefe7c62:	13fc 0000 6100 	moveb #0,0x61001400
 fefe7c68:	1400
 fefe7c6a:	4ff9 0002 0000 	lea 0x20000,%sp
@@ -10555,7 +10661,7 @@ fefe7c86:	2a7c 0000 0000 	moveal #0,%a5
 fefe7c8c:	4283           	clrl %d3
 fefe7c8e:	08c7 000c      	bset #0xc,%d7
 fefe7c92:	4dfa 0008      	lea %pc@(0xfefe7c9c),%fp
-fefe7c96:	60ff 0000 1f8a 	bral 0xfefe9c22			; ODD_stash_fp
+fefe7c96:	60ff 0000 1f8a 	bral 0xfefe9c22			; INI_stash_fp
 fefe7c9c:	23fc 0000 0000 	movel #0,0x61001004
 fefe7ca2:	6100 1004
 fefe7ca6:	200d           	movel %a5,%d0
@@ -10582,7 +10688,7 @@ fefe7cf8:	6700 0010      	beqw 0xfefe7d0a
 fefe7cfc:	49fa 0353      	lea %pc@(0xfefe8051),%a4
 ; 0xfefe8051 \r\n error1: Bad Memory Error Control Reg before memory write:\r\n  testaddr=0x%a5, testdata=0x%d3, exp=0x%d1, obs=0x%d0
 fefe7d00:	4dfa 0060      	lea %pc@(0xfefe7d62),%fp
-fefe7d04:	60ff 0000 1fa2 	bral 0xfefe9ca8		; ODD_print2
+fefe7d04:	60ff 0000 1fa2 	bral 0xfefe9ca8		; INI_print2
 fefe7d0a:	2203           	movel %d3,%d1
 fefe7d0c:	2a83           	movel %d3,%a5@
 fefe7d0e:	2015           	movel %a5@,%d0
@@ -10594,7 +10700,7 @@ fefe7d1e:	2239 6100 1000 	movel 0x61001000,%d1
 fefe7d24:	4282           	clrl %d2
 fefe7d26:	1439 6100 1000 	moveb 0x61001000,%d2
 fefe7d2c:	4dfa 0008      	lea %pc@(0xfefe7d36),%fp
-fefe7d30:	60ff 0000 1f76 	bral 0xfefe9ca8		; ODD_print2
+fefe7d30:	60ff 0000 1f76 	bral 0xfefe9ca8		; INI_print2
 fefe7d36:	23fc 0000 0000 	movel #0,0x61001004
 fefe7d3c:	6100 1004
 fefe7d40:	223c 0000 0040 	movel #0x40,%d1
@@ -10605,10 +10711,10 @@ fefe7d50:	6700 0010      	beqw 0xfefe7d62
 fefe7d54:	49fa 043f      	lea %pc@(0xfefe8195),%a4
 ; 0xfefe8195 \r\n error3: Bad Memory Error Control Reg after memory write:\r\n  testaddr=0x%a5, testdata=0x%d3, exp=0x%d1, obs=0x%d0
 fefe7d58:	4dfa 0008      	lea %pc@(0xfefe7d62),%fp
-fefe7d5c:	60ff 0000 1f4a 	bral 0xfefe9ca8		; ODD_print2
+fefe7d5c:	60ff 0000 1f4a 	bral 0xfefe9ca8		; INI_print2
 fefe7d62:	0887 000c      	bclr #0xc,%d7
 fefe7d66:	4dfa 0008      	lea %pc@(0xfefe7d70),%fp
-fefe7d6a:	60ff 0000 1fb0 	bral 0xfefe9d1c			; ODD_func
+fefe7d6a:	60ff 0000 1fb0 	bral 0xfefe9d1c			; INI_func
 fefe7d70:	6400 0036      	bccw 0xfefe7da8
 fefe7d74:	e38b           	lsll #1,%d3
 fefe7d76:	5283           	addql #1,%d3
@@ -10634,7 +10740,7 @@ fefe7dc0:	1e3c 0011      	moveb #0x11,%d7
 fefe7dc4:	49fa 0443      	lea %pc@(0xfefe8209),%a4
 ; 0xfefe8209 \r\nParity Memory Forced Error Test
 fefe7dc8:	4dfa 0008      	lea %pc@(0xfefe7dd2),%fp
-fefe7dcc:	60ff 0000 1d7a 	bral 0xfefe9b48			; ODD_test
+fefe7dcc:	60ff 0000 1d7a 	bral 0xfefe9b48			; INI_test
 fefe7dd2:	13fc 0000 6100 	moveb #0,0x61001400
 fefe7dd8:	1400
 fefe7dda:	4ff9 0002 0000 	lea 0x20000,%sp
@@ -10648,7 +10754,7 @@ fefe7df6:	2a7c 0000 0000 	moveal #0,%a5
 fefe7dfc:	7601           	moveq #1,%d3
 fefe7dfe:	08c7 000c      	bset #0xc,%d7
 fefe7e02:	4dfa 0008      	lea %pc@(0xfefe7e0c),%fp
-fefe7e06:	60ff 0000 1e1a 	bral 0xfefe9c22			; ODD_stash_fp
+fefe7e06:	60ff 0000 1e1a 	bral 0xfefe9c22			; INI_stash_fp
 fefe7e0c:	23fc 0000 0000 	movel #0,0x61001004
 fefe7e12:	6100 1004
 fefe7e16:	200d           	movel %a5,%d0
@@ -10684,7 +10790,7 @@ fefe7e82:	51c8 fffe      	dbf %d0,0xfefe7e82
 fefe7e86:	49fa 03a3      	lea %pc@(0xfefe822b),%a4
 ; 0xfefe822b \r\n error1: no parity error (level 7) interrupt occurred when bad parity forced.\r\n  testaddr=0x%a5, testdata=0x%d3
 fefe7e8a:	4dfa 0008      	lea %pc@(0xfefe7e94),%fp
-fefe7e8e:	60ff 0000 1e18 	bral 0xfefe9ca8		; ODD_print2
+fefe7e8e:	60ff 0000 1e18 	bral 0xfefe9ca8		; INI_print2
 fefe7e94:	220d           	movel %a5,%d1
 fefe7e96:	2039 6100 1004 	movel 0x61001004,%d0
 fefe7e9c:	0280 3fff ffff 	andil #0x3fffffff,%d0
@@ -10693,7 +10799,7 @@ fefe7ea4:	6700 0010      	beqw 0xfefe7eb6
 fefe7ea8:	49fa 03f3      	lea %pc@(0xfefe829d),%a4
 ; 0xfefe829d \r\n error2: Bad Memory Error Address Reg:\r\n  testaddr=0x%a5, testdata=0x%d3, exp=0x%d1, obs=0x%d0
 fefe7eac:	4dfa 0008      	lea %pc@(0xfefe7eb6),%fp
-fefe7eb0:	60ff 0000 1df6 	bral 0xfefe9ca8		; ODD_print2
+fefe7eb0:	60ff 0000 1df6 	bral 0xfefe9ca8		; INI_print2
 fefe7eb6:	4281           	clrl %d1
 fefe7eb8:	2003           	movel %d3,%d0
 fefe7eba:	123c 0007      	moveb #7,%d1
@@ -10717,7 +10823,7 @@ fefe7efe:	6700 0010      	beqw 0xfefe7f10
 fefe7f02:	49fa 03fa      	lea %pc@(0xfefe82fe),%a4
 ; 0xfefe82fe \r\n error3: Bad Parity Memory Error Reg:\r\n  testaddr=0x%a5, testdata=0x%d3, exp=0x%d1, obs=0x%d0
 fefe7f06:	4dfa 0008      	lea %pc@(0xfefe7f10),%fp
-fefe7f0a:	60ff 0000 1d9c 	bral 0xfefe9ca8		; ODD_print2
+fefe7f0a:	60ff 0000 1d9c 	bral 0xfefe9ca8		; INI_print2
 fefe7f10:	4280           	clrl %d0
 fefe7f12:	23fc 0000 0000 	movel #0,0x61001004
 fefe7f18:	6100 1004
@@ -10739,12 +10845,12 @@ fefe7f48:	6700 0010      	beqw 0xfefe7f5a
 fefe7f4c:	49fa 0410      	lea %pc@(0xfefe835e),%a4
 ; 0xfefe835e \r\n error4: Bad Memory Error Control Reg after memory write:\r\n  testaddr=0x%a5, testdata=0x%d3, exp=0x%d1, obs=0x%d0
 fefe7f50:	4dfa 0008      	lea %pc@(0xfefe7f5a),%fp
-fefe7f54:	60ff 0000 1d52 	bral 0xfefe9ca8		; ODD_print2
+fefe7f54:	60ff 0000 1d52 	bral 0xfefe9ca8		; INI_print2
 fefe7f5a:	23fc 0000 0000 	movel #0,0x61001004
 fefe7f60:	6100 1004
 fefe7f64:	0887 000c      	bclr #0xc,%d7
 fefe7f68:	4dfa 0008      	lea %pc@(0xfefe7f72),%fp
-fefe7f6c:	60ff 0000 1dae 	bral 0xfefe9d1c			; ODD_func
+fefe7f6c:	60ff 0000 1dae 	bral 0xfefe9d1c			; INI_func
 fefe7f72:	6400 0034      	bccw 0xfefe7fa8
 fefe7f76:	e383           	asll #1,%d3
 fefe7f78:	0c83 0000 0000 	cmpil #0,%d3
@@ -10822,13 +10928,13 @@ fefe8400:	6700 0012      	beqw 0xfefe8414
 fefe8404:	49fa 0324      	lea %pc@(0xfefe872a),%a4
 ; 0xfefe872a \r\n<Warning: Skipping Bus Error Register Test>
 fefe8408:	4df9 fefe 7c4c 	lea 0xfefe7c4c,%fp
-fefe840e:	60ff 0000 1fc4 	bral 0xfefea3d4		; ODD_print
+fefe840e:	60ff 0000 1fc4 	bral 0xfefea3d4		; INI_print
 
 fefe8414:	1e3c 0006      	moveb #6,%d7
 fefe8418:	49fa 02f6      	lea %pc@(0xfefe8710),%a4
 ; 0xfefe8710 \r\nBus Error Register Test
 fefe841c:	4dfa 0008      	lea %pc@(0xfefe8426),%fp
-fefe8420:	60ff 0000 1726 	bral 0xfefe9b48			; ODD_test
+fefe8420:	60ff 0000 1726 	bral 0xfefe9b48			; INI_test
 
 fefe8426:	4ff9 0002 0000 	lea 0x20000,%sp
 fefe842c:	41f9 0002 0000 	lea 0x20000,%a0
@@ -10845,13 +10951,13 @@ fefe8450:	d1fc 6300 0000 	addal #0x63000000,%a0
 fefe8456:	23c8 0002 0008 	movel %a0,0x20008
 fefe845c:	08c7 000c      	bset #0xc,%d7
 fefe8460:	4dfa 0008      	lea %pc@(0xfefe846a),%fp
-fefe8464:	60ff 0000 17bc 	bral 0xfefe9c22			; ODD_stash_fp
+fefe8464:	60ff 0000 17bc 	bral 0xfefe9c22			; INI_stash_fp
 fefe846a:	4bf9 4000 0000 	lea 0x40000000,%a5
 fefe8470:	1615           	moveb %a5@,%d3
 fefe8472:	49fa 02e4      	lea %pc@(0xfefe8758),%a4
 ; 0xfefe8758 \r\n error1: No Bus Error Reading Invalid Memory Address, read addr = 0x%a5
 fefe8476:	4dfa 0008      	lea %pc@(0xfefe8480),%fp
-fefe847a:	60ff 0000 182c 	bral 0xfefe9ca8		; ODD_print2
+fefe847a:	60ff 0000 182c 	bral 0xfefe9ca8		; INI_print2
 fefe8480:	4ff9 0002 1000 	lea 0x21000,%sp
 fefe8486:	1039 6100 0400 	moveb 0x61000400,%d0
 fefe848c:	0200 0020      	andib #0x20,%d0
@@ -10860,13 +10966,13 @@ fefe8494:	6000 0010      	braw 0xfefe84a6
 fefe8498:	49fa 0308      	lea %pc@(0xfefe87a2),%a4
 ; 0xfefe87a2 \r\n error2: Bus error reg TIMEOUT bit not set.
 fefe849c:	4dfa 0008      	lea %pc@(0xfefe84a6),%fp
-fefe84a0:	60ff 0000 1806 	bral 0xfefe9ca8		; ODD_print2
+fefe84a0:	60ff 0000 1806 	bral 0xfefe9ca8		; INI_print2
 fefe84a6:	4ff9 0002 0000 	lea 0x20000,%sp
 fefe84ac:	4dfa 0008      	lea %pc@(0xfefe84b6),%fp
 fefe84b0:	60ff 0000 1c84 	bral 0xfefea136
 fefe84b6:	0887 000c      	bclr #0xc,%d7
 fefe84ba:	4dfa 0008      	lea %pc@(0xfefe84c4),%fp
-fefe84be:	60ff 0000 185c 	bral 0xfefe9d1c			; ODD_func
+fefe84be:	60ff 0000 185c 	bral 0xfefe9d1c			; INI_func
 fefe84c4:	6400 0002      	bccw 0xfefe84c8
 fefe84c8:	0807 0009      	btst #9,%d7
 fefe84cc:	6600 ff58      	bnew 0xfefe8426
@@ -10874,12 +10980,12 @@ fefe84d0:	1e3c 0007      	moveb #7,%d7
 fefe84d4:	49fa 0369      	lea %pc@(0xfefe883f),%a4
 ; 0xfefe883f \r\nLevel 1 Interrupt Test
 fefe84d8:	4dfa 0008      	lea %pc@(0xfefe84e2),%fp
-fefe84dc:	60ff 0000 166a 	bral 0xfefe9b48			; ODD_test
+fefe84dc:	60ff 0000 166a 	bral 0xfefe9b48			; INI_test
 fefe84e2:	4ff9 0002 0000 	lea 0x20000,%sp
 fefe84e8:	13fc 0000 6f00 	moveb #0,0x6f000030		; PP_intr
 fefe84ee:	0030
 fefe84f0:	4dfa 0008      	lea %pc@(0xfefe84fa),%fp
-fefe84f4:	60ff 0000 172c 	bral 0xfefe9c22			; ODD_stash_fp
+fefe84f4:	60ff 0000 172c 	bral 0xfefe9c22			; INI_stash_fp
 fefe84fa:	23fc 0000 0000 	movel #0,0x61001004
 fefe8500:	6100 1004
 fefe8504:	4ff9 0002 1000 	lea 0x21000,%sp
@@ -10909,12 +11015,12 @@ fefe8558:	51c8 fffe      	dbf %d0,0xfefe8558
 fefe855c:	49fa 032c      	lea %pc@(0xfefe888a),%a4
 ; 0xfefe888a \r\n error: No level 1 interrupt occured.
 fefe8560:	4dfa 0008      	lea %pc@(0xfefe856a),%fp
-fefe8564:	60ff 0000 1742 	bral 0xfefe9ca8		; ODD_print2
+fefe8564:	60ff 0000 1742 	bral 0xfefe9ca8		; INI_print2
 fefe856a:	46fc 2700      	movew #9984,%sr			; disable interrupts
 fefe856e:	13fc 0000 6100 	moveb #0,0x61001400
 fefe8574:	1400
 fefe8576:	4dfa 0008      	lea %pc@(0xfefe8580),%fp
-fefe857a:	60ff 0000 17a0 	bral 0xfefe9d1c			; ODD_func
+fefe857a:	60ff 0000 17a0 	bral 0xfefe9d1c			; INI_func
 fefe8580:	4ff9 0002 0000 	lea 0x20000,%sp
 fefe8586:	4dfa 0008      	lea %pc@(0xfefe8590),%fp
 fefe858a:	60ff 0000 1baa 	bral 0xfefea136
@@ -10925,9 +11031,9 @@ fefe859e:	1e3c 0008      	moveb #8,%d7
 fefe85a2:	49fa 02b4      	lea %pc@(0xfefe8858),%a4
 ; 0xfefe8858 \r\nLevel 2 Interrupt Test
 fefe85a6:	4dfa 0008      	lea %pc@(0xfefe85b0),%fp
-fefe85aa:	60ff 0000 159c 	bral 0xfefe9b48			; ODD_test
+fefe85aa:	60ff 0000 159c 	bral 0xfefe9b48			; INI_test
 fefe85b0:	4dfa 0008      	lea %pc@(0xfefe85ba),%fp
-fefe85b4:	60ff 0000 166c 	bral 0xfefe9c22			; ODD_stash_fp
+fefe85b4:	60ff 0000 166c 	bral 0xfefe9c22			; INI_stash_fp
 fefe85ba:	4ff9 0002 1000 	lea 0x21000,%sp
 fefe85c0:	41f9 0002 0000 	lea 0x20000,%a0
 fefe85c6:	4dfa 0008      	lea %pc@(0xfefe85d0),%fp
@@ -10954,7 +11060,7 @@ fefe860a:	51c8 fffe      	dbf %d0,0xfefe860a
 fefe860e:	49fa 02a2      	lea %pc@(0xfefe88b2),%a4
 ; 0xfefe88b2 \r\n error: No level 2 interrupt occured.
 fefe8612:	4dfa 0008      	lea %pc@(0xfefe861c),%fp
-fefe8616:	60ff 0000 1690 	bral 0xfefe9ca8		; ODD_print2
+fefe8616:	60ff 0000 1690 	bral 0xfefe9ca8		; INI_print2
 fefe861c:	46fc 2700      	movew #0x2700,%sr
 fefe8620:	13fc 0000 6100 	moveb #0,0x61001400
 fefe8626:	1400
@@ -10962,7 +11068,7 @@ fefe8628:	4ff9 0002 0000 	lea 0x20000,%sp
 fefe862e:	4dfa 0008      	lea %pc@(0xfefe8638),%fp
 fefe8632:	60ff 0000 1b02 	bral 0xfefea136
 fefe8638:	4dfa 0008      	lea %pc@(0xfefe8642),%fp
-fefe863c:	60ff 0000 16de 	bral 0xfefe9d1c			; ODD_func
+fefe863c:	60ff 0000 16de 	bral 0xfefe9d1c			; INI_func
 fefe8642:	0807 0009      	btst #9,%d7
 fefe8646:	6600 ff68      	bnew 0xfefe85b0
 fefe864a:	4ff9 0002 0000 	lea 0x20000,%sp
@@ -10970,9 +11076,9 @@ fefe8650:	1e3c 0009      	moveb #9,%d7
 fefe8654:	49fa 021b      	lea %pc@(0xfefe8871),%a4
 ; 0xfefe8871 \r\nLevel 3 Interrupt Test
 fefe8658:	4dfa 0008      	lea %pc@(0xfefe8662),%fp
-fefe865c:	60ff 0000 14ea 	bral 0xfefe9b48			; ODD_test
+fefe865c:	60ff 0000 14ea 	bral 0xfefe9b48			; INI_test
 fefe8662:	4dfa 0008      	lea %pc@(0xfefe866c),%fp
-fefe8666:	60ff 0000 15ba 	bral 0xfefe9c22			; ODD_user_sp
+fefe8666:	60ff 0000 15ba 	bral 0xfefe9c22			; INI_user_sp
 fefe866c:	4ff9 0002 1000 	lea 0x21000,%sp
 fefe8672:	41f9 0002 0000 	lea 0x20000,%a0
 fefe8678:	4dfa 0008      	lea %pc@(0xfefe8682),%fp
@@ -10999,7 +11105,7 @@ fefe86bc:	51c8 fffe      	dbf %d0,0xfefe86bc
 fefe86c0:	49fa 0218      	lea %pc@(0xfefe88da),%a4
 ; 0xfefe88da \r\n error: No level 3 interrupt occured.
 fefe86c4:	4dfa 0008      	lea %pc@(0xfefe86ce),%fp
-fefe86c8:	60ff 0000 15de 	bral 0xfefe9ca8		; ODD_print2
+fefe86c8:	60ff 0000 15de 	bral 0xfefe9ca8		; INI_print2
 fefe86ce:	46fc 2700      	movew #0x2700,%sr
 fefe86d2:	13fc 0000 6100 	moveb #0,0x61001400
 fefe86d8:	1400
@@ -11007,7 +11113,7 @@ fefe86da:	4ff9 0002 0000 	lea 0x20000,%sp
 fefe86e0:	4dfa 0008      	lea %pc@(0xfefe86ea),%fp
 fefe86e4:	60ff 0000 1a50 	bral 0xfefea136
 fefe86ea:	4dfa 0008      	lea %pc@(0xfefe86f4),%fp
-fefe86ee:	60ff 0000 162c 	bral 0xfefe9d1c			; ODD_func
+fefe86ee:	60ff 0000 162c 	bral 0xfefe9d1c			; INI_func
 fefe86f4:	43f9 fefe a36e 	lea 0xfefea36e,%a1
 fefe86fa:	41f9 0002 006c 	lea 0x2006c,%a0
 fefe8700:	2089           	movel %a1,%a0@
@@ -11066,7 +11172,7 @@ fefe8990:	2003           	movel %d3,%d0
 fefe8992:	49fa 101a      	lea %pc@(0xfefe99ae),%a4
 ; 0xfefe99ae \r\n *** ERROR: Memory Configuration Error, Bank [0x%d0] ***
 fefe8996:	4dfa 001c      	lea %pc@(0xfefe89b4),%fp
-fefe899a:	60ff 0000 130c 	bral 0xfefe9ca8		; ODD_print2
+fefe899a:	60ff 0000 130c 	bral 0xfefe9ca8		; INI_print2
 fefe89a0:	0683 0000 0001 	addil #1,%d3
 fefe89a6:	0c83 0000 0004 	cmpil #4,%d3
 fefe89ac:	6600 ffba      	bnew 0xfefe8968
@@ -11085,7 +11191,7 @@ fefe89d2:	6600 0006      	bnew 0xfefe89da
 fefe89d6:	49fa 0f9b      	lea %pc@(0xfefe9973),%a4
 ; 0xfefe9973 \r\n * Bank [0x%d2]  Base Address [0x%d0] No Memory detected
 fefe89da:	4dfa 0008      	lea %pc@(0xfefe89e4),%fp
-fefe89de:	60ff 0000 19f4 	bral 0xfefea3d4		; ODD_print
+fefe89de:	60ff 0000 19f4 	bral 0xfefea3d4		; INI_print
 fefe89e4:	0683 0000 0001 	addil #1,%d3
 fefe89ea:	0c83 0000 0004 	cmpil #4,%d3
 fefe89f0:	6600 ffc4      	bnew 0xfefe89b6
@@ -11094,13 +11200,13 @@ fefe89f8:	1e3c 000a      	moveb #0xa,%d7
 fefe89fc:	49fa 0db5      	lea %pc@(0xfefe97b3),%a4
 ; 0xfefe97b3 \r\nMemory Write/Write/Read Test
 fefe8a00:	4dfa 0008      	lea %pc@(0xfefe8a0a),%fp
-fefe8a04:	60ff 0000 1142 	bral 0xfefe9b48			; ODD_test
+fefe8a04:	60ff 0000 1142 	bral 0xfefe9b48			; INI_test
 fefe8a0a:	4bf8 0000      	lea 0x0,%a5
 fefe8a0e:	4dfa 0008      	lea %pc@(0xfefe8a18),%fp
 fefe8a12:	60ff 0000 123a 	bral 0xfefe9c4e
 fefe8a18:	4281           	clrl %d1
 fefe8a1a:	4dfa 0008      	lea %pc@(0xfefe8a24),%fp
-fefe8a1e:	60ff 0000 1202 	bral 0xfefe9c22			; ODD_stash_fp
+fefe8a1e:	60ff 0000 1202 	bral 0xfefe9c22			; INI_stash_fp
 fefe8a24:	4280           	clrl %d0
 fefe8a26:	2ac1           	movel %d1,%a5@+
 fefe8a28:	4681           	notl %d1
@@ -11113,9 +11219,9 @@ fefe8a34:	6700 0010      	beqw 0xfefe8a46
 fefe8a38:	49fa 0df8      	lea %pc@(0xfefe9832),%a4
 ; 0xfefe9832 \r\n addr 0x%a5: exp 0x%d1, obs 0x%d0
 fefe8a3c:	4dfa 0008      	lea %pc@(0xfefe8a46),%fp
-fefe8a40:	60ff 0000 1266 	bral 0xfefe9ca8		; ODD_print2
+fefe8a40:	60ff 0000 1266 	bral 0xfefe9ca8		; INI_print2
 fefe8a46:	4dfa 0008      	lea %pc@(0xfefe8a50),%fp
-fefe8a4a:	60ff 0000 12d0 	bral 0xfefe9d1c			; ODD_func
+fefe8a4a:	60ff 0000 12d0 	bral 0xfefe9d1c			; INI_func
 fefe8a50:	6400 0050      	bccw 0xfefe8aa2
 fefe8a54:	0c81 8000 0000 	cmpil #0x80000000,%d1
 fefe8a5a:	6700 0014      	beqw 0xfefe8a70
@@ -11152,13 +11258,13 @@ fefe8ac6:	1e3c 000b      	moveb #0xb,%d7
 fefe8aca:	49fa 0dc3      	lea %pc@(0xfefe988f),%a4
 ; 0xfefe988f \r\nMemory Address Test
 fefe8ace:	4dfa 0008      	lea %pc@(0xfefe8ad8),%fp
-fefe8ad2:	60ff 0000 1074 	bral 0xfefe9b48			; ODD_test
+fefe8ad2:	60ff 0000 1074 	bral 0xfefe9b48			; INI_test
 
 fefe8ad8:	4286           	clrl %d6
 fefe8ada:	23fc 0080 0000 	movel #0x800000,0x61001000
 fefe8ae0:	6100 1000
 fefe8ae4:	4dfa 0008      	lea %pc@(0xfefe8aee),%fp
-fefe8ae8:	60ff 0000 1138 	bral 0xfefe9c22			; ODD_stash_fp
+fefe8ae8:	60ff 0000 1138 	bral 0xfefe9c22			; INI_stash_fp
 fefe8aee:	1006           	moveb %d6,%d0
 fefe8af0:	4dfa 0006      	lea %pc@(0xfefe8af8),%fp
 fefe8af4:	6000 0aa8      	braw 0xfefe959e
@@ -11183,7 +11289,7 @@ fefe8b2a:	598d           	subql #4,%a5
 fefe8b2c:	49fa 0d04      	lea %pc@(0xfefe9832),%a4
 ; 0xfefe9832 \r\n addr 0x%a5: exp 0x%d1, obs 0x%d0
 fefe8b30:	4dfa 0008      	lea %pc@(0xfefe8b3a),%fp
-fefe8b34:	60ff 0000 1172 	bral 0xfefe9ca8		; ODD_print2
+fefe8b34:	60ff 0000 1172 	bral 0xfefe9ca8		; INI_print2
 fefe8b3a:	dbfc 0000 0004 	addal #4,%a5
 fefe8b40:	1039 6100 1000 	moveb 0x61001000,%d0
 fefe8b46:	0280 0000 000f 	andil #0xf,%d0
@@ -11195,7 +11301,7 @@ fefe8b5e:	0280 0000 000f 	andil #0xf,%d0
 fefe8b64:	49fa 0cf0      	lea %pc@(0xfefe9856),%a4
 ; 0xfefe9856 \r\n Parity Error: addr 0x%a5: XOR Data 0x%d1, Bank: 0x%d0
 fefe8b68:	4dfa 0008      	lea %pc@(0xfefe8b72),%fp
-fefe8b6c:	60ff 0000 113a 	bral 0xfefe9ca8		; ODD_print2
+fefe8b6c:	60ff 0000 113a 	bral 0xfefe9ca8		; INI_print2
 fefe8b72:	23fc 0000 0000 	movel #0,0x61001004
 fefe8b78:	6100 1004
 fefe8b7c:	588d           	addql #4,%a5
@@ -11203,7 +11309,7 @@ fefe8b7e:	0c43 0000      	cmpiw #0,%d3
 fefe8b82:	6600 0014      	bnew 0xfefe8b98
 fefe8b86:	2206           	movel %d6,%d1
 fefe8b88:	4dfa 0008      	lea %pc@(0xfefe8b92),%fp
-fefe8b8c:	60ff 0000 118e 	bral 0xfefe9d1c			; ODD_func
+fefe8b8c:	60ff 0000 118e 	bral 0xfefe9d1c			; INI_func
 fefe8b92:	6400 003c      	bccw 0xfefe8bd0
 fefe8b96:	2c01           	movel %d1,%d6
 fefe8b98:	5383           	subql #1,%d3
@@ -11233,12 +11339,12 @@ fefe8bf4:	1e3c 000c      	moveb #0xc,%d7
 fefe8bf8:	49fa 0cd1      	lea %pc@(0xfefe98cb),%a4
 ; 0xfefe98cb \r\nMemory 3-Pattern Test
 fefe8bfc:	4dfa 0008      	lea %pc@(0xfefe8c06),%fp
-fefe8c00:	60ff 0000 0f46 	bral 0xfefe9b48			; ODD_test
+fefe8c00:	60ff 0000 0f46 	bral 0xfefe9b48			; INI_test
 
 fefe8c06:	4283           	clrl %d3
 fefe8c08:	283c 5a97 2c5a 	movel #0x5a972c5a,%d4
 fefe8c0e:	4dfa 0008      	lea %pc@(0xfefe8c18),%fp
-fefe8c12:	60ff 0000 100e 	bral 0xfefe9c22			; ODD_stash_fp
+fefe8c12:	60ff 0000 100e 	bral 0xfefe9c22			; INI_stash_fp
 fefe8c18:	1003           	moveb %d3,%d0
 fefe8c1a:	4dfa 0006      	lea %pc@(0xfefe8c22),%fp
 fefe8c1e:	6000 097e      	braw 0xfefe959e
@@ -11274,7 +11380,7 @@ fefe8c74:	598d           	subql #4,%a5
 fefe8c76:	49fa 0bba      	lea %pc@(0xfefe9832),%a4
 ; 0xfefe9832 \r\n addr 0x%a5: exp 0x%d1, obs 0x%d0
 fefe8c7a:	4dfa 0008      	lea %pc@(0xfefe8c84),%fp
-fefe8c7e:	60ff 0000 1028 	bral 0xfefe9ca8		; ODD_print2
+fefe8c7e:	60ff 0000 1028 	bral 0xfefe9ca8		; INI_print2
 fefe8c84:	dbfc 0000 0004 	addal #4,%a5
 fefe8c8a:	1039 6100 1000 	moveb 0x61001000,%d0
 fefe8c90:	0280 0000 000f 	andil #0xf,%d0
@@ -11285,7 +11391,7 @@ fefe8ca6:	0280 0000 000f 	andil #0xf,%d0
 fefe8cac:	49fa 0ba8      	lea %pc@(0xfefe9856),%a4
 ; 0xfefe9856 \r\n Parity Error: addr 0x%a5: XOR Data 0x%d1, Bank: 0x%d0
 fefe8cb0:	4dfa 0008      	lea %pc@(0xfefe8cba),%fp
-fefe8cb4:	60ff 0000 0ff2 	bral 0xfefe9ca8		; ODD_print2
+fefe8cb4:	60ff 0000 0ff2 	bral 0xfefe9ca8		; INI_print2
 fefe8cba:	23fc 0000 0000 	movel #0,0x61001004
 fefe8cc0:	6100 1004
 fefe8cc4:	588d           	addql #4,%a5
@@ -11295,7 +11401,7 @@ fefe8cca:	6700 000a      	beqw 0xfefe8cd6
 fefe8cce:	51ca ff9c      	dbf %d2,0xfefe8c6c
 fefe8cd2:	6000 ff90      	braw 0xfefe8c64
 fefe8cd6:	4dfa 0008      	lea %pc@(0xfefe8ce0),%fp
-fefe8cda:	60ff 0000 1040 	bral 0xfefe9d1c			; ODD_func
+fefe8cda:	60ff 0000 1040 	bral 0xfefe9d1c			; INI_func
 fefe8ce0:	6400 0040      	bccw 0xfefe8d22
 fefe8ce4:	e09c           	rorl #8,%d4
 fefe8ce6:	0c84 972c 5a5a 	cmpil #0x972c5a5a,%d4
@@ -11326,11 +11432,11 @@ fefe8d4a:	1e3c 000d      	moveb #0xd,%d7
 fefe8d4e:	49fa 0b93      	lea %pc@(0xfefe98e3),%a4
 ; 0xfefe98e3 \r\nMemory March Test
 fefe8d52:	4dfa 0008      	lea %pc@(0xfefe8d5c),%fp
-fefe8d56:	60ff 0000 0df0 	bral 0xfefe9b48			; ODD_test
+fefe8d56:	60ff 0000 0df0 	bral 0xfefe9b48			; INI_test
 fefe8d5c:	4283           	clrl %d3
 fefe8d5e:	4284           	clrl %d4
 fefe8d60:	4dfa 0008      	lea %pc@(0xfefe8d6a),%fp
-fefe8d64:	60ff 0000 0ebc 	bral 0xfefe9c22			; ODD_stash_fp
+fefe8d64:	60ff 0000 0ebc 	bral 0xfefe9c22			; INI_stash_fp
 fefe8d6a:	1003           	moveb %d3,%d0
 fefe8d6c:	4dfa 0006      	lea %pc@(0xfefe8d74),%fp
 fefe8d70:	6000 082c      	braw 0xfefe959e
@@ -11357,12 +11463,12 @@ fefe8da2:	6700 0010      	beqw 0xfefe8db4
 fefe8da6:	49fa 0a8a      	lea %pc@(0xfefe9832),%a4
 ; 0xfefe9832 \r\n addr 0x%a5: exp 0x%d1, obs 0x%d0
 fefe8daa:	4dfa 0008      	lea %pc@(0xfefe8db4),%fp
-fefe8dae:	60ff 0000 0ef8 	bral 0xfefe9ca8		; ODD_print2
+fefe8dae:	60ff 0000 0ef8 	bral 0xfefe9ca8		; INI_print2
 fefe8db4:	200d           	movel %a5,%d0
 fefe8db6:	0c40 0000      	cmpiw #0,%d0
 fefe8dba:	6600 0010      	bnew 0xfefe8dcc
 fefe8dbe:	4dfa 0008      	lea %pc@(0xfefe8dc8),%fp
-fefe8dc2:	60ff 0000 0f58 	bral 0xfefe9d1c			; ODD_func
+fefe8dc2:	60ff 0000 0f58 	bral 0xfefe9d1c			; INI_func
 fefe8dc8:	6400 00b4      	bccw 0xfefe8e7e
 fefe8dcc:	4681           	notl %d1
 fefe8dce:	2ac1           	movel %d1,%a5@+
@@ -11379,19 +11485,19 @@ fefe8de8:	9bfc 0000 0004 	subal #4,%a5
 fefe8dee:	2204           	movel %d4,%d1
 fefe8df0:	4681           	notl %d1
 fefe8df2:	4dfa 0008      	lea %pc@(0xfefe8dfc),%fp
-fefe8df6:	60ff 0000 0e2a 	bral 0xfefe9c22			; ODD_stash_fp
+fefe8df6:	60ff 0000 0e2a 	bral 0xfefe9c22			; INI_stash_fp
 fefe8dfc:	2015           	movel %a5@,%d0
 fefe8dfe:	b081           	cmpl %d1,%d0
 fefe8e00:	6700 0010      	beqw 0xfefe8e12
 fefe8e04:	49fa 0a2c      	lea %pc@(0xfefe9832),%a4
 ; 0xfefe9832 \r\n addr 0x%a5: exp 0x%d1, obs 0x%d0
 fefe8e08:	4dfa 0008      	lea %pc@(0xfefe8e12),%fp
-fefe8e0c:	60ff 0000 0e9a 	bral 0xfefe9ca8		; ODD_print2
+fefe8e0c:	60ff 0000 0e9a 	bral 0xfefe9ca8		; INI_print2
 fefe8e12:	200d           	movel %a5,%d0
 fefe8e14:	0c40 0000      	cmpiw #0,%d0
 fefe8e18:	6600 0010      	bnew 0xfefe8e2a
 fefe8e1c:	4dfa 0008      	lea %pc@(0xfefe8e26),%fp
-fefe8e20:	60ff 0000 0efa 	bral 0xfefe9d1c			; ODD_func
+fefe8e20:	60ff 0000 0efa 	bral 0xfefe9d1c			; INI_func
 fefe8e26:	6400 0056      	bccw 0xfefe8e7e
 fefe8e2a:	4681           	notl %d1
 fefe8e2c:	2a81           	movel %d1,%a5@
@@ -11422,14 +11528,14 @@ fefe8e8a:	1e3c 000e      	moveb #0xe,%d7
 fefe8e8e:	49fa 0a67      	lea %pc@(0xfefe98f7),%a4
 ; 0xfefe98f7 \r\nMemory Read Byte Alignment Test
 fefe8e92:	4dfa 0008      	lea %pc@(0xfefe8e9c),%fp
-fefe8e96:	60ff 0000 0cb0 	bral 0xfefe9b48			; ODD_test
+fefe8e96:	60ff 0000 0cb0 	bral 0xfefe9b48			; INI_test
 fefe8e9c:	4bf9 0020 0000 	lea 0x200000,%a5
 fefe8ea2:	2afc 0011 2233 	movel #0x112233,%a5@+
 fefe8ea8:	2abc 0011 2233 	movel #0x112233,%a5@
 fefe8eae:	4bf9 0020 0000 	lea 0x200000,%a5
 fefe8eb4:	4bf9 0020 0000 	lea 0x200000,%a5
 fefe8eba:	4dfa 0008      	lea %pc@(0xfefe8ec4),%fp
-fefe8ebe:	60ff 0000 0d62 	bral 0xfefe9c22			; ODD_stash_fp
+fefe8ebe:	60ff 0000 0d62 	bral 0xfefe9c22			; INI_stash_fp
 fefe8ec4:	4280           	clrl %d0
 fefe8ec6:	7233           	moveq #51,%d1
 fefe8ec8:	102d 0003      	moveb %a5@(3),%d0
@@ -11438,12 +11544,12 @@ fefe8ece:	6700 0010      	beqw 0xfefe8ee0
 fefe8ed2:	49fa 0929      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe8ed6:	4dfa 0008      	lea %pc@(0xfefe8ee0),%fp
-fefe8eda:	60ff 0000 0dcc 	bral 0xfefe9ca8		; ODD_print2
+fefe8eda:	60ff 0000 0dcc 	bral 0xfefe9ca8		; INI_print2
 fefe8ee0:	4dfa 0008      	lea %pc@(0xfefe8eea),%fp
-fefe8ee4:	60ff 0000 0e36 	bral 0xfefe9d1c			; ODD_func
+fefe8ee4:	60ff 0000 0e36 	bral 0xfefe9d1c			; INI_func
 fefe8eea:	6400 01ac      	bccw 0xfefe9098
 fefe8eee:	4dfa 0008      	lea %pc@(0xfefe8ef8),%fp
-fefe8ef2:	60ff 0000 0d2e 	bral 0xfefe9c22			; ODD_stash_fp
+fefe8ef2:	60ff 0000 0d2e 	bral 0xfefe9c22			; INI_stash_fp
 fefe8ef8:	4280           	clrl %d0
 fefe8efa:	7222           	moveq #34,%d1
 fefe8efc:	102d 0002      	moveb %a5@(2),%d0
@@ -11452,12 +11558,12 @@ fefe8f02:	6700 0010      	beqw 0xfefe8f14
 fefe8f06:	49fa 08f5      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe8f0a:	4dfa 0008      	lea %pc@(0xfefe8f14),%fp
-fefe8f0e:	60ff 0000 0d98 	bral 0xfefe9ca8		; ODD_print2
+fefe8f0e:	60ff 0000 0d98 	bral 0xfefe9ca8		; INI_print2
 fefe8f14:	4dfa 0008      	lea %pc@(0xfefe8f1e),%fp
-fefe8f18:	60ff 0000 0e02 	bral 0xfefe9d1c			; ODD_func
+fefe8f18:	60ff 0000 0e02 	bral 0xfefe9d1c			; INI_func
 fefe8f1e:	6400 0178      	bccw 0xfefe9098
 fefe8f22:	4dfa 0008      	lea %pc@(0xfefe8f2c),%fp
-fefe8f26:	60ff 0000 0cfa 	bral 0xfefe9c22			; ODD_stash_fp
+fefe8f26:	60ff 0000 0cfa 	bral 0xfefe9c22			; INI_stash_fp
 fefe8f2c:	4280           	clrl %d0
 fefe8f2e:	7211           	moveq #17,%d1
 fefe8f30:	102d 0001      	moveb %a5@(1),%d0
@@ -11466,12 +11572,12 @@ fefe8f36:	6700 0010      	beqw 0xfefe8f48
 fefe8f3a:	49fa 08c1      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe8f3e:	4dfa 0008      	lea %pc@(0xfefe8f48),%fp
-fefe8f42:	60ff 0000 0d64 	bral 0xfefe9ca8		; ODD_print2
+fefe8f42:	60ff 0000 0d64 	bral 0xfefe9ca8		; INI_print2
 fefe8f48:	4dfa 0008      	lea %pc@(0xfefe8f52),%fp
-fefe8f4c:	60ff 0000 0dce 	bral 0xfefe9d1c			; ODD_func
+fefe8f4c:	60ff 0000 0dce 	bral 0xfefe9d1c			; INI_func
 fefe8f52:	6400 0144      	bccw 0xfefe9098
 fefe8f56:	4dfa 0008      	lea %pc@(0xfefe8f60),%fp
-fefe8f5a:	60ff 0000 0cc6 	bral 0xfefe9c22			; ODD_stash_fp
+fefe8f5a:	60ff 0000 0cc6 	bral 0xfefe9c22			; INI_stash_fp
 fefe8f60:	4280           	clrl %d0
 fefe8f62:	7200           	moveq #0,%d1
 fefe8f64:	102d 0000      	moveb %a5@(0),%d0
@@ -11480,12 +11586,12 @@ fefe8f6a:	6700 0010      	beqw 0xfefe8f7c
 fefe8f6e:	49fa 088d      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe8f72:	4dfa 0008      	lea %pc@(0xfefe8f7c),%fp
-fefe8f76:	60ff 0000 0d30 	bral 0xfefe9ca8		; ODD_print2
+fefe8f76:	60ff 0000 0d30 	bral 0xfefe9ca8		; INI_print2
 fefe8f7c:	4dfa 0008      	lea %pc@(0xfefe8f86),%fp
-fefe8f80:	60ff 0000 0d9a 	bral 0xfefe9d1c			; ODD_func
+fefe8f80:	60ff 0000 0d9a 	bral 0xfefe9d1c			; INI_func
 fefe8f86:	6400 0110      	bccw 0xfefe9098
 fefe8f8a:	4dfa 0008      	lea %pc@(0xfefe8f94),%fp
-fefe8f8e:	60ff 0000 0c92 	bral 0xfefe9c22			; ODD_stash_fp
+fefe8f8e:	60ff 0000 0c92 	bral 0xfefe9c22			; INI_stash_fp
 fefe8f94:	4280           	clrl %d0
 fefe8f96:	223c 0000 2233 	movel #0x2233,%d1
 fefe8f9c:	302d 0002      	movew %a5@(2),%d0
@@ -11494,12 +11600,12 @@ fefe8fa2:	6700 0010      	beqw 0xfefe8fb4
 fefe8fa6:	49fa 0855      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe8faa:	4dfa 0008      	lea %pc@(0xfefe8fb4),%fp
-fefe8fae:	60ff 0000 0cf8 	bral 0xfefe9ca8		; ODD_print2
+fefe8fae:	60ff 0000 0cf8 	bral 0xfefe9ca8		; INI_print2
 fefe8fb4:	4dfa 0008      	lea %pc@(0xfefe8fbe),%fp
-fefe8fb8:	60ff 0000 0d62 	bral 0xfefe9d1c			; ODD_func
+fefe8fb8:	60ff 0000 0d62 	bral 0xfefe9d1c			; INI_func
 fefe8fbe:	6400 00d8      	bccw 0xfefe9098
 fefe8fc2:	4dfa 0008      	lea %pc@(0xfefe8fcc),%fp
-fefe8fc6:	60ff 0000 0c5a 	bral 0xfefe9c22			; ODD_stash_fp
+fefe8fc6:	60ff 0000 0c5a 	bral 0xfefe9c22			; INI_stash_fp
 fefe8fcc:	4280           	clrl %d0
 fefe8fce:	223c 0000 1122 	movel #0x1122,%d1
 fefe8fd4:	302d 0001      	movew %a5@(1),%d0
@@ -11508,12 +11614,12 @@ fefe8fda:	6700 0010      	beqw 0xfefe8fec
 fefe8fde:	49fa 081d      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe8fe2:	4dfa 0008      	lea %pc@(0xfefe8fec),%fp
-fefe8fe6:	60ff 0000 0cc0 	bral 0xfefe9ca8		; ODD_print2
+fefe8fe6:	60ff 0000 0cc0 	bral 0xfefe9ca8		; INI_print2
 fefe8fec:	4dfa 0008      	lea %pc@(0xfefe8ff6),%fp
-fefe8ff0:	60ff 0000 0d2a 	bral 0xfefe9d1c			; ODD_func
+fefe8ff0:	60ff 0000 0d2a 	bral 0xfefe9d1c			; INI_func
 fefe8ff6:	6400 00a0      	bccw 0xfefe9098
 fefe8ffa:	4dfa 0008      	lea %pc@(0xfefe9004),%fp
-fefe8ffe:	60ff 0000 0c22 	bral 0xfefe9c22			; ODD_stash_fp
+fefe8ffe:	60ff 0000 0c22 	bral 0xfefe9c22			; INI_stash_fp
 fefe9004:	223c 1122 3300 	movel #0x11223300,%d1
 fefe900a:	202d 0001      	movel %a5@(1),%d0
 fefe900e:	b280           	cmpl %d0,%d1
@@ -11521,12 +11627,12 @@ fefe9010:	6700 0010      	beqw 0xfefe9022
 fefe9014:	49fa 07e7      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe9018:	4dfa 0008      	lea %pc@(0xfefe9022),%fp
-fefe901c:	60ff 0000 0c8a 	bral 0xfefe9ca8		; ODD_print2
+fefe901c:	60ff 0000 0c8a 	bral 0xfefe9ca8		; INI_print2
 fefe9022:	4dfa 0008      	lea %pc@(0xfefe902c),%fp
-fefe9026:	60ff 0000 0cf4 	bral 0xfefe9d1c			; ODD_func
+fefe9026:	60ff 0000 0cf4 	bral 0xfefe9d1c			; INI_func
 fefe902c:	6400 006a      	bccw 0xfefe9098
 fefe9030:	4dfa 0008      	lea %pc@(0xfefe903a),%fp
-fefe9034:	60ff 0000 0bec 	bral 0xfefe9c22			; ODD_stash_fp
+fefe9034:	60ff 0000 0bec 	bral 0xfefe9c22			; INI_stash_fp
 fefe903a:	223c 2233 0011 	movel #0x22330011,%d1
 fefe9040:	202d 0002      	movel %a5@(2),%d0
 fefe9044:	b280           	cmpl %d0,%d1
@@ -11534,12 +11640,12 @@ fefe9046:	6700 0010      	beqw 0xfefe9058
 fefe904a:	49fa 07b1      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe904e:	4dfa 0008      	lea %pc@(0xfefe9058),%fp
-fefe9052:	60ff 0000 0c54 	bral 0xfefe9ca8		; ODD_print2
+fefe9052:	60ff 0000 0c54 	bral 0xfefe9ca8		; INI_print2
 fefe9058:	4dfa 0008      	lea %pc@(0xfefe9062),%fp
-fefe905c:	60ff 0000 0cbe 	bral 0xfefe9d1c			; ODD_func
+fefe905c:	60ff 0000 0cbe 	bral 0xfefe9d1c			; INI_func
 fefe9062:	6400 0034      	bccw 0xfefe9098
 fefe9066:	4dfa 0008      	lea %pc@(0xfefe9070),%fp
-fefe906a:	60ff 0000 0bb6 	bral 0xfefe9c22			; ODD_stash_fp
+fefe906a:	60ff 0000 0bb6 	bral 0xfefe9c22			; INI_stash_fp
 fefe9070:	223c 3300 1122 	movel #0x33001122,%d1
 fefe9076:	202d 0003      	movel %a5@(3),%d0
 fefe907a:	b280           	cmpl %d0,%d1
@@ -11547,19 +11653,19 @@ fefe907c:	6700 0010      	beqw 0xfefe908e
 fefe9080:	49fa 077b      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe9084:	4dfa 0008      	lea %pc@(0xfefe908e),%fp
-fefe9088:	60ff 0000 0c1e 	bral 0xfefe9ca8		; ODD_print2
+fefe9088:	60ff 0000 0c1e 	bral 0xfefe9ca8		; INI_print2
 fefe908e:	4dfa 0008      	lea %pc@(0xfefe9098),%fp
-fefe9092:	60ff 0000 0c88 	bral 0xfefe9d1c			; ODD_func
+fefe9092:	60ff 0000 0c88 	bral 0xfefe9d1c			; INI_func
 fefe9098:	0807 0009      	btst #9,%d7
 fefe909c:	6600 fdfe      	bnew 0xfefe8e9c
 fefe90a0:	1e3c 000f      	moveb #0xf,%d7
 fefe90a4:	49fa 0873      	lea %pc@(0xfefe9919),%a4
 ; 0xfefe9919 \r\nMemory Write Byte Alignment Test
 fefe90a8:	4dfa 0008      	lea %pc@(0xfefe90b2),%fp
-fefe90ac:	60ff 0000 0a9a 	bral 0xfefe9b48			; ODD_test
+fefe90ac:	60ff 0000 0a9a 	bral 0xfefe9b48			; INI_test
 fefe90b2:	4bf9 0020 0000 	lea 0x200000,%a5
 fefe90b8:	4dfa 0008      	lea %pc@(0xfefe90c2),%fp
-fefe90bc:	60ff 0000 0b64 	bral 0xfefe9c22			; ODD_stash_fp
+fefe90bc:	60ff 0000 0b64 	bral 0xfefe9c22			; INI_stash_fp
 fefe90c2:	4280           	clrl %d0
 fefe90c4:	4295           	clrl %a5@
 fefe90c6:	1b7c 0033 0003 	moveb #0x33,%a5@(3)
@@ -11570,12 +11676,12 @@ fefe90d6:	6700 0010      	beqw 0xfefe90e8
 fefe90da:	49fa 0721      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe90de:	4dfa 0008      	lea %pc@(0xfefe90e8),%fp
-fefe90e2:	60ff 0000 0bc4 	bral 0xfefe9ca8		; ODD_print2
+fefe90e2:	60ff 0000 0bc4 	bral 0xfefe9ca8		; INI_print2
 fefe90e8:	4dfa 0008      	lea %pc@(0xfefe90f2),%fp
-fefe90ec:	60ff 0000 0c2e 	bral 0xfefe9d1c			; ODD_func
+fefe90ec:	60ff 0000 0c2e 	bral 0xfefe9d1c			; INI_func
 fefe90f2:	6400 027c      	bccw 0xfefe9370
 fefe90f6:	4dfa 0008      	lea %pc@(0xfefe9100),%fp
-fefe90fa:	60ff 0000 0b26 	bral 0xfefe9c22			; ODD_stash_fp
+fefe90fa:	60ff 0000 0b26 	bral 0xfefe9c22			; INI_stash_fp
 fefe9100:	4280           	clrl %d0
 fefe9102:	4295           	clrl %a5@
 fefe9104:	1b7c 0022 0002 	moveb #0x22,%a5@(2)
@@ -11586,12 +11692,12 @@ fefe9114:	6700 0010      	beqw 0xfefe9126
 fefe9118:	49fa 06e3      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe911c:	4dfa 0008      	lea %pc@(0xfefe9126),%fp
-fefe9120:	60ff 0000 0b86 	bral 0xfefe9ca8		; ODD_print2
+fefe9120:	60ff 0000 0b86 	bral 0xfefe9ca8		; INI_print2
 fefe9126:	4dfa 0008      	lea %pc@(0xfefe9130),%fp
-fefe912a:	60ff 0000 0bf0 	bral 0xfefe9d1c			; ODD_func
+fefe912a:	60ff 0000 0bf0 	bral 0xfefe9d1c			; INI_func
 fefe9130:	6400 023e      	bccw 0xfefe9370
 fefe9134:	4dfa 0008      	lea %pc@(0xfefe913e),%fp
-fefe9138:	60ff 0000 0ae8 	bral 0xfefe9c22			; ODD_stash_fp
+fefe9138:	60ff 0000 0ae8 	bral 0xfefe9c22			; INI_stash_fp
 fefe913e:	4280           	clrl %d0
 fefe9140:	4295           	clrl %a5@
 fefe9142:	1b7c 0011 0001 	moveb #0x11,%a5@(1)
@@ -11602,12 +11708,12 @@ fefe9152:	6700 0010      	beqw 0xfefe9164
 fefe9156:	49fa 06a5      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe915a:	4dfa 0008      	lea %pc@(0xfefe9164),%fp
-fefe915e:	60ff 0000 0b48 	bral 0xfefe9ca8		; ODD_print2
+fefe915e:	60ff 0000 0b48 	bral 0xfefe9ca8		; INI_print2
 fefe9164:	4dfa 0008      	lea %pc@(0xfefe916e),%fp
-fefe9168:	60ff 0000 0bb2 	bral 0xfefe9d1c			; ODD_func
+fefe9168:	60ff 0000 0bb2 	bral 0xfefe9d1c			; INI_func
 fefe916e:	6400 0200      	bccw 0xfefe9370
 fefe9172:	4dfa 0008      	lea %pc@(0xfefe917c),%fp
-fefe9176:	60ff 0000 0aaa 	bral 0xfefe9c22			; ODD_stash_fp
+fefe9176:	60ff 0000 0aaa 	bral 0xfefe9c22			; INI_stash_fp
 fefe917c:	4280           	clrl %d0
 fefe917e:	4295           	clrl %a5@
 fefe9180:	1b7c 00aa 0000 	moveb #0xaa,%a5@(0)
@@ -11618,12 +11724,12 @@ fefe9190:	6700 0010      	beqw 0xfefe91a2
 fefe9194:	49fa 0667      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe9198:	4dfa 0008      	lea %pc@(0xfefe91a2),%fp
-fefe919c:	60ff 0000 0b0a 	bral 0xfefe9ca8		; ODD_print2
+fefe919c:	60ff 0000 0b0a 	bral 0xfefe9ca8		; INI_print2
 fefe91a2:	4dfa 0008      	lea %pc@(0xfefe91ac),%fp
-fefe91a6:	60ff 0000 0b74 	bral 0xfefe9d1c			; ODD_func
+fefe91a6:	60ff 0000 0b74 	bral 0xfefe9d1c			; INI_func
 fefe91ac:	6400 01c2      	bccw 0xfefe9370
 fefe91b0:	4dfa 0008      	lea %pc@(0xfefe91ba),%fp
-fefe91b4:	60ff 0000 0a6c 	bral 0xfefe9c22			; ODD_stash_fp
+fefe91b4:	60ff 0000 0a6c 	bral 0xfefe9c22			; INI_stash_fp
 fefe91ba:	4280           	clrl %d0
 fefe91bc:	4295           	clrl %a5@
 fefe91be:	3b7c aa11 0000 	movew #0xaa11,%a5@(0)
@@ -11634,12 +11740,12 @@ fefe91ce:	6700 0010      	beqw 0xfefe91e0
 fefe91d2:	49fa 0629      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe91d6:	4dfa 0008      	lea %pc@(0xfefe91e0),%fp
-fefe91da:	60ff 0000 0acc 	bral 0xfefe9ca8		; ODD_print2
+fefe91da:	60ff 0000 0acc 	bral 0xfefe9ca8		; INI_print2
 fefe91e0:	4dfa 0008      	lea %pc@(0xfefe91ea),%fp
-fefe91e4:	60ff 0000 0b36 	bral 0xfefe9d1c			; ODD_func
+fefe91e4:	60ff 0000 0b36 	bral 0xfefe9d1c			; INI_func
 fefe91ea:	6400 0184      	bccw 0xfefe9370
 fefe91ee:	4dfa 0008      	lea %pc@(0xfefe91f8),%fp
-fefe91f2:	60ff 0000 0a2e 	bral 0xfefe9c22			; ODD_stash_fp
+fefe91f2:	60ff 0000 0a2e 	bral 0xfefe9c22			; INI_stash_fp
 fefe91f8:	4280           	clrl %d0
 fefe91fa:	4295           	clrl %a5@
 fefe91fc:	3b7c 2233 0002 	movew #0x2233,%a5@(2)
@@ -11650,12 +11756,12 @@ fefe920c:	6700 0010      	beqw 0xfefe921e
 fefe9210:	49fa 05eb      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe9214:	4dfa 0008      	lea %pc@(0xfefe921e),%fp
-fefe9218:	60ff 0000 0a8e 	bral 0xfefe9ca8		; ODD_print2
+fefe9218:	60ff 0000 0a8e 	bral 0xfefe9ca8		; INI_print2
 fefe921e:	4dfa 0008      	lea %pc@(0xfefe9228),%fp
-fefe9222:	60ff 0000 0af8 	bral 0xfefe9d1c			; ODD_func
+fefe9222:	60ff 0000 0af8 	bral 0xfefe9d1c			; INI_func
 fefe9228:	6400 0146      	bccw 0xfefe9370
 fefe922c:	4dfa 0008      	lea %pc@(0xfefe9236),%fp
-fefe9230:	60ff 0000 09f0 	bral 0xfefe9c22			; ODD_stash_fp
+fefe9230:	60ff 0000 09f0 	bral 0xfefe9c22			; INI_stash_fp
 fefe9236:	4295           	clrl %a5@
 fefe9238:	42ad 0004      	clrl %a5@(4)
 fefe923c:	3b7c 33aa 0003 	movew #0x33aa,%a5@(3)
@@ -11666,12 +11772,12 @@ fefe924c:	6700 0010      	beqw 0xfefe925e
 fefe9250:	49fa 05ab      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe9254:	4dfa 0008      	lea %pc@(0xfefe925e),%fp
-fefe9258:	60ff 0000 0a4e 	bral 0xfefe9ca8		; ODD_print2
+fefe9258:	60ff 0000 0a4e 	bral 0xfefe9ca8		; INI_print2
 fefe925e:	4dfa 0008      	lea %pc@(0xfefe9268),%fp
-fefe9262:	60ff 0000 0ab8 	bral 0xfefe9d1c			; ODD_func
+fefe9262:	60ff 0000 0ab8 	bral 0xfefe9d1c			; INI_func
 fefe9268:	6400 0106      	bccw 0xfefe9370
 fefe926c:	4dfa 0008      	lea %pc@(0xfefe9276),%fp
-fefe9270:	60ff 0000 09b0 	bral 0xfefe9c22			; ODD_stash_fp
+fefe9270:	60ff 0000 09b0 	bral 0xfefe9c22			; INI_stash_fp
 fefe9276:	4295           	clrl %a5@
 fefe9278:	42ad 0004      	clrl %a5@(4)
 fefe927c:	3b7c 33aa 0003 	movew #0x33aa,%a5@(3)
@@ -11682,12 +11788,12 @@ fefe928e:	6700 0010      	beqw 0xfefe92a0
 fefe9292:	49fa 0569      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe9296:	4dfa 0008      	lea %pc@(0xfefe92a0),%fp
-fefe929a:	60ff 0000 0a0c 	bral 0xfefe9ca8		; ODD_print2
+fefe929a:	60ff 0000 0a0c 	bral 0xfefe9ca8		; INI_print2
 fefe92a0:	4dfa 0008      	lea %pc@(0xfefe92aa),%fp
-fefe92a4:	60ff 0000 0a76 	bral 0xfefe9d1c			; ODD_func
+fefe92a4:	60ff 0000 0a76 	bral 0xfefe9d1c			; INI_func
 fefe92aa:	6400 00c4      	bccw 0xfefe9370
 fefe92ae:	4dfa 0008      	lea %pc@(0xfefe92b8),%fp
-fefe92b2:	60ff 0000 096e 	bral 0xfefe9c22			; ODD_stash_fp
+fefe92b2:	60ff 0000 096e 	bral 0xfefe9c22			; INI_stash_fp
 fefe92b8:	4295           	clrl %a5@
 fefe92ba:	42ad 0004      	clrl %a5@(4)
 fefe92be:	2b7c 1122 33aa 	movel #0x112233aa,%a5@(1)
@@ -11699,12 +11805,12 @@ fefe92d0:	6700 0010      	beqw 0xfefe92e2
 fefe92d4:	49fa 0527      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe92d8:	4dfa 0008      	lea %pc@(0xfefe92e2),%fp
-fefe92dc:	60ff 0000 09ca 	bral 0xfefe9ca8		; ODD_print2
+fefe92dc:	60ff 0000 09ca 	bral 0xfefe9ca8		; INI_print2
 fefe92e2:	4dfa 0008      	lea %pc@(0xfefe92ec),%fp
-fefe92e6:	60ff 0000 0a34 	bral 0xfefe9d1c			; ODD_func
+fefe92e6:	60ff 0000 0a34 	bral 0xfefe9d1c			; INI_func
 fefe92ec:	6400 0082      	bccw 0xfefe9370
 fefe92f0:	4dfa 0008      	lea %pc@(0xfefe92fa),%fp
-fefe92f4:	60ff 0000 092c 	bral 0xfefe9c22			; ODD_stash_fp
+fefe92f4:	60ff 0000 092c 	bral 0xfefe9c22			; INI_stash_fp
 fefe92fa:	4295           	clrl %a5@
 fefe92fc:	42ad 0004      	clrl %a5@(4)
 fefe9300:	2b7c 2233 aa11 	movel #0x2233aa11,%a5@(2)
@@ -11716,12 +11822,12 @@ fefe9312:	6700 0010      	beqw 0xfefe9324
 fefe9316:	49fa 04e5      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe931a:	4dfa 0008      	lea %pc@(0xfefe9324),%fp
-fefe931e:	60ff 0000 0988 	bral 0xfefe9ca8		; ODD_print2
+fefe931e:	60ff 0000 0988 	bral 0xfefe9ca8		; INI_print2
 fefe9324:	4dfa 0008      	lea %pc@(0xfefe932e),%fp
-fefe9328:	60ff 0000 09f2 	bral 0xfefe9d1c			; ODD_func
+fefe9328:	60ff 0000 09f2 	bral 0xfefe9d1c			; INI_func
 fefe932e:	6400 0040      	bccw 0xfefe9370
 fefe9332:	4dfa 0008      	lea %pc@(0xfefe933c),%fp
-fefe9336:	60ff 0000 08ea 	bral 0xfefe9c22			; ODD_stash_fp
+fefe9336:	60ff 0000 08ea 	bral 0xfefe9c22			; INI_stash_fp
 fefe933c:	4295           	clrl %a5@
 fefe933e:	42ad 0004      	clrl %a5@(4)
 fefe9342:	2b7c 33aa 1122 	movel #0x33aa1122,%a5@(3)
@@ -11733,9 +11839,9 @@ fefe9354:	6700 0010      	beqw 0xfefe9366
 fefe9358:	49fa 04a3      	lea %pc@(0xfefe97fd),%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefe935c:	4dfa 0008      	lea %pc@(0xfefe9366),%fp
-fefe9360:	60ff 0000 0946 	bral 0xfefe9ca8		; ODD_print2
+fefe9360:	60ff 0000 0946 	bral 0xfefe9ca8		; INI_print2
 fefe9366:	4dfa 0008      	lea %pc@(0xfefe9370),%fp
-fefe936a:	60ff 0000 09b0 	bral 0xfefe9d1c			; ODD_func
+fefe936a:	60ff 0000 09b0 	bral 0xfefe9d1c			; INI_func
 fefe9370:	0807 0009      	btst #9,%d7
 fefe9374:	6600 fd3c      	bnew 0xfefe90b2
 
@@ -11796,16 +11902,16 @@ fefe943a:	2408           	movel %a0,%d2
 fefe943c:	49fa 01ee      	lea %pc@(0xfefe962c),%a4
 ; 0xfefe962c \r\n Bank is partially filled
 fefe9440:	4dfa 0008      	lea %pc@(0xfefe944a),%fp
-fefe9444:	60ff 0000 0f8e 	bral 0xfefea3d4		; ODD_print
+fefe9444:	60ff 0000 0f8e 	bral 0xfefea3d4		; INI_print
 fefe944a:	2a42           	moveal %d2,%a5
 fefe944c:	223c 5555 5555 	movel #0x55555555,%d1
 fefe9452:	2003           	movel %d3,%d0
 fefe9454:	49fa 03dc      	lea %pc@(0xfefe9832),%a4
 ; 0xfefe9832 \r\n addr 0x%a5: exp 0x%d1, obs 0x%d0
 fefe9458:	4dfa 0008      	lea %pc@(0xfefe9462),%fp
-fefe945c:	60ff 0000 084a 	bral 0xfefe9ca8		; ODD_print2
+fefe945c:	60ff 0000 084a 	bral 0xfefe9ca8		; INI_print2
 fefe9462:	4dfa 0008      	lea %pc@(0xfefe946c),%fp
-fefe9466:	60ff 0000 08b4 	bral 0xfefe9d1c			; ODD_func
+fefe9466:	60ff 0000 08b4 	bral 0xfefe9d1c			; INI_func
 fefe946c:	6400 012e      	bccw 0xfefe959c
 fefe9470:	d1fc 0100 0000 	addal #0x1000000,%a0
 fefe9476:	e09e           	rorl #8,%d6
@@ -11817,7 +11923,7 @@ fefe9486:	6600 0010      	bnew 0xfefe9498
 fefe948a:	49fa 02af      	lea %pc@(0xfefe973b),%a4
 ; 0xfefe973b \r\n No memory found in bank 1
 fefe948e:	4dfa ffd2      	lea %pc@(0xfefe9462),%fp
-fefe9492:	60ff 0000 0814 	bral 0xfefe9ca8		; ODD_print2
+fefe9492:	60ff 0000 0814 	bral 0xfefe9ca8		; INI_print2
 
 fefe9498:	2a3c 0000 0002 	movel #2,%d5
 fefe949e:	2406           	movel %d6,%d2
@@ -11851,9 +11957,9 @@ fefe94fe:	2202           	movel %d2,%d1
 fefe9500:	49fa 018a      	lea %pc@(0xfefe968c),%a4
 ; 0xfefe968c \r\n bad memory configuration in bank %d1
 fefe9504:	4dfa 0008      	lea %pc@(0xfefe950e),%fp
-fefe9508:	60ff 0000 0eca 	bral 0xfefea3d4		; ODD_print
+fefe9508:	60ff 0000 0eca 	bral 0xfefea3d4		; INI_print
 fefe950e:	4dfa 0008      	lea %pc@(0xfefe9518),%fp
-fefe9512:	60ff 0000 0808 	bral 0xfefe9d1c			; ODD_func
+fefe9512:	60ff 0000 0808 	bral 0xfefe9d1c			; INI_func
 fefe9518:	6400 0082      	bccw 0xfefe959c
 fefe951c:	d602           	addb %d2,%d3
 fefe951e:	e19e           	roll #8,%d6
@@ -11889,7 +11995,7 @@ fefe957c:	08c7 0011      	bset #0x11,%d7
 fefe9580:	49fa 0168      	lea %pc@(0xfefe96ea),%a4
 ; 0xfefe96ea \r\n<Memory Size = 0x%d1 MB>
 fefe9584:	4dfa 0008      	lea %pc@(0xfefe958e),%fp
-fefe9588:	60ff 0000 0e4a 	bral 0xfefea3d4		; ODD_print
+fefe9588:	60ff 0000 0e4a 	bral 0xfefea3d4		; INI_print
 fefe958e:	0c83 0000 0000 	cmpil #0,%d3
 fefe9594:	6600 0006      	bnew 0xfefe959c
 fefe9598:	08c7 001d      	bset #0x1d,%d7
@@ -11988,18 +12094,18 @@ fefe99b0:  *** ERROR: Memory Configuration Error, Bank [0x%d0] ***
 
 fefe99e8:	0000 0000
 
-; ODD call to here
+; INI call to here
 fefe99ec:	0807 0010      	btst #0x10,%d7
 fefe99f0:	6600 0014      	bnew 0xfefe9a06
 fefe99f4:	49fa 1323      	lea %pc@(0xfefead19),%a4
 ; 0xfefead19 \r\nPHASE 1 OF SELFTEST COMPLETED.
 fefe99f8:	4dfa 0006      	lea %pc@(0xfefe9a00),%fp
-fefe99fc:	6000 09d6      	braw 0xfefea3d4		; ODD_print
+fefe99fc:	6000 09d6      	braw 0xfefea3d4		; INI_print
 fefe9a00:	4ff9 0003 0000 	lea 0x30000,%sp
 fefe9a06:	49fa 1332      	lea %pc@(0xfefead3a),%a4
 ; 0xfefead3a \r\nPHASE 2 OF SELFTEST COMPLETED.
 fefe9a0a:	4dfa 0006      	lea %pc@(0xfefe9a12),%fp
-fefe9a0e:	6000 09c4      	braw 0xfefea3d4		; ODD_print
+fefe9a0e:	6000 09c4      	braw 0xfefea3d4		; INI_print
 fefe9a12:	4e7a 0802      	movec %caar,%d0
 fefe9a16:	5240           	addqw #1,%d0
 fefe9a18:	4e7b 0802      	movec %d0,%caar
@@ -12007,14 +12113,14 @@ fefe9a1c:	0280 0000 ffff 	andil #0xffff,%d0
 fefe9a22:	49fa 11f6      	lea %pc@(0xfefeac1a),%a4
 ; 0xfefeac1a \r\n\nEND OF SELFTEST # 0x%d0
 fefe9a26:	4dfa 0006      	lea %pc@(0xfefe9a2e),%fp
-fefe9a2a:	6000 09a8      	braw 0xfefea3d4		; ODD_print
+fefe9a2a:	6000 09a8      	braw 0xfefea3d4		; INI_print
 fefe9a2e:	49fa 122b      	lea %pc@(0xfefeac5b),%a4
 fefe9a32:	0807 000d      	btst #0xd,%d7
 fefe9a36:	6700 0006      	beqw 0xfefe9a3e
 fefe9a3a:	49fa 1232      	lea %pc@(0xfefeac6e),%a4
 ; 0xfefeac6e (SELFTEST FAILED).
 fefe9a3e:	4dfa 0006      	lea %pc@(0xfefe9a46),%fp
-fefe9a42:	6000 0990      	braw 0xfefea3d4		; ODD_print
+fefe9a42:	6000 0990      	braw 0xfefea3d4		; INI_print
 fefe9a46:	4e7a 0802      	movec %caar,%d0
 fefe9a4a:	263c 0000 0010 	movel #0x10,%d3
 fefe9a50:	e6b8           	rorl %d3,%d0
@@ -12030,14 +12136,14 @@ fefe9a70:	9081           	subl %d1,%d0
 fefe9a72:	49fa 11c2      	lea %pc@(0xfefeac36),%a4
 ; 0xfefeac36 \r\n#PASSED = 0x%d0, #FAILED = 0x%d1\r\n
 fefe9a76:	4dfa 0006      	lea %pc@(0xfefe9a7e),%fp
-fefe9a7a:	6000 0958      	braw 0xfefea3d4		; ODD_print
+fefe9a7a:	6000 0958      	braw 0xfefea3d4		; INI_print
 fefe9a7e:	0807 000b      	btst #0xb,%d7
 fefe9a82:	6700 002e      	beqw 0xfefe9ab2		; goes to sub_restart
 
 fefe9a86:	49fa 121c      	lea %pc@(0xfefeaca4),%a4
 ; 0xfefeaca4 \r\n<Automatically continuing tests in BURN-IN mode.>
 fefe9a8a:	4dfa 0006      	lea %pc@(0xfefe9a92),%fp
-fefe9a8e:	6000 0944      	braw 0xfefea3d4		; ODD_print
+fefe9a8e:	6000 0944      	braw 0xfefea3d4		; INI_print
 fefe9a92:	4ff9 0003 0000 	lea 0x30000,%sp
 fefe9a98:	0887 0010      	bclr #0x10,%d7
 
@@ -12059,7 +12165,7 @@ fefe9abc:	48e7 fffe      	moveml %d0-%fp,%sp@-
 fefe9ac0:	49fa 12ff      	lea %pc@(0xfefeadc1),%a4
 ; 0xfefeadc1 \r\n_exit_boot: disabling boot state.
 fefe9ac4:	4dfa 0006      	lea %pc@(0xfefe9acc),%fp
-fefe9ac8:	6000 090a      	braw 0xfefea3d4		; ODD_print
+fefe9ac8:	6000 090a      	braw 0xfefea3d4		; INI_print
 
 fefe9acc:	3039 6100 0000 	movew 0x61000000,%d0		; SYSENA
 fefe9ad2:	0240 feff      	andiw #0xfeff,%d0			; clear DIAG switch bit
@@ -12103,12 +12209,12 @@ fefe9b44:	4e5e           	unlk %fp
 fefe9b46:	4e75           	rts
 
 ;----------------------------------------------------------
-; start a code block with several ODD call routines
+; start a code block with several INI call routines
 ;----------------------------------------------------------
 
-;  ODD_test
+;  INI_test
 ; called with string pointer in a4 to announce the test
-; it uses the ODD call method
+; it uses the INI call method
 
 ; clear DIAG switch bit
 fefe9b48:	0279 feff 6100 	andiw #0xfeff,0x61000000		; SYSENA
@@ -12117,9 +12223,12 @@ fefe9b4e:	0000
 fefe9b50:	08c7 0006      	bset #6,%d7
 fefe9b54:	08c7 0007      	bset #7,%d7
 fefe9b58:	1c07           	moveb %d7,%d6
+
+; update display on PP
 fefe9b5a:	0206 003f      	andib #0x3f,%d6
 fefe9b5e:	13c6 6f00 003c 	moveb %d6,0x6f00003c	; PP_data
-fefe9b64:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+
+fefe9b64:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefe9b6a:	0800
 
 fefe9b6c:	2c3c 0000 ffff 	movel #65535,%d6		; delay
@@ -12128,7 +12237,7 @@ fefe9b74:	6e00 fffc      	bgtw 0xfefe9b72
 
 fefe9b78:	260e           	movel %fp,%d3
 fefe9b7a:	4dfa 0006      	lea %pc@(0xfefe9b82),%fp
-fefe9b7e:	6000 0854      	braw 0xfefea3d4		; ODD_print
+fefe9b7e:	6000 0854      	braw 0xfefea3d4		; INI_print
 fefe9b82:	0807 0009      	btst #9,%d7
 fefe9b86:	6700 000a      	beqw 0xfefe9b92
 fefe9b8a:	49fa 1203      	lea %pc@(0xfefead8f),%a4
@@ -12148,7 +12257,7 @@ fefe9bae:	4e7a 1802      	movec %caar,%d1
 fefe9bb2:	5241           	addqw #1,%d1
 fefe9bb4:	0281 0000 ffff 	andil #0xffff,%d1
 fefe9bba:	4dfa 0006      	lea %pc@(0xfefe9bc2),%fp
-fefe9bbe:	6000 0814      	braw 0xfefea3d4		; ODD_print
+fefe9bbe:	6000 0814      	braw 0xfefea3d4		; INI_print
 fefe9bc2:	2c43           	moveal %d3,%fp
 fefe9bc4:	284e           	moveal %fp,%a4
 fefe9bc6:	0807 000e      	btst #0xe,%d7
@@ -12175,8 +12284,8 @@ fefe9c1a:	6000 09f0      	braw 0xfefea60c
 fefe9c1e:	2c4c           	moveal %a4,%fp
 fefe9c20:	4ed6           	jmp %fp@			; return
 
-; many ODD calls
-; I will call this "ODD_stash_fp
+; many INI calls
+; I will call this "INI_stash_fp
 ; it sets the M/I bit (going to master mode)
 ; then it sets the SP from the fp
 ; then clears the M/I bit (going back to interrupt mode)
@@ -12196,7 +12305,7 @@ fefe9c38:	260c           	movel %a4,%d3
 fefe9c3a:	240b           	movel %a3,%d2
 fefe9c3c:	2848           	moveal %a0,%a4
 fefe9c3e:	4dfa 0004      	lea %pc@(0xfefe9c44),%fp
-fefe9c42:	6064           	bras 0xfefe9ca8		; ODD_print2
+fefe9c42:	6064           	bras 0xfefe9ca8		; INI_print2
 fefe9c44:	2642           	moveal %d2,%a3
 fefe9c46:	2843           	moveal %d3,%a4
 fefe9c48:	2244           	moveal %d4,%a1
@@ -12228,8 +12337,8 @@ fefe9ca0:	263c 0040 0000 	movel #0x400000,%d3
 fefe9ca6:	4ed6           	jmp %fp@			; return
 
 ; -------------------------------------
-; many many ODD branches to here
-; ODD_print2
+; many many INI branches to here
+; INI_print2
 ; this is NOT misassembled
 
 ; set DIAG switch bit
@@ -12238,18 +12347,24 @@ fefe9cae:	0000
 
 fefe9cb0:	0807 000c      	btst #0xc,%d7
 fefe9cb4:	6600 000a      	bnew 0xfefe9cc0
+
 fefe9cb8:	0807 0007      	btst #7,%d7
 fefe9cbc:	6700 0026      	beqw 0xfefe9ce4
+
 fefe9cc0:	0887 0007      	bclr #7,%d7
 fefe9cc4:	08c7 000d      	bset #0xd,%d7
 fefe9cc8:	08c7 0006      	bset #6,%d7
 fefe9ccc:	1c07           	moveb %d7,%d6
+
 fefe9cce:	0206 003f      	andib #0x3f,%d6
 fefe9cd2:	13c6 6f00 003c 	moveb %d6,0x6f00003c	; PP_data
+
 fefe9cd8:	3c3c ffff      	movew #-1,%d6
-fefe9cdc:	51ce fffe      	dbf %d6,0xfefe9cdc
-fefe9ce0:	6000 06f2      	braw 0xfefea3d4		; ODD_print
-fefe9ce4:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefe9cdc:	51ce fffe      	dbf %d6,0xfefe9cdc		; delay
+
+fefe9ce0:	6000 06f2      	braw 0xfefea3d4		; INI_print
+
+fefe9ce4:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefe9cea:	0800
 fefe9cec:	08f9 0007 6f00 	bset #7,0x6f00003c	; PP_data
 fefe9cf2:	003c
@@ -12260,7 +12375,7 @@ fefe9cf4:	4ed6           	jmp %fp@			; return
 fefe9cf6:	49fa 1244      	lea %pc@(0xfefeaf3c),%a4
 ; 0xfefeaf3c \r\n<Selftest aborted by the <Esc> Key>\r\n
 fefe9cfa:	4df9 fefe af98 	lea 0xfefeaf98,%fp	; sub_restart
-fefe9d00:	6000 06d2      	braw 0xfefea3d4		; ODD_print
+fefe9d00:	6000 06d2      	braw 0xfefea3d4		; INI_print
 
 ; The above does NOT fall through to here
 
@@ -12270,19 +12385,19 @@ fefe9d0a:	4e7b 8802      	movec %a0,%caar
 fefe9d0e:	49fa 1254      	lea %pc@(0xfefeaf64),%a4
 ; 0xfefeaf64 \r\n<Selftest aborted, Initializing the Monitor>\r\n
 fefe9d12:	4df9 fefe af98 	lea 0xfefeaf98,%fp	; sub_restart
-fefe9d18:	6000 06ba      	braw 0xfefea3d4		; ODD_print
+fefe9d18:	6000 06ba      	braw 0xfefea3d4		; INI_print
 
 ; The above does NOT fall through to here
 
 ; -----------------------------------
-; Another important ODD routine that gets called from many places
+; Another important INI routine that gets called from many places
 ; many many calls
 ;
 ; Note that d7 is some collection of flags that
 ;  are set elsewhere and tested here.
 ; Sometimes they get stored to 6f00_003c
 
-; ODD_func()
+; INI_func()
 ;
 ; It seems that all tests end with a call to this.
 
@@ -12373,7 +12488,7 @@ fefe9de8:	6600 0012      	bnew 0xfefe9dfc
 fefe9dec:	49fa 1125      	lea %pc@(0xfefeaf13),%a4
 ; 0xfefeaf13 \r\n<Warning: selftests aborted by user>\r\n
 fefe9df0:	4dfa 0006      	lea %pc@(0xfefe9df8),%fp
-fefe9df4:	6000 05de      	braw 0xfefea3d4		; ODD_print
+fefe9df4:	6000 05de      	braw 0xfefea3d4		; INI_print
 fefe9df8:	6000 fcb8      	braw 0xfefe9ab2		; goes to sub_restart
 
 ; not 'q' or ESC, so keep going
@@ -12451,23 +12566,23 @@ fefe9eaa:	6000 ffce      	braw 0xfefe9e7a		; loop up
 ; end
 fefe9eae:	0807 0009      	btst #9,%d7			; Flags
 fefe9eb2:	6700 0032      	beqw 0xfefe9ee6
-fefe9eb6:	0839 0000 6100 	btst #0,0x61000800		; system XXX
+fefe9eb6:	0839 0000 6100 	btst #0,0x61000800		; DIAG_REG
 fefe9ebc:	0800
 fefe9ebe:	6700 0016      	beqw 0xfefe9ed6
-fefe9ec2:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefe9ec2:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefe9ec8:	0800
-fefe9eca:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefe9eca:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefe9ed0:	0800
 fefe9ed2:	6000 0012      	braw 0xfefe9ee6
-fefe9ed6:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefe9ed6:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefe9edc:	0800
-fefe9ede:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefe9ede:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefe9ee4:	0800
 
 fefe9ee6:	0807 0007      	btst #7,%d7			; Flags
 fefe9eea:	6600 0012      	bnew 0xfefe9efe
 
-; Fetch the stashed return value (from ODD_stash_fp)
+; Fetch the stashed return value (from INI_stash_fp)
 ; and return there
 fefe9eee:	46fc 3700      	movew #14080,%sr		; select master state
 fefe9ef2:	204f           	moveal %sp,%a0
@@ -12498,7 +12613,7 @@ fefe9f2e:	2e48           	moveal %a0,%sp
 fefe9f30:	49fa 093e      	lea %pc@(0xfefea870),%a4
 ; 0xfefea870 ~~                      <<< Sun 3/80 Test Loop Menu >>>\r\n Individual tests can be selected and run from this menu. Each test will run\r\n until stopped. Only the first error will be displayed.
 fefe9f34:	4dfa 0006      	lea %pc@(0xfefe9f3c),%fp
-fefe9f38:	6000 049a      	braw 0xfefea3d4		; ODD_print
+fefe9f38:	6000 049a      	braw 0xfefea3d4		; INI_print
 
 fefe9f3c:	4bfa 07ca      	lea %pc@(0xfefea708),%a5
 fefe9f40:	2a0d           	movel %a5,%d5
@@ -12513,18 +12628,18 @@ fefe9f5c:	6700 0048      	beqw 0xfefe9fa6
 fefe9f60:	49fa 09cd      	lea %pc@(0xfefea92f),%a4
 ; 0xfefea92f \r\n  (
 fefe9f64:	4dfa 0006      	lea %pc@(0xfefe9f6c),%fp
-fefe9f68:	6000 046a      	braw 0xfefea3d4		; ODD_print
+fefe9f68:	6000 046a      	braw 0xfefea3d4		; INI_print
 fefe9f6c:	2015           	movel %a5@,%d0
 fefe9f6e:	4dfa 0006      	lea %pc@(0xfefe9f76),%fp
 fefe9f72:	6000 011c      	braw 0xfefea090
 fefe9f76:	49fa 09bd      	lea %pc@(0xfefea935),%a4
 ; 0xfefea935 )
 fefe9f7a:	4dfa 0006      	lea %pc@(0xfefe9f82),%fp
-fefe9f7e:	6000 0454      	braw 0xfefea3d4		; ODD_print
+fefe9f7e:	6000 0454      	braw 0xfefea3d4		; INI_print
 fefe9f82:	286d 0004      	moveal %a5@(4),%a4
 fefe9f86:	548c           	addql #2,%a4
 fefe9f88:	4dfa 0006      	lea %pc@(0xfefe9f90),%fp
-fefe9f8c:	6000 0446      	braw 0xfefea3d4		; ODD_print
+fefe9f8c:	6000 0446      	braw 0xfefea3d4		; INI_print
 fefe9f90:	dbfc 0000 000c 	addal #0xc,%a5
 fefe9f96:	5283           	addql #1,%d3
 fefe9f98:	1403           	moveb %d3,%d2
@@ -12536,7 +12651,7 @@ fefe9fac:	4283           	clrl %d3
 fefe9fae:	49fa 0989      	lea %pc@(0xfefea939),%a4
 ; 0xfefea939 \r\n    <<< Press <Space> for more, <Esc> to quit or select an option >>>
 fefe9fb2:	4dfa 0006      	lea %pc@(0xfefe9fba),%fp
-fefe9fb6:	6000 041c      	braw 0xfefea3d4		; ODD_print
+fefe9fb6:	6000 041c      	braw 0xfefea3d4		; INI_print
 
 ; loop comes here.  Looks to me like we are trying both
 ; serial ports, waiting for something (anything)
@@ -12567,7 +12682,7 @@ fefea000:	6600 0016      	bnew 0xfefea018
 fefea004:	49fa 0f36      	lea %pc@(0xfefeaf3c),%a4
 ; 0xfefeaf3c \r\n<Selftest aborted by the <Esc> Key>\r\n
 fefea008:	4df9 fefe 7060 	lea 0xfefe7060,%fp		; BIG_init
-fefea00e:	6000 03c4      	braw 0xfefea3d4		; ODD_print
+fefea00e:	6000 03c4      	braw 0xfefea3d4		; INI_print
 fefea012:	60ff ffff d04c 	bral 0xfefe7060		; BIG_init
 
 ; not ESC
@@ -12596,7 +12711,7 @@ fefea072:	6000 ffce      	braw 0xfefea042
 fefea076:	49fa 090a      	lea %pc@(0xfefea982),%a4
 ; 0xfefea982 ~~                      <<< Sun 3/80 Test Loop Menu >>>\r\n    < Executing Test,  press <Control-L> for the Menu or <Esc> to quit. >\r\n    < The test will loop on error,  press the <Space Bar> to continue. >\r\n
 fefea07a:	4dfa 0006      	lea %pc@(0xfefea082),%fp
-fefea07e:	6000 0354      	braw 0xfefea3d4		; ODD_print
+fefea07e:	6000 0354      	braw 0xfefea3d4		; INI_print
 fefea082:	dbfc 0000 0008 	addal #8,%a5
 fefea088:	2c55           	moveal %a5@,%fp
 fefea08a:	08c7 0009      	bset #9,%d7			; Flags
@@ -12669,7 +12784,7 @@ fefea158:	202f 0014      	movel %sp@(20),%d0
 fefea15c:	49fa 0028      	lea %pc@(0xfefea186),%a4
 ; 0xfefea186 \r\n Unexpected bus error, address=%d0, a5=%a5
 fefea160:	4dfa 0008      	lea %pc@(0xfefea16a),%fp
-fefea164:	41fa 026e      	lea %pc@(0xfefea3d4),%a0		; ODD_print
+fefea164:	41fa 026e      	lea %pc@(0xfefea3d4),%a0		; INI_print
 fefea168:	4ed0           	jmp %a0@
 
 fefea16a:	4ff9 0003 0000 	lea 0x30000,%sp
@@ -12713,7 +12828,7 @@ fefea1bc:	13c7 6f00 003c 	moveb %d7,0x6f00003c	; PP_data
 fefea1c2:	49fa 001e      	lea %pc@(0xfefea1e2),%a4
 ; 0xfefea1e2 \r\n Address trap error, address %a5
 fefea1c6:	4dfa 0008      	lea %pc@(0xfefea1d0),%fp
-fefea1ca:	41fa 0208      	lea %pc@(0xfefea3d4),%a0		; ODD_print
+fefea1ca:	41fa 0208      	lea %pc@(0xfefea3d4),%a0		; INI_print
 fefea1ce:	4ed0           	jmp %a0@
 
 fefea1d0:	4ff9 0003 0000 	lea 0x30000,%sp
@@ -12745,7 +12860,7 @@ fefea214:	202f 0008      	movel %sp@(8),%d0
 fefea218:	49fa 001e      	lea %pc@(0xfefea238),%a4
 ; 0xfefea238 \r\nPMMU Configuration Exception, address=%d0, a5=%a5
 fefea21c:	4dfa 0008      	lea %pc@(0xfefea226),%fp
-fefea220:	41fa 01b2      	lea %pc@(0xfefea3d4),%a0		; ODD_print
+fefea220:	41fa 01b2      	lea %pc@(0xfefea3d4),%a0		; INI_print
 fefea224:	4ed0           	jmp %a0@
 
 fefea226:	4ff9 0003 0000 	lea 0x30000,%sp
@@ -12784,14 +12899,14 @@ fefea27a:	49fa 005c      	lea %pc@(0xfefea2d8),%a4
 ; 0xfefea2d8 \r\n Unexp'd trap/vector, pc 0x%d0
 fefea27e:	4dfa 000a      	lea %pc@(0xfefea28a),%fp
 fefea282:	202f 0002      	movel %sp@(2),%d0
-fefea286:	6000 014c      	braw 0xfefea3d4		; ODD_print
+fefea286:	6000 014c      	braw 0xfefea3d4		; INI_print
 fefea28a:	49fa 006d      	lea %pc@(0xfefea2f9),%a4
 ; 0xfefea2f9  vector offset 0x%d0
 fefea28e:	4280           	clrl %d0
 fefea290:	302f 0006      	movew %sp@(6),%d0
 fefea294:	0240 0fff      	andiw #0xfff,%d0
 fefea298:	4dfa 0006      	lea %pc@(0xfefea2a0),%fp
-fefea29c:	6000 0136      	braw 0xfefea3d4		; ODD_print
+fefea29c:	6000 0136      	braw 0xfefea3d4		; INI_print
 fefea2a0:	4ff9 0003 0000 	lea 0x30000,%sp
 fefea2a6:	46fc 3700      	movew #0x3700,%sr
 fefea2aa:	204f           	moveal %sp,%a0
@@ -12855,12 +12970,12 @@ fefea33c:	13c7 6f00 003c 	moveb %d7,0x6f00003c	; PP_data
 fefea342:	49fa 083f      	lea %pc@(0xfefeab83),%a4
 ; 0xfefeab83 \r\n Unexpected level %d0 auto vector
 fefea346:	4dfa 0006      	lea %pc@(0xfefea34e),%fp
-fefea34a:	6000 0088      	braw 0xfefea3d4		; ODD_print
+fefea34a:	6000 0088      	braw 0xfefea3d4		; INI_print
 fefea34e:	49fa 0857      	lea %pc@(0xfefeaba7),%a4
 ; 0xfefeaba7 \r\n pc 0x%d0
 fefea352:	4dfa 0008      	lea %pc@(0xfefea35c),%fp
 fefea356:	202f 0002      	movel %sp@(2),%d0
-fefea35a:	6078           	bras 0xfefea3d4		; ODD_print
+fefea35a:	6078           	bras 0xfefea3d4		; INI_print
 fefea35c:	4ff9 0003 0000 	lea 0x30000,%sp
 fefea362:	46fc 3700      	movew #0x3700,%sr
 fefea366:	204f           	moveal %sp,%a0
@@ -12870,14 +12985,14 @@ fefea36c:	4ed0           	jmp %a0@
 fefea36e:	49fa 07cf      	lea %pc@(0xfefeab3f),%a4
 ; 0xfefeab3f \r\n unexpected trap/vector
 fefea372:	4dfa 0008      	lea %pc@(0xfefea37c),%fp
-fefea376:	41fa 005c      	lea %pc@(0xfefea3d4),%a0		; ODD_print
+fefea376:	41fa 005c      	lea %pc@(0xfefea3d4),%a0		; INI_print
 fefea37a:	4ed0           	jmp %a0@
 
 fefea37c:	202f 0002      	movel %sp@(2),%d0
 fefea380:	49fa 07d7      	lea %pc@(0xfefeab59),%a4
 ; 0xfefeab59 \r\n pc: %d0
 fefea384:	4dfa 0008      	lea %pc@(0xfefea38e),%fp
-fefea388:	41fa 004a      	lea %pc@(0xfefea3d4),%a0		; ODD_print
+fefea388:	41fa 004a      	lea %pc@(0xfefea3d4),%a0		; INI_print
 fefea38c:	4ed0           	jmp %a0@
 
 fefea38e:	4280           	clrl %d0
@@ -12886,7 +13001,7 @@ fefea394:	0240 0fff      	andiw #0xfff,%d0
 fefea398:	49fa 07ca      	lea %pc@(0xfefeab64),%a4
 ; 0xfefeab64  vector offset: %d0
 fefea39c:	4dfa 0008      	lea %pc@(0xfefea3a6),%fp
-fefea3a0:	41fa 0032      	lea %pc@(0xfefea3d4),%a0		; ODD_print
+fefea3a0:	41fa 0032      	lea %pc@(0xfefea3d4),%a0		; INI_print
 fefea3a4:	4ed0           	jmp %a0@
 
 fefea3a6:	4280           	clrl %d0
@@ -12897,7 +13012,7 @@ fefea3b2:	e268           	lsrw %d1,%d0
 fefea3b4:	49fa 07c2      	lea %pc@(0xfefeab78),%a4
 ; 0xfefeab78  type: %d0
 fefea3b8:	4dfa 0008      	lea %pc@(0xfefea3c2),%fp
-fefea3bc:	41fa 0016      	lea %pc@(0xfefea3d4),%a0		; ODD_print
+fefea3bc:	41fa 0016      	lea %pc@(0xfefea3d4),%a0		; INI_print
 fefea3c0:	4ed0           	jmp %a0@
 
 fefea3c2:	4ff9 0003 1000 	lea 0x31000,%sp
@@ -12907,7 +13022,7 @@ fefea3ce:	46fc 2700      	movew #0x2700,%sr
 fefea3d2:	4ed0           	jmp %a0@
 
 ; -----------------------------------------------------------
-; ODD_print
+; INI_print
 ; This seems to print message pointed to by a4
 
 fefea3d4:	0807 001a      	btst #0x1a,%d7
@@ -13059,7 +13174,7 @@ fefea5dc:	240a           	movel %a2,%d2
 fefea5de:	260b           	movel %a3,%d3
 fefea5e0:	4ed6           	jmp %fp@
 
-; ^^^^ end of ODD_print
+; ^^^^ end of INI_print
 
 fefea5e2:	206f 0004      	moveal %sp@(4),%a0
 fefea5e6:	202f 0008      	movel %sp@(8),%d0
@@ -13069,7 +13184,7 @@ fefea5f2:	48e7 fffe      	moveml %d0-%fp,%sp@-
 fefea5f6:	2848           	moveal %a0,%a4		; the string in a4
 fefea5f8:	4dfa 000a      	lea %pc@(0xfefea604),%fp
 fefea5fc:	08c7 000a      	bset #0xa,%d7
-fefea600:	6000 fdd2      	braw 0xfefea3d4		; ODD_print
+fefea600:	6000 fdd2      	braw 0xfefea3d4		; INI_print
 fefea604:	4cdf 7fff      	moveml %sp@+,%d0-%fp
 fefea608:	4e5e           	unlk %fp
 fefea60a:	4e75           	rts
@@ -14063,7 +14178,7 @@ fefeafd2:	6600 0010      	bnew 0xfefeafe4
 fefeafd6:	49fa 03f6      	lea %pc@(0xfefeb3ce),%a4
 ; 0xfefeb3ce \r\n<Initializing Main Memory...
 fefeafda:	4dfa 0008      	lea %pc@(0xfefeafe4),%fp
-fefeafde:	60ff ffff f3f4 	bral 0xfefea3d4		; ODD_print
+fefeafde:	60ff ffff f3f4 	bral 0xfefea3d4		; INI_print
 fefeafe4:	4280           	clrl %d0
 fefeafe6:	4281           	clrl %d1
 fefeafe8:	4dfa 0008      	lea %pc@(0xfefeaff2),%fp
@@ -14109,7 +14224,7 @@ fefeb074:	6600 0010      	bnew 0xfefeb086
 fefeb078:	49fa 0374      	lea %pc@(0xfefeb3ee),%a4
 ; 0xfefeb3ee 0x%d1 Megabytes Initialized>\r\n\r\n
 fefeb07c:	4dfa 0008      	lea %pc@(0xfefeb086),%fp
-fefeb080:	60ff ffff f352 	bral 0xfefea3d4		; ODD_print
+fefeb080:	60ff ffff f352 	bral 0xfefea3d4		; INI_print
 fefeb086:	13fc 0050 6100 	moveb #0x50,0x61001000
 fefeb08c:	1000
 fefeb08e:	13fc 0000 6100 	moveb #0,0x61001400
@@ -14138,7 +14253,7 @@ fefeb0e0:	363c 0004      	movew #4,%d3
 fefeb0e4:	49fa 0378      	lea %pc@(0xfefeb45e),%a4
 ; 0xfefeb45e Type a Character within 10 seconds to enter the Menu Tests...(e for echo mode)\r\n
 fefeb0e8:	4dfa 0008      	lea %pc@(0xfefeb0f2),%fp
-fefeb0ec:	60ff ffff f2e6 	bral 0xfefea3d4		; ODD_print
+fefeb0ec:	60ff ffff f2e6 	bral 0xfefea3d4		; INI_print
 
 fefeb0f2:	203c 0000 ffff 	movel #0xffff,%d0
 fefeb0f8:	0883 001f      	bclr #0x1f,%d3
@@ -14176,7 +14291,7 @@ fefeb158:	08c7 001f      	bset #0x1f,%d7
 fefeb15c:	49fa 0351      	lea %pc@(0xfefeb4af),%a4
 ; 0xfefeb4af \r\nEcho mode: Output will echo to Video!\r\n
 fefeb160:	4dfa 0008      	lea %pc@(0xfefeb16a),%fp
-fefeb164:	60ff ffff f26e 	bral 0xfefea3d4		; ODD_print
+fefeb164:	60ff ffff f26e 	bral 0xfefea3d4		; INI_print
 
 fefeb16a:	4dfa 0008      	lea %pc@(0xfefeb174),%fp
 fefeb16e:	60ff ffff f54e 	bral 0xfefea6be
@@ -14350,7 +14465,7 @@ fefeb628:	1e3c 0015      	moveb #0x15,%d7
 fefeb62c:	49fa 1025      	lea %pc@(0xfefec653),%a4
 ; 0xfefec653 \r\nP4 Frame Buffer Write/Write/Read Test
 fefeb630:	4dfa 0008      	lea %pc@(0xfefeb63a),%fp
-fefeb634:	60ff ffff e512 	bral 0xfefe9b48			; ODD_test
+fefeb634:	60ff ffff e512 	bral 0xfefe9b48			; INI_test
 
 fefeb63a:	4dfa 0006      	lea %pc@(0xfefeb642),%fp
 fefeb63e:	6000 0a10      	braw 0xfefec050
@@ -14359,7 +14474,7 @@ fefeb644:	2a01           	movel %d1,%d5
 fefeb646:	08c7 0007      	bset #7,%d7
 fefeb64a:	4281           	clrl %d1
 fefeb64c:	4dfa 0008      	lea %pc@(0xfefeb656),%fp
-fefeb650:	60ff ffff e5d0 	bral 0xfefe9c22			; ODD_stash_fp
+fefeb650:	60ff ffff e5d0 	bral 0xfefe9c22			; INI_stash_fp
 fefeb656:	4280           	clrl %d0
 fefeb658:	2ac1           	movel %d1,%a5@+
 fefeb65a:	4681           	notl %d1
@@ -14378,9 +14493,9 @@ fefeb684:	6700 0012      	beqw 0xfefeb698
 fefeb688:	49f9 fefe 9832 	lea 0xfefe9832,%a4
 ; 0xfefe9832 \r\n addr 0x%a5: exp 0x%d1, obs 0x%d0
 fefeb68e:	4dfa 0008      	lea %pc@(0xfefeb698),%fp
-fefeb692:	60ff ffff e614 	bral 0xfefe9ca8			; ODD_print2
+fefeb692:	60ff ffff e614 	bral 0xfefe9ca8			; INI_print2
 fefeb698:	4dfa 0008      	lea %pc@(0xfefeb6a2),%fp
-fefeb69c:	60ff ffff e67e 	bral 0xfefe9d1c			; ODD_func
+fefeb69c:	60ff ffff e67e 	bral 0xfefe9d1c			; INI_func
 fefeb6a2:	6400 0060      	bccw 0xfefeb704
 fefeb6a6:	0807 0019      	btst #0x19,%d7
 fefeb6aa:	6700 0010      	beqw 0xfefeb6bc
@@ -14420,7 +14535,7 @@ fefeb72c:	1e3c 0019      	moveb #0x19,%d7
 fefeb730:	49fa 0fd5      	lea %pc@(0xfefec707),%a4
 ; 0xfefec707 \r\nP4 Frame Buffer Read Byte Alignment Test
 fefeb734:	4dfa 0008      	lea %pc@(0xfefeb73e),%fp
-fefeb738:	60ff ffff e40e 	bral 0xfefe9b48			; ODD_test
+fefeb738:	60ff ffff e40e 	bral 0xfefe9b48			; INI_test
 fefeb73e:	08c7 0007      	bset #7,%d7
 fefeb742:	4dfa 0006      	lea %pc@(0xfefeb74a),%fp
 fefeb746:	6000 0908      	braw 0xfefec050
@@ -14429,7 +14544,7 @@ fefeb74c:	2afc 0011 2233 	movel #0x112233,%a5@+
 fefeb752:	2abc 0011 2233 	movel #0x112233,%a5@
 fefeb758:	2a40           	moveal %d0,%a5
 fefeb75a:	4dfa 0008      	lea %pc@(0xfefeb764),%fp
-fefeb75e:	60ff ffff e4c2 	bral 0xfefe9c22			; ODD_stash_fp
+fefeb75e:	60ff ffff e4c2 	bral 0xfefe9c22			; INI_stash_fp
 fefeb764:	4280           	clrl %d0
 fefeb766:	7233           	moveq #51,%d1
 fefeb768:	102d 0003      	moveb %a5@(3),%d0
@@ -14444,12 +14559,12 @@ fefeb788:	6700 0012      	beqw 0xfefeb79c
 fefeb78c:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefeb792:	4dfa 0008      	lea %pc@(0xfefeb79c),%fp
-fefeb796:	60ff ffff e510 	bral 0xfefe9ca8			; ODD_print2
+fefeb796:	60ff ffff e510 	bral 0xfefe9ca8			; INI_print2
 fefeb79c:	4dfa 0008      	lea %pc@(0xfefeb7a6),%fp
-fefeb7a0:	60ff ffff e57a 	bral 0xfefe9d1c			; ODD_func
+fefeb7a0:	60ff ffff e57a 	bral 0xfefe9d1c			; INI_func
 fefeb7a6:	6400 028c      	bccw 0xfefeba34
 fefeb7aa:	4dfa 0008      	lea %pc@(0xfefeb7b4),%fp
-fefeb7ae:	60ff ffff e472 	bral 0xfefe9c22			; ODD_stash_fp
+fefeb7ae:	60ff ffff e472 	bral 0xfefe9c22			; INI_stash_fp
 fefeb7b4:	4280           	clrl %d0
 fefeb7b6:	7222           	moveq #34,%d1
 fefeb7b8:	102d 0002      	moveb %a5@(2),%d0
@@ -14464,12 +14579,12 @@ fefeb7d8:	6700 0012      	beqw 0xfefeb7ec
 fefeb7dc:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefeb7e2:	4dfa 0008      	lea %pc@(0xfefeb7ec),%fp
-fefeb7e6:	60ff ffff e4c0 	bral 0xfefe9ca8		; ODD_print2
+fefeb7e6:	60ff ffff e4c0 	bral 0xfefe9ca8		; INI_print2
 fefeb7ec:	4dfa 0008      	lea %pc@(0xfefeb7f6),%fp
-fefeb7f0:	60ff ffff e52a 	bral 0xfefe9d1c			; ODD_func
+fefeb7f0:	60ff ffff e52a 	bral 0xfefe9d1c			; INI_func
 fefeb7f6:	6400 023c      	bccw 0xfefeba34
 fefeb7fa:	4dfa 0008      	lea %pc@(0xfefeb804),%fp
-fefeb7fe:	60ff ffff e422 	bral 0xfefe9c22			; ODD_stash_fp
+fefeb7fe:	60ff ffff e422 	bral 0xfefe9c22			; INI_stash_fp
 fefeb804:	4280           	clrl %d0
 fefeb806:	7211           	moveq #17,%d1
 fefeb808:	102d 0001      	moveb %a5@(1),%d0
@@ -14484,12 +14599,12 @@ fefeb828:	6700 0012      	beqw 0xfefeb83c
 fefeb82c:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefeb832:	4dfa 0008      	lea %pc@(0xfefeb83c),%fp
-fefeb836:	60ff ffff e470 	bral 0xfefe9ca8		; ODD_print2
+fefeb836:	60ff ffff e470 	bral 0xfefe9ca8		; INI_print2
 fefeb83c:	4dfa 0008      	lea %pc@(0xfefeb846),%fp
-fefeb840:	60ff ffff e4da 	bral 0xfefe9d1c			; ODD_func
+fefeb840:	60ff ffff e4da 	bral 0xfefe9d1c			; INI_func
 fefeb846:	6400 01ec      	bccw 0xfefeba34
 fefeb84a:	4dfa 0008      	lea %pc@(0xfefeb854),%fp
-fefeb84e:	60ff ffff e3d2 	bral 0xfefe9c22			; ODD_stash_fp
+fefeb84e:	60ff ffff e3d2 	bral 0xfefe9c22			; INI_stash_fp
 fefeb854:	4280           	clrl %d0
 fefeb856:	7200           	moveq #0,%d1
 fefeb858:	102d 0000      	moveb %a5@(0),%d0
@@ -14504,12 +14619,12 @@ fefeb878:	6700 0012      	beqw 0xfefeb88c
 fefeb87c:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefeb882:	4dfa 0008      	lea %pc@(0xfefeb88c),%fp
-fefeb886:	60ff ffff e420 	bral 0xfefe9ca8		; ODD_print2
+fefeb886:	60ff ffff e420 	bral 0xfefe9ca8		; INI_print2
 fefeb88c:	4dfa 0008      	lea %pc@(0xfefeb896),%fp
-fefeb890:	60ff ffff e48a 	bral 0xfefe9d1c			; ODD_func
+fefeb890:	60ff ffff e48a 	bral 0xfefe9d1c			; INI_func
 fefeb896:	6400 019c      	bccw 0xfefeba34
 fefeb89a:	4dfa 0008      	lea %pc@(0xfefeb8a4),%fp
-fefeb89e:	60ff ffff e382 	bral 0xfefe9c22			; ODD_stash_fp
+fefeb89e:	60ff ffff e382 	bral 0xfefe9c22			; INI_stash_fp
 fefeb8a4:	4280           	clrl %d0
 fefeb8a6:	223c 0000 2233 	movel #0x2233,%d1
 fefeb8ac:	302d 0002      	movew %a5@(2),%d0
@@ -14524,12 +14639,12 @@ fefeb8cc:	6700 0012      	beqw 0xfefeb8e0
 fefeb8d0:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefeb8d6:	4dfa 0008      	lea %pc@(0xfefeb8e0),%fp
-fefeb8da:	60ff ffff e3cc 	bral 0xfefe9ca8		; ODD_print2
+fefeb8da:	60ff ffff e3cc 	bral 0xfefe9ca8		; INI_print2
 fefeb8e0:	4dfa 0008      	lea %pc@(0xfefeb8ea),%fp
-fefeb8e4:	60ff ffff e436 	bral 0xfefe9d1c			; ODD_func
+fefeb8e4:	60ff ffff e436 	bral 0xfefe9d1c			; INI_func
 fefeb8ea:	6400 0148      	bccw 0xfefeba34
 fefeb8ee:	4dfa 0008      	lea %pc@(0xfefeb8f8),%fp
-fefeb8f2:	60ff ffff e32e 	bral 0xfefe9c22			; ODD_stash_fp
+fefeb8f2:	60ff ffff e32e 	bral 0xfefe9c22			; INI_stash_fp
 fefeb8f8:	4280           	clrl %d0
 fefeb8fa:	223c 0000 1122 	movel #0x1122,%d1
 fefeb900:	302d 0001      	movew %a5@(1),%d0
@@ -14544,12 +14659,12 @@ fefeb920:	6700 0012      	beqw 0xfefeb934
 fefeb924:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefeb92a:	4dfa 0008      	lea %pc@(0xfefeb934),%fp
-fefeb92e:	60ff ffff e378 	bral 0xfefe9ca8		; ODD_print2
+fefeb92e:	60ff ffff e378 	bral 0xfefe9ca8		; INI_print2
 fefeb934:	4dfa 0008      	lea %pc@(0xfefeb93e),%fp
-fefeb938:	60ff ffff e3e2 	bral 0xfefe9d1c			; ODD_func
+fefeb938:	60ff ffff e3e2 	bral 0xfefe9d1c			; INI_func
 fefeb93e:	6400 00f4      	bccw 0xfefeba34
 fefeb942:	4dfa 0008      	lea %pc@(0xfefeb94c),%fp
-fefeb946:	60ff ffff e2da 	bral 0xfefe9c22			; ODD_stash_fp
+fefeb946:	60ff ffff e2da 	bral 0xfefe9c22			; INI_stash_fp
 fefeb94c:	223c 1122 3300 	movel #0x11223300,%d1
 fefeb952:	202d 0001      	movel %a5@(1),%d0
 fefeb956:	b280           	cmpl %d0,%d1
@@ -14563,12 +14678,12 @@ fefeb972:	6700 0012      	beqw 0xfefeb986
 fefeb976:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefeb97c:	4dfa 0008      	lea %pc@(0xfefeb986),%fp
-fefeb980:	60ff ffff e326 	bral 0xfefe9ca8		; ODD_print2
+fefeb980:	60ff ffff e326 	bral 0xfefe9ca8		; INI_print2
 fefeb986:	4dfa 0008      	lea %pc@(0xfefeb990),%fp
-fefeb98a:	60ff ffff e390 	bral 0xfefe9d1c			; ODD_func
+fefeb98a:	60ff ffff e390 	bral 0xfefe9d1c			; INI_func
 fefeb990:	6400 00a2      	bccw 0xfefeba34
 fefeb994:	4dfa 0008      	lea %pc@(0xfefeb99e),%fp
-fefeb998:	60ff ffff e288 	bral 0xfefe9c22			; ODD_stash_fp
+fefeb998:	60ff ffff e288 	bral 0xfefe9c22			; INI_stash_fp
 fefeb99e:	223c 2233 0011 	movel #0x22330011,%d1
 fefeb9a4:	202d 0002      	movel %a5@(2),%d0
 fefeb9a8:	b280           	cmpl %d0,%d1
@@ -14582,12 +14697,12 @@ fefeb9c4:	6700 0012      	beqw 0xfefeb9d8
 fefeb9c8:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefeb9ce:	4dfa 0008      	lea %pc@(0xfefeb9d8),%fp
-fefeb9d2:	60ff ffff e2d4 	bral 0xfefe9ca8		; ODD_print2
+fefeb9d2:	60ff ffff e2d4 	bral 0xfefe9ca8		; INI_print2
 fefeb9d8:	4dfa 0008      	lea %pc@(0xfefeb9e2),%fp
-fefeb9dc:	60ff ffff e33e 	bral 0xfefe9d1c			; ODD_func
+fefeb9dc:	60ff ffff e33e 	bral 0xfefe9d1c			; INI_func
 fefeb9e2:	6400 0050      	bccw 0xfefeba34
 fefeb9e6:	4dfa 0008      	lea %pc@(0xfefeb9f0),%fp
-fefeb9ea:	60ff ffff e236 	bral 0xfefe9c22			; ODD_stash_fp
+fefeb9ea:	60ff ffff e236 	bral 0xfefe9c22			; INI_stash_fp
 fefeb9f0:	223c 3300 1122 	movel #0x33001122,%d1
 fefeb9f6:	202d 0003      	movel %a5@(3),%d0
 fefeb9fa:	b280           	cmpl %d0,%d1
@@ -14601,9 +14716,9 @@ fefeba16:	6700 0012      	beqw 0xfefeba2a
 fefeba1a:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefeba20:	4dfa 0008      	lea %pc@(0xfefeba2a),%fp
-fefeba24:	60ff ffff e282 	bral 0xfefe9ca8		; ODD_print2
+fefeba24:	60ff ffff e282 	bral 0xfefe9ca8		; INI_print2
 fefeba2a:	4dfa 0008      	lea %pc@(0xfefeba34),%fp
-fefeba2e:	60ff ffff e2ec 	bral 0xfefe9d1c			; ODD_func
+fefeba2e:	60ff ffff e2ec 	bral 0xfefe9d1c			; INI_func
 fefeba34:	0807 0009      	btst #9,%d7
 fefeba38:	6600 fd04      	bnew 0xfefeb73e
 fefeba3c:	0807 001f      	btst #0x1f,%d7
@@ -14618,12 +14733,12 @@ fefeba5c:	1e3c 001a      	moveb #0x1a,%d7
 fefeba60:	49fa 0cd0      	lea %pc@(0xfefec732),%a4
 ; 0xfefec732 \r\nP4 Frame Buffer Write Byte Alignment Test
 fefeba64:	4dfa 0008      	lea %pc@(0xfefeba6e),%fp
-fefeba68:	60ff ffff e0de 	bral 0xfefe9b48			; ODD_test
+fefeba68:	60ff ffff e0de 	bral 0xfefe9b48			; INI_test
 fefeba6e:	08c7 0007      	bset #7,%d7
 fefeba72:	4dfa 0006      	lea %pc@(0xfefeba7a),%fp
 fefeba76:	6000 05d8      	braw 0xfefec050
 fefeba7a:	4dfa 0008      	lea %pc@(0xfefeba84),%fp
-fefeba7e:	60ff ffff e1a2 	bral 0xfefe9c22			; ODD_stash_fp
+fefeba7e:	60ff ffff e1a2 	bral 0xfefe9c22			; INI_stash_fp
 fefeba84:	4280           	clrl %d0
 fefeba86:	4295           	clrl %a5@
 fefeba88:	1b7c 0033 0003 	moveb #0x33,%a5@(3)
@@ -14640,12 +14755,12 @@ fefebab2:	6700 0012      	beqw 0xfefebac6
 fefebab6:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefebabc:	4dfa 0008      	lea %pc@(0xfefebac6),%fp
-fefebac0:	60ff ffff e1e6 	bral 0xfefe9ca8		; ODD_print2
+fefebac0:	60ff ffff e1e6 	bral 0xfefe9ca8		; INI_print2
 fefebac6:	4dfa 0008      	lea %pc@(0xfefebad0),%fp
-fefebaca:	60ff ffff e250 	bral 0xfefe9d1c			; ODD_func
+fefebaca:	60ff ffff e250 	bral 0xfefe9d1c			; INI_func
 fefebad0:	6400 0394      	bccw 0xfefebe66
 fefebad4:	4dfa 0008      	lea %pc@(0xfefebade),%fp
-fefebad8:	60ff ffff e148 	bral 0xfefe9c22			; ODD_stash_fp
+fefebad8:	60ff ffff e148 	bral 0xfefe9c22			; INI_stash_fp
 fefebade:	4280           	clrl %d0
 fefebae0:	4295           	clrl %a5@
 fefebae2:	1b7c 0022 0002 	moveb #0x22,%a5@(2)
@@ -14662,12 +14777,12 @@ fefebb0c:	6700 0012      	beqw 0xfefebb20
 fefebb10:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefebb16:	4dfa 0008      	lea %pc@(0xfefebb20),%fp
-fefebb1a:	60ff ffff e18c 	bral 0xfefe9ca8		; ODD_print2
+fefebb1a:	60ff ffff e18c 	bral 0xfefe9ca8		; INI_print2
 fefebb20:	4dfa 0008      	lea %pc@(0xfefebb2a),%fp
-fefebb24:	60ff ffff e1f6 	bral 0xfefe9d1c			; ODD_func
+fefebb24:	60ff ffff e1f6 	bral 0xfefe9d1c			; INI_func
 fefebb2a:	6400 033a      	bccw 0xfefebe66
 fefebb2e:	4dfa 0008      	lea %pc@(0xfefebb38),%fp
-fefebb32:	60ff ffff e0ee 	bral 0xfefe9c22			; ODD_stash_fp
+fefebb32:	60ff ffff e0ee 	bral 0xfefe9c22			; INI_stash_fp
 fefebb38:	4280           	clrl %d0
 fefebb3a:	4295           	clrl %a5@
 fefebb3c:	1b7c 0011 0001 	moveb #0x11,%a5@(1)
@@ -14684,12 +14799,12 @@ fefebb66:	6700 0012      	beqw 0xfefebb7a
 fefebb6a:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefebb70:	4dfa 0008      	lea %pc@(0xfefebb7a),%fp
-fefebb74:	60ff ffff e132 	bral 0xfefe9ca8		; ODD_print2
+fefebb74:	60ff ffff e132 	bral 0xfefe9ca8		; INI_print2
 fefebb7a:	4dfa 0008      	lea %pc@(0xfefebb84),%fp
-fefebb7e:	60ff ffff e19c 	bral 0xfefe9d1c			; ODD_func
+fefebb7e:	60ff ffff e19c 	bral 0xfefe9d1c			; INI_func
 fefebb84:	6400 02e0      	bccw 0xfefebe66
 fefebb88:	4dfa 0008      	lea %pc@(0xfefebb92),%fp
-fefebb8c:	60ff ffff e094 	bral 0xfefe9c22			; ODD_stash_fp
+fefebb8c:	60ff ffff e094 	bral 0xfefe9c22			; INI_stash_fp
 fefebb92:	4280           	clrl %d0
 fefebb94:	4295           	clrl %a5@
 fefebb96:	1b7c 00aa 0000 	moveb #0xaa,%a5@(0)
@@ -14706,12 +14821,12 @@ fefebbc0:	6700 0012      	beqw 0xfefebbd4
 fefebbc4:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefebbca:	4dfa 0008      	lea %pc@(0xfefebbd4),%fp
-fefebbce:	60ff ffff e0d8 	bral 0xfefe9ca8		; ODD_print2
+fefebbce:	60ff ffff e0d8 	bral 0xfefe9ca8		; INI_print2
 fefebbd4:	4dfa 0008      	lea %pc@(0xfefebbde),%fp
-fefebbd8:	60ff ffff e142 	bral 0xfefe9d1c			; ODD_func
+fefebbd8:	60ff ffff e142 	bral 0xfefe9d1c			; INI_func
 fefebbde:	6400 0286      	bccw 0xfefebe66
 fefebbe2:	4dfa 0008      	lea %pc@(0xfefebbec),%fp
-fefebbe6:	60ff ffff e03a 	bral 0xfefe9c22			; ODD_stash_fp
+fefebbe6:	60ff ffff e03a 	bral 0xfefe9c22			; INI_stash_fp
 fefebbec:	4280           	clrl %d0
 fefebbee:	4295           	clrl %a5@
 fefebbf0:	3b7c aa11 0000 	movew #0xaa11,%a5@(0)
@@ -14728,12 +14843,12 @@ fefebc1a:	6700 0012      	beqw 0xfefebc2e
 fefebc1e:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefebc24:	4dfa 0008      	lea %pc@(0xfefebc2e),%fp
-fefebc28:	60ff ffff e07e 	bral 0xfefe9ca8		; ODD_print2
+fefebc28:	60ff ffff e07e 	bral 0xfefe9ca8		; INI_print2
 fefebc2e:	4dfa 0008      	lea %pc@(0xfefebc38),%fp
-fefebc32:	60ff ffff e0e8 	bral 0xfefe9d1c			; ODD_func
+fefebc32:	60ff ffff e0e8 	bral 0xfefe9d1c			; INI_func
 fefebc38:	6400 022c      	bccw 0xfefebe66
 fefebc3c:	4dfa 0008      	lea %pc@(0xfefebc46),%fp
-fefebc40:	60ff ffff dfe0 	bral 0xfefe9c22			; ODD_stash_fp
+fefebc40:	60ff ffff dfe0 	bral 0xfefe9c22			; INI_stash_fp
 fefebc46:	4280           	clrl %d0
 fefebc48:	4295           	clrl %a5@
 fefebc4a:	3b7c 2233 0002 	movew #0x2233,%a5@(2)
@@ -14750,12 +14865,12 @@ fefebc74:	6700 0012      	beqw 0xfefebc88
 fefebc78:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefebc7e:	4dfa 0008      	lea %pc@(0xfefebc88),%fp
-fefebc82:	60ff ffff e024 	bral 0xfefe9ca8		; ODD_print2
+fefebc82:	60ff ffff e024 	bral 0xfefe9ca8		; INI_print2
 fefebc88:	4dfa 0008      	lea %pc@(0xfefebc92),%fp
-fefebc8c:	60ff ffff e08e 	bral 0xfefe9d1c			; ODD_func
+fefebc8c:	60ff ffff e08e 	bral 0xfefe9d1c			; INI_func
 fefebc92:	6400 01d2      	bccw 0xfefebe66
 fefebc96:	4dfa 0008      	lea %pc@(0xfefebca0),%fp
-fefebc9a:	60ff ffff df86 	bral 0xfefe9c22			; ODD_stash_fp
+fefebc9a:	60ff ffff df86 	bral 0xfefe9c22			; INI_stash_fp
 fefebca0:	4295           	clrl %a5@
 fefebca2:	42ad 0004      	clrl %a5@(4)
 fefebca6:	3b7c 33ba 0003 	movew #0x33ba,%a5@(3)
@@ -14772,12 +14887,12 @@ fefebcd0:	6700 0012      	beqw 0xfefebce4
 fefebcd4:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefebcda:	4dfa 0008      	lea %pc@(0xfefebce4),%fp
-fefebcde:	60ff ffff dfc8 	bral 0xfefe9ca8		; ODD_print2
+fefebcde:	60ff ffff dfc8 	bral 0xfefe9ca8		; INI_print2
 fefebce4:	4dfa 0008      	lea %pc@(0xfefebcee),%fp
-fefebce8:	60ff ffff e032 	bral 0xfefe9d1c			; ODD_func
+fefebce8:	60ff ffff e032 	bral 0xfefe9d1c			; INI_func
 fefebcee:	6400 0176      	bccw 0xfefebe66
 fefebcf2:	4dfa 0008      	lea %pc@(0xfefebcfc),%fp
-fefebcf6:	60ff ffff df2a 	bral 0xfefe9c22			; ODD_stash_fp
+fefebcf6:	60ff ffff df2a 	bral 0xfefe9c22			; INI_stash_fp
 fefebcfc:	4295           	clrl %a5@
 fefebcfe:	42ad 0004      	clrl %a5@(4)
 fefebd02:	3b7c 33aa 0003 	movew #0x33aa,%a5@(3)
@@ -14794,12 +14909,12 @@ fefebd2e:	6700 0012      	beqw 0xfefebd42
 fefebd32:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefebd38:	4dfa 0008      	lea %pc@(0xfefebd42),%fp
-fefebd3c:	60ff ffff df6a 	bral 0xfefe9ca8		; ODD_print2
+fefebd3c:	60ff ffff df6a 	bral 0xfefe9ca8		; INI_print2
 fefebd42:	4dfa 0008      	lea %pc@(0xfefebd4c),%fp
-fefebd46:	60ff ffff dfd4 	bral 0xfefe9d1c			; ODD_func
+fefebd46:	60ff ffff dfd4 	bral 0xfefe9d1c			; INI_func
 fefebd4c:	6400 0118      	bccw 0xfefebe66
 fefebd50:	4dfa 0008      	lea %pc@(0xfefebd5a),%fp
-fefebd54:	60ff ffff decc 	bral 0xfefe9c22			; ODD_stash_fp
+fefebd54:	60ff ffff decc 	bral 0xfefe9c22			; INI_stash_fp
 fefebd5a:	4295           	clrl %a5@
 fefebd5c:	42ad 0004      	clrl %a5@(4)
 fefebd60:	2b7c 1122 33aa 	movel #0x112233aa,%a5@(1)
@@ -14817,13 +14932,13 @@ fefebd8c:	6700 0012      	beqw 0xfefebda0
 fefebd90:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefebd96:	4dfa 0008      	lea %pc@(0xfefebda0),%fp
-fefebd9a:	60ff ffff df0c 	bral 0xfefe9ca8		; ODD_print2
+fefebd9a:	60ff ffff df0c 	bral 0xfefe9ca8		; INI_print2
 
 fefebda0:	4dfa 0008      	lea %pc@(0xfefebdaa),%fp
-fefebda4:	60ff ffff df76 	bral 0xfefe9d1c			; ODD_func
+fefebda4:	60ff ffff df76 	bral 0xfefe9d1c			; INI_func
 fefebdaa:	6400 00ba      	bccw 0xfefebe66
 fefebdae:	4dfa 0008      	lea %pc@(0xfefebdb8),%fp
-fefebdb2:	60ff ffff de6e 	bral 0xfefe9c22			; ODD_stash_fp
+fefebdb2:	60ff ffff de6e 	bral 0xfefe9c22			; INI_stash_fp
 fefebdb8:	4295           	clrl %a5@
 fefebdba:	42ad 0004      	clrl %a5@(4)
 fefebdbe:	2b7c 2233 aa11 	movel #0x2233aa11,%a5@(2)
@@ -14841,12 +14956,12 @@ fefebdea:	6700 0012      	beqw 0xfefebdfe
 fefebdee:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefebdf4:	4dfa 0008      	lea %pc@(0xfefebdfe),%fp
-fefebdf8:	60ff ffff deae 	bral 0xfefe9ca8		; ODD_print2
+fefebdf8:	60ff ffff deae 	bral 0xfefe9ca8		; INI_print2
 fefebdfe:	4dfa 0008      	lea %pc@(0xfefebe08),%fp
-fefebe02:	60ff ffff df18 	bral 0xfefe9d1c			; ODD_func
+fefebe02:	60ff ffff df18 	bral 0xfefe9d1c			; INI_func
 fefebe08:	6400 005c      	bccw 0xfefebe66
 fefebe0c:	4dfa 0008      	lea %pc@(0xfefebe16),%fp
-fefebe10:	60ff ffff de10 	bral 0xfefe9c22			; ODD_stash_fp
+fefebe10:	60ff ffff de10 	bral 0xfefe9c22			; INI_stash_fp
 fefebe16:	4295           	clrl %a5@
 fefebe18:	42ad 0004      	clrl %a5@(4)
 fefebe1c:	2b7c 33aa 1122 	movel #0x33aa1122,%a5@(3)
@@ -14864,9 +14979,9 @@ fefebe48:	6700 0012      	beqw 0xfefebe5c
 fefebe4c:	49f9 fefe 97fd 	lea 0xfefe97fd,%a4
 ; 0xfefe97fd \r\n byte misalignment: addr 0x%a5 exp 0x%d1 obs 0x%d0
 fefebe52:	4dfa 0008      	lea %pc@(0xfefebe5c),%fp
-fefebe56:	60ff ffff de50 	bral 0xfefe9ca8		; ODD_print2
+fefebe56:	60ff ffff de50 	bral 0xfefe9ca8		; INI_print2
 fefebe5c:	4dfa 0008      	lea %pc@(0xfefebe66),%fp
-fefebe60:	60ff ffff deba 	bral 0xfefe9d1c			; ODD_func
+fefebe60:	60ff ffff deba 	bral 0xfefe9d1c			; INI_func
 fefebe66:	0807 0009      	btst #9,%d7
 fefebe6a:	6600 fc02      	bnew 0xfefeba6e
 fefebe6e:	0807 001e      	btst #0x1e,%d7
@@ -14881,14 +14996,14 @@ fefebe92:	1e3c 001b      	moveb #0x1b,%d7
 fefebe96:	49fa 08c6      	lea %pc@(0xfefec75e),%a4
 ; 0xfefec75e \r\nP4 Enable Plane Write/Write/Read Test
 fefebe9a:	4dfa 0008      	lea %pc@(0xfefebea4),%fp
-fefebe9e:	60ff ffff dca8 	bral 0xfefe9b48			; ODD_test
+fefebe9e:	60ff ffff dca8 	bral 0xfefe9b48			; INI_test
 fefebea4:	08c7 0007      	bset #7,%d7
 fefebea8:	4bf9 5060 0000 	lea 0x50600000,%a5
 fefebeae:	260d           	movel %a5,%d3
 fefebeb0:	0683 0002 0000 	addil #0x20000,%d3
 fefebeb6:	4281           	clrl %d1
 fefebeb8:	4dfa 0008      	lea %pc@(0xfefebec2),%fp
-fefebebc:	60ff ffff dd64 	bral 0xfefe9c22			; ODD_stash_fp
+fefebebc:	60ff ffff dd64 	bral 0xfefe9c22			; INI_stash_fp
 fefebec2:	4280           	clrl %d0
 fefebec4:	2ac1           	movel %d1,%a5@+
 fefebec6:	4681           	notl %d1
@@ -14908,9 +15023,9 @@ fefebeee:	6700 0012      	beqw 0xfefebf02
 fefebef2:	49f9 fefe 9832 	lea 0xfefe9832,%a4
 ; 0xfefe9832 \r\n addr 0x%a5: exp 0x%d1, obs 0x%d0
 fefebef8:	4dfa 0008      	lea %pc@(0xfefebf02),%fp
-fefebefc:	60ff ffff ddaa 	bral 0xfefe9ca8		; ODD_print2
+fefebefc:	60ff ffff ddaa 	bral 0xfefe9ca8		; INI_print2
 fefebf02:	4dfa 0008      	lea %pc@(0xfefebf0c),%fp
-fefebf06:	60ff ffff de14 	bral 0xfefe9d1c			; ODD_func
+fefebf06:	60ff ffff de14 	bral 0xfefe9d1c			; INI_func
 fefebf0c:	6400 004a      	bccw 0xfefebf58
 fefebf10:	0c81 8000 0000 	cmpil #0x80000000,%d1
 fefebf16:	6700 0014      	beqw 0xfefebf2c
@@ -14940,14 +15055,14 @@ fefebf6c:	1e3c 001c      	moveb #0x1c,%d7
 fefebf70:	49fa 0814      	lea %pc@(0xfefec786),%a4
 ; 0xfefec786 \r\nP4 Color Plane Write/Write/Read Test
 fefebf74:	4dfa 0008      	lea %pc@(0xfefebf7e),%fp
-fefebf78:	60ff ffff dbce 	bral 0xfefe9b48			; ODD_test
+fefebf78:	60ff ffff dbce 	bral 0xfefe9b48			; INI_test
 fefebf7e:	08c7 0007      	bset #7,%d7
 fefebf82:	4bf9 5080 0000 	lea 0x50800000,%a5
 fefebf88:	260d           	movel %a5,%d3
 fefebf8a:	0683 0010 0000 	addil #0x100000,%d3
 fefebf90:	4281           	clrl %d1
 fefebf92:	4dfa 0008      	lea %pc@(0xfefebf9c),%fp
-fefebf96:	60ff ffff dc8a 	bral 0xfefe9c22			; ODD_stash_fp
+fefebf96:	60ff ffff dc8a 	bral 0xfefe9c22			; INI_stash_fp
 
 fefebf9c:	4280           	clrl %d0
 fefebf9e:	2ac1           	movel %d1,%a5@+
@@ -14968,9 +15083,9 @@ fefebfc8:	6700 0012      	beqw 0xfefebfdc
 fefebfcc:	49f9 fefe 9832 	lea 0xfefe9832,%a4
 ; 0xfefe9832 \r\n addr 0x%a5: exp 0x%d1, obs 0x%d0
 fefebfd2:	4dfa 0008      	lea %pc@(0xfefebfdc),%fp
-fefebfd6:	60ff ffff dcd0 	bral 0xfefe9ca8		; ODD_print2
+fefebfd6:	60ff ffff dcd0 	bral 0xfefe9ca8		; INI_print2
 fefebfdc:	4dfa 0008      	lea %pc@(0xfefebfe6),%fp
-fefebfe0:	60ff ffff dd3a 	bral 0xfefe9d1c			; ODD_func
+fefebfe0:	60ff ffff dd3a 	bral 0xfefe9d1c			; INI_func
 fefebfe6:	6400 0054      	bccw 0xfefec03c
 fefebfea:	0c81 0000 0000 	cmpil #0,%d1
 fefebff0:	6700 001e      	beqw 0xfefec010
@@ -15027,7 +15142,7 @@ fefec0b8:	6700 0012      	beqw 0xfefec0cc
 fefec0bc:	49fa 05bd      	lea %pc@(0xfefec67b),%a4
 ; 0xfefec67b \r\n<Warning: Skipping P4 Video RAM Board Probe>
 fefec0c0:	4df9 fefe 9a12 	lea 0xfefe9a12,%fp
-fefec0c6:	60ff ffff e30c 	bral 0xfefea3d4		; ODD_print
+fefec0c6:	60ff ffff e30c 	bral 0xfefea3d4		; INI_print
 fefec0cc:	4ff9 0002 0000 	lea 0x20000,%sp
 fefec0d2:	41f9 0002 c400 	lea 0x2c400,%a0
 fefec0d8:	4e7b 8801      	movec %a0,%vbr
@@ -15069,19 +15184,19 @@ fefec156:	6d00 005c      	bltw 0xfefec1b4
 fefec15a:	49fa 049b      	lea %pc@(0xfefec5f7),%a4
 ; 0xfefec5f7 \r\n<ILLEGAL P4 ID Detected [0x%d3] Skipping Video Tests>
 fefec15e:	4dfa 0016      	lea %pc@(0xfefec176),%fp
-fefec162:	60ff ffff e270 	bral 0xfefea3d4		; ODD_print
+fefec162:	60ff ffff e270 	bral 0xfefea3d4		; INI_print
 
 fefec168:	49fa 04c5      	lea %pc@(0xfefec62f),%a4
 ; 0xfefec62f \r\n<P4 Video RAM Board NOT Detected>
 fefec16c:	4dfa 0008      	lea %pc@(0xfefec176),%fp
-fefec170:	60ff ffff e262 	bral 0xfefea3d4		; ODD_print
+fefec170:	60ff ffff e262 	bral 0xfefea3d4		; INI_print
 
 fefec176:	41f9 fefe a142 	lea 0xfefea142,%a0	; addr of bus error handler
 fefec17c:	23c8 0002 c408 	movel %a0,0x2c408
 fefec182:	60ff ffff d88e 	bral 0xfefe9a12
 
 fefec188:	4dfa 0366      	lea %pc@(0xfefec4f0),%fp
-fefec18c:	60ff ffff e246 	bral 0xfefea3d4		; ODD_print
+fefec18c:	60ff ffff e246 	bral 0xfefea3d4		; INI_print
 fefec192:	6000 035c      	braw 0xfefec4f0
 fefec196:	08c7 001e      	bset #0x1e,%d7
 fefec19a:	08c7 0019      	bset #0x19,%d7
@@ -15090,7 +15205,7 @@ fefec19e:	0887 001f      	bclr #0x1f,%d7
 fefec1a2:	49fa 03ff      	lea %pc@(0xfefec5a3),%a4
 ; 0xfefec5a3 \r\n<P4 Ibis Color Video board detected>
 fefec1a6:	4dfa 0008      	lea %pc@(0xfefec1b0),%fp
-fefec1aa:	60ff ffff e228 	bral 0xfefea3d4		; ODD_print
+fefec1aa:	60ff ffff e228 	bral 0xfefea3d4		; INI_print
 
 fefec1b0:	6000 033e      	braw 0xfefec4f0
 fefec1b4:	08c7 001e      	bset #0x1e,%d7
@@ -15101,7 +15216,7 @@ fefec1c0:	2003           	movel %d3,%d0
 fefec1c2:	49fa 0406      	lea %pc@(0xfefec5ca),%a4
 ; 0xfefec5ca \r\n<P4 Lego Color Video board [%d0] detected>
 fefec1c6:	4dfa 0008      	lea %pc@(0xfefec1d0),%fp
-fefec1ca:	60ff ffff e208 	bral 0xfefea3d4		; ODD_print
+fefec1ca:	60ff ffff e208 	bral 0xfefea3d4		; INI_print
 
 fefec1d0:	23fc 0000 0000 	movel #0,0x50701000
 fefec1d6:	5070 1000
@@ -15432,7 +15547,7 @@ fefec8fe:	6b00 ffe8      	bmiw 0xfefec8e8			; loop up
 fefec902:	49fa 0f08      	lea %pc@(0xfefed80c),%a4
 ; 0xfefed80c ~~\r\nSun-3/80 SCOPELOOPS
 fefec906:	4dfa 0008      	lea %pc@(0xfefec910),%fp
-fefec90a:	60ff ffff dac8 	bral 0xfefea3d4		; ODD_print
+fefec90a:	60ff ffff dac8 	bral 0xfefea3d4		; INI_print
 fefec910:	0887 0009      	bclr #9,%d7
 
 fefec914:	1c3c 0000      	moveb #0,%d6
@@ -15464,7 +15579,7 @@ fefec91e:	49fa 0f04      	lea %pc@(0xfefed824),%a4
 ; (p) Video Scoll\r\n
 ; Enter selection: 
 fefec922:	4dfa 0008      	lea %pc@(0xfefec92c),%fp
-fefec926:	60ff ffff daac 	bral 0xfefea3d4		; ODD_print
+fefec926:	60ff ffff daac 	bral 0xfefea3d4		; INI_print
 fefec92c:	4dfa 0006      	lea %pc@(0xfefec934),%fp
 fefec930:	6000 0c1c      	braw 0xfefed54e
 fefec934:	0c00 001b      	cmpib #0x1b,%d0
@@ -15507,22 +15622,26 @@ fefec9c4:	6700 0792      	beqw 0xfefed158
 fefec9c8:	0c00 0050      	cmpib #0x50,%d0
 fefec9cc:	6700 0854      	beqw 0xfefed222
 fefec9d0:	49fa 11b8      	lea %pc@(0xfefedb8a),%a4
+; 0xfefedb8a \r\n~
 fefec9d4:	4dfa 0008      	lea %pc@(0xfefec9de),%fp
-fefec9d8:	60ff ffff d9fa 	bral 0xfefea3d4		; ODD_print
+fefec9d8:	60ff ffff d9fa 	bral 0xfefea3d4		; INI_print
 fefec9de:	6000 ff34      	braw 0xfefec914
 fefec9e2:	0887 0009      	bclr #9,%d7
 fefec9e6:	49fa 1332      	lea %pc@(0xfefedd1a),%a4
+; 0xfefedd1a     Tests will only run once.
 fefec9ea:	4dfa 0008      	lea %pc@(0xfefec9f4),%fp
-fefec9ee:	60ff ffff d9e4 	bral 0xfefea3d4		; ODD_print
+fefec9ee:	60ff ffff d9e4 	bral 0xfefea3d4		; INI_print
 fefec9f4:	6000 ff1e      	braw 0xfefec914
 fefec9f8:	08c7 0009      	bset #9,%d7
 fefec9fc:	49fa 133a      	lea %pc@(0xfefedd38),%a4
+; 0xfefedd38     Tests will Loop forever, until system reset.
 fefeca00:	4dfa 0008      	lea %pc@(0xfefeca0a),%fp
-fefeca04:	60ff ffff d9ce 	bral 0xfefea3d4		; ODD_print
+fefeca04:	60ff ffff d9ce 	bral 0xfefea3d4		; INI_print
 fefeca0a:	6000 ff08      	braw 0xfefec914
 fefeca0e:	49fa 13eb      	lea %pc@(0xfefeddfb),%a4
+; 0xfefeddfb    Do you want to exit from scope loops <y/n> ?
 fefeca12:	4dfa 0008      	lea %pc@(0xfefeca1c),%fp
-fefeca16:	60ff ffff d9bc 	bral 0xfefea3d4		; ODD_print
+fefeca16:	60ff ffff d9bc 	bral 0xfefea3d4		; INI_print
 fefeca1c:	4dfa 0006      	lea %pc@(0xfefeca24),%fp
 fefeca20:	6000 0afc      	braw 0xfefed51e
 fefeca24:	0200 005f      	andib #0x5f,%d0
@@ -15530,29 +15649,41 @@ fefeca28:	0c00 0059      	cmpib #0x59,%d0
 fefeca2c:	6700 0006      	beqw 0xfefeca34
 fefeca30:	6000 fee2      	braw 0xfefec914
 fefeca34:	60ff ffff a62a 	bral 0xfefe7060		; BIG_init
+
 fefeca3a:	1e3c 0004      	moveb #4,%d7
 fefeca3e:	49fa 129a      	lea %pc@(0xfefedcda),%a4
 fefeca42:	4dfa 0006      	lea %pc@(0xfefeca4a),%fp
 fefeca46:	6000 08d0      	braw 0xfefed318
+
 fefeca4a:	49fa 11ba      	lea %pc@(0xfefedc06),%a4
+; 0xfefedc06 \r\n Enter address in hex:  ________~~~~~~~~
 fefeca4e:	4dfa 0008      	lea %pc@(0xfefeca58),%fp
-fefeca52:	60ff ffff d980 	bral 0xfefea3d4		; ODD_print
+fefeca52:	60ff ffff d980 	bral 0xfefea3d4		; INI_print
+
 fefeca58:	4dfa 0006      	lea %pc@(0xfefeca60),%fp
-fefeca5c:	6000 09aa      	braw 0xfefed408
+fefeca5c:	6000 09aa      	braw 0xfefed408			; hex_read
 fefeca60:	2a40           	moveal %d0,%a5
+
 fefeca62:	49fa 1206      	lea %pc@(0xfefedc6a),%a4
+; 0xfefedc6a \r\n write data in hex:  ________~~~~~~~~
 fefeca66:	4dfa 0008      	lea %pc@(0xfefeca70),%fp
-fefeca6a:	60ff ffff d968 	bral 0xfefea3d4		; ODD_print
+fefeca6a:	60ff ffff d968 	bral 0xfefea3d4		; INI_print
+
 fefeca70:	4dfa 0006      	lea %pc@(0xfefeca78),%fp
-fefeca74:	6000 0992      	braw 0xfefed408
+fefeca74:	6000 0992      	braw 0xfefed408			; hex_read
 fefeca78:	2200           	movel %d0,%d1
+
 fefeca7a:	49fa 10df      	lea %pc@(0xfefedb5b),%a4
+; 0xfefedb5b \r\nEnter size: byte(b),word(w),or longword(l)? 
 fefeca7e:	4dfa 0008      	lea %pc@(0xfefeca88),%fp
-fefeca82:	60ff ffff d950 	bral 0xfefea3d4		; ODD_print
+fefeca82:	60ff ffff d950 	bral 0xfefea3d4		; INI_print
+
 fefeca88:	4dfa 0006      	lea %pc@(0xfefeca90),%fp
 fefeca8c:	6000 0a90      	braw 0xfefed51e
+
 fefeca90:	4dfa 0006      	lea %pc@(0xfefeca98),%fp
 fefeca94:	6000 08a8      	braw 0xfefed33e
+
 fefeca98:	0c00 006c      	cmpib #0x6c,%d0
 fefeca9c:	6600 0008      	bnew 0xfefecaa6
 fefecaa0:	2a81           	movel %d1,%a5@
@@ -15561,9 +15692,9 @@ fefecaa6:	0c00 0077      	cmpib #0x77,%d0
 fefecaaa:	6600 0018      	bnew 0xfefecac4
 fefecaae:	3a81           	movew %d1,%a5@
 fefecab0:	6000 0014      	braw 0xfefecac6
-fefecab4:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefecab4:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefecaba:	0800
-fefecabc:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefecabc:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefecac2:	0800
 fefecac4:	1a81           	moveb %d1,%a5@
 fefecac6:	4dfa 0006      	lea %pc@(0xfefecace),%fp
@@ -15573,19 +15704,27 @@ fefecad2:	1e3c 0005      	moveb #5,%d7
 fefecad6:	49fa 1202      	lea %pc@(0xfefedcda),%a4
 fefecada:	4dfa 0006      	lea %pc@(0xfefecae2),%fp
 fefecade:	6000 0838      	braw 0xfefed318
+
 fefecae2:	49fa 1122      	lea %pc@(0xfefedc06),%a4
+; 0xfefedc06 \r\n Enter address in hex:  ________~~~~~~~~
 fefecae6:	4dfa 0008      	lea %pc@(0xfefecaf0),%fp
-fefecaea:	60ff ffff d8e8 	bral 0xfefea3d4		; ODD_print
+fefecaea:	60ff ffff d8e8 	bral 0xfefea3d4		; INI_print
+
 fefecaf0:	4dfa 0006      	lea %pc@(0xfefecaf8),%fp
-fefecaf4:	6000 0912      	braw 0xfefed408
+fefecaf4:	6000 0912      	braw 0xfefed408			; hex_read
 fefecaf8:	2a40           	moveal %d0,%a5
+
 fefecafa:	49fa 105f      	lea %pc@(0xfefedb5b),%a4
+; 0xfefedb5b \r\nEnter size: byte(b),word(w),or longword(l)? 
 fefecafe:	4dfa 0008      	lea %pc@(0xfefecb08),%fp
-fefecb02:	60ff ffff d8d0 	bral 0xfefea3d4		; ODD_print
+fefecb02:	60ff ffff d8d0 	bral 0xfefea3d4		; INI_print
+
 fefecb08:	4dfa 0006      	lea %pc@(0xfefecb10),%fp
 fefecb0c:	6000 0a10      	braw 0xfefed51e
+
 fefecb10:	4dfa 0006      	lea %pc@(0xfefecb18),%fp
 fefecb14:	6000 0828      	braw 0xfefed33e
+
 fefecb18:	4281           	clrl %d1
 fefecb1a:	0c00 006c      	cmpib #0x6c,%d0
 fefecb1e:	6600 0008      	bnew 0xfefecb28
@@ -15595,14 +15734,14 @@ fefecb28:	0c00 0077      	cmpib #0x77,%d0
 fefecb2c:	6600 0008      	bnew 0xfefecb36
 fefecb30:	3215           	movew %a5@,%d1
 fefecb32:	6000 0014      	braw 0xfefecb48
-fefecb36:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefecb36:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefecb3c:	0800
-fefecb3e:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefecb3e:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefecb44:	0800
 fefecb46:	1215           	moveb %a5@,%d1
 fefecb48:	49fa 1052      	lea %pc@(0xfefedb9c),%a4
 fefecb4c:	4dfa 0008      	lea %pc@(0xfefecb56),%fp
-fefecb50:	60ff ffff d882 	bral 0xfefea3d4		; ODD_print
+fefecb50:	60ff ffff d882 	bral 0xfefea3d4		; INI_print
 fefecb56:	0807 0009      	btst #9,%d7
 fefecb5a:	6600 000a      	bnew 0xfefecb66
 fefecb5e:	4dfa 000e      	lea %pc@(0xfefecb6e),%fp
@@ -15614,30 +15753,41 @@ fefecb72:	1e3c 0006      	moveb #6,%d7
 fefecb76:	49fa 1162      	lea %pc@(0xfefedcda),%a4
 fefecb7a:	4dfa 0006      	lea %pc@(0xfefecb82),%fp
 fefecb7e:	6000 0798      	braw 0xfefed318
+
 fefecb82:	49fa 1082      	lea %pc@(0xfefedc06),%a4
+; 0xfefedc06 \r\n Enter address in hex:  ________~~~~~~~~
 fefecb86:	4dfa 0008      	lea %pc@(0xfefecb90),%fp
-fefecb8a:	60ff ffff d848 	bral 0xfefea3d4		; ODD_print
+fefecb8a:	60ff ffff d848 	bral 0xfefea3d4		; INI_print
+
 fefecb90:	4dfa 0006      	lea %pc@(0xfefecb98),%fp
-fefecb94:	6000 0872      	braw 0xfefed408
+fefecb94:	6000 0872      	braw 0xfefed408			; hex_read
 fefecb98:	2a40           	moveal %d0,%a5
+
 fefecb9a:	49fa 10ce      	lea %pc@(0xfefedc6a),%a4
+; 0xfefedc6a \r\n write data in hex:  ________~~~~~~~~
 fefecb9e:	4dfa 0008      	lea %pc@(0xfefecba8),%fp
-fefecba2:	60ff ffff d830 	bral 0xfefea3d4		; ODD_print
+fefecba2:	60ff ffff d830 	bral 0xfefea3d4		; INI_print
+
 fefecba8:	4dfa 0006      	lea %pc@(0xfefecbb0),%fp
-fefecbac:	6000 085a      	braw 0xfefed408
+fefecbac:	6000 085a      	braw 0xfefed408			; hex_read
 fefecbb0:	2200           	movel %d0,%d1
+
 fefecbb2:	49fa 0fa7      	lea %pc@(0xfefedb5b),%a4
+; 0xfefedb5b \r\nEnter size: byte(b),word(w),or longword(l)? 
 fefecbb6:	4dfa 0008      	lea %pc@(0xfefecbc0),%fp
-fefecbba:	60ff ffff d818 	bral 0xfefea3d4		; ODD_print
+fefecbba:	60ff ffff d818 	bral 0xfefea3d4		; INI_print
+
 fefecbc0:	4dfa 0006      	lea %pc@(0xfefecbc8),%fp
 fefecbc4:	6000 0958      	braw 0xfefed51e
+
 fefecbc8:	08c7 000a      	bset #0xa,%d7
 fefecbcc:	243c 5040 0000 	movel #0x50400000,%d2
 fefecbd2:	4dfa 0006      	lea %pc@(0xfefecbda),%fp
 fefecbd6:	6000 0766      	braw 0xfefed33e
-fefecbda:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+
+fefecbda:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefecbe0:	0800
-fefecbe2:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefecbe2:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefecbe8:	0800
 fefecbea:	0c00 006c      	cmpib #0x6c,%d0
 fefecbee:	6600 000a      	bnew 0xfefecbfa
@@ -15655,24 +15805,32 @@ fefecc1a:	1e3c 0007      	moveb #7,%d7
 fefecc1e:	49fa 10ba      	lea %pc@(0xfefedcda),%a4
 fefecc22:	4dfa 0006      	lea %pc@(0xfefecc2a),%fp
 fefecc26:	6000 06f0      	braw 0xfefed318
+
 fefecc2a:	49fa 0fda      	lea %pc@(0xfefedc06),%a4
+; 0xfefedc06 \r\n Enter address in hex:  ________~~~~~~~~
 fefecc2e:	4dfa 0008      	lea %pc@(0xfefecc38),%fp
-fefecc32:	60ff ffff d7a0 	bral 0xfefea3d4		; ODD_print
+fefecc32:	60ff ffff d7a0 	bral 0xfefea3d4		; INI_print
+
 fefecc38:	4dfa 0006      	lea %pc@(0xfefecc40),%fp
-fefecc3c:	6000 07ca      	braw 0xfefed408
+fefecc3c:	6000 07ca      	braw 0xfefed408			; hex_read
 fefecc40:	2a40           	moveal %d0,%a5
+
 fefecc42:	49fa 0f17      	lea %pc@(0xfefedb5b),%a4
+; 0xfefedb5b \r\nEnter size: byte(b),word(w),or longword(l)? 
 fefecc46:	4dfa 0008      	lea %pc@(0xfefecc50),%fp
-fefecc4a:	60ff ffff d788 	bral 0xfefea3d4		; ODD_print
+fefecc4a:	60ff ffff d788 	bral 0xfefea3d4		; INI_print
+
 fefecc50:	4dfa 0006      	lea %pc@(0xfefecc58),%fp
 fefecc54:	6000 08c8      	braw 0xfefed51e
+
 fefecc58:	243c 5040 0000 	movel #0x50400000,%d2
 fefecc5e:	4dfa 0006      	lea %pc@(0xfefecc66),%fp
 fefecc62:	6000 06da      	braw 0xfefed33e
+
 fefecc66:	4281           	clrl %d1
-fefecc68:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefecc68:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefecc6e:	0800
-fefecc70:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefecc70:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefecc76:	0800
 fefecc78:	0c00 006c      	cmpib #0x6c,%d0
 fefecc7c:	6600 000a      	bnew 0xfefecc88
@@ -15684,8 +15842,9 @@ fefecc90:	3235 2800      	movew %a5@(0,%d2:l),%d1
 fefecc94:	6000 0006      	braw 0xfefecc9c
 fefecc98:	1235 2800      	moveb %a5@(0,%d2:l),%d1
 fefecc9c:	49fa 0efe      	lea %pc@(0xfefedb9c),%a4
+; 0xfefedb9c \r\n addr=0x%a5, read data=0x%d1
 fefecca0:	4dfa 0008      	lea %pc@(0xfefeccaa),%fp
-fefecca4:	60ff ffff d72e 	bral 0xfefea3d4		; ODD_print
+fefecca4:	60ff ffff d72e 	bral 0xfefea3d4		; INI_print
 fefeccaa:	0807 0009      	btst #9,%d7
 fefeccae:	6600 000a      	bnew 0xfefeccba
 fefeccb2:	4dfa 0006      	lea %pc@(0xfefeccba),%fp
@@ -15697,24 +15856,32 @@ fefeccc6:	1e3c 0008      	moveb #8,%d7
 fefeccca:	49fa 100e      	lea %pc@(0xfefedcda),%a4
 fefeccce:	4dfa 0006      	lea %pc@(0xfefeccd6),%fp
 fefeccd2:	6000 0644      	braw 0xfefed318
+
 fefeccd6:	49fa 0f2e      	lea %pc@(0xfefedc06),%a4
+; 0xfefedc06 \r\n Enter address in hex:  ________~~~~~~~~
 fefeccda:	4dfa 0008      	lea %pc@(0xfefecce4),%fp
-fefeccde:	60ff ffff d6f4 	bral 0xfefea3d4		; ODD_print
+fefeccde:	60ff ffff d6f4 	bral 0xfefea3d4		; INI_print
+
 fefecce4:	4dfa 0006      	lea %pc@(0xfefeccec),%fp
-fefecce8:	6000 071e      	braw 0xfefed408
+fefecce8:	6000 071e      	braw 0xfefed408			; hex_read
 fefeccec:	2a40           	moveal %d0,%a5
+
 fefeccee:	49fa 0e6b      	lea %pc@(0xfefedb5b),%a4
+; 0xfefedb5b \r\nEnter size: byte(b),word(w),or longword(l)? 
 fefeccf2:	4dfa 0008      	lea %pc@(0xfefeccfc),%fp
-fefeccf6:	60ff ffff d6dc 	bral 0xfefea3d4		; ODD_print
+fefeccf6:	60ff ffff d6dc 	bral 0xfefea3d4		; INI_print
+
 fefeccfc:	4dfa 0008      	lea %pc@(0xfefecd06),%fp
 fefecd00:	6000 081c      	braw 0xfefed51e
-fefecd04:	1800           	moveb %d0,%d4
+fefecd04:	1800           	moveb %d0,%d4		; oops, did we skip this ?
+
 fefecd06:	08c7 000a      	bset #0xa,%d7
 fefecd0a:	4dfa 0006      	lea %pc@(0xfefecd12),%fp
 fefecd0e:	6000 062e      	braw 0xfefed33e
-fefecd12:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+
+fefecd12:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefecd18:	0800
-fefecd1a:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefecd1a:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefecd20:	0800
 fefecd22:	0c00 006c      	cmpib #0x6c,%d0
 fefecd26:	6600 0008      	bnew 0xfefecd30
@@ -15732,36 +15899,47 @@ fefecd4c:	1e3c 0009      	moveb #9,%d7
 fefecd50:	49fa 0f88      	lea %pc@(0xfefedcda),%a4
 fefecd54:	4dfa 0006      	lea %pc@(0xfefecd5c),%fp
 fefecd58:	6000 05be      	braw 0xfefed318
+
 fefecd5c:	49fa 0ed3      	lea %pc@(0xfefedc31),%a4
+; 0xfefedc31 \r\n Enter starting offset (0 - 3FFFC) in hex:  _____~~~~~
 fefecd60:	4dfa 0008      	lea %pc@(0xfefecd6a),%fp
-fefecd64:	60ff ffff d66e 	bral 0xfefea3d4		; ODD_print
+fefecd64:	60ff ffff d66e 	bral 0xfefea3d4		; INI_print
+
 fefecd6a:	4dfa 0006      	lea %pc@(0xfefecd72),%fp
-fefecd6e:	6000 0698      	braw 0xfefed408
+fefecd6e:	6000 0698      	braw 0xfefed408			; hex_read
 fefecd72:	2800           	movel %d0,%d4
+
 fefecd74:	49fa 0ef4      	lea %pc@(0xfefedc6a),%a4
+; 0xfefedc6a \r\n write data in hex:  ________~~~~~~~~
 fefecd78:	4dfa 0008      	lea %pc@(0xfefecd82),%fp
-fefecd7c:	60ff ffff d656 	bral 0xfefea3d4		; ODD_print
+fefecd7c:	60ff ffff d656 	bral 0xfefea3d4		; INI_print
+
 fefecd82:	4dfa 0006      	lea %pc@(0xfefecd8a),%fp
-fefecd86:	6000 0680      	braw 0xfefed408
+fefecd86:	6000 0680      	braw 0xfefed408			; hex_read
 fefecd8a:	2200           	movel %d0,%d1
+
 fefecd8c:	49fa 0fdb      	lea %pc@(0xfefedd69),%a4
+; 0xfefedd69 \r\n Enter number of bytes to write in hex(4 - 40000): 
 fefecd90:	4dfa 0008      	lea %pc@(0xfefecd9a),%fp
-fefecd94:	60ff ffff d63e 	bral 0xfefea3d4		; ODD_print
+fefecd94:	60ff ffff d63e 	bral 0xfefea3d4		; INI_print
+
 fefecd9a:	4dfa 0006      	lea %pc@(0xfefecda2),%fp
-fefecd9e:	6000 0668      	braw 0xfefed408
+fefecd9e:	6000 0668      	braw 0xfefed408			; hex_read
 fefecda2:	2600           	movel %d0,%d3
+
 fefecda4:	08c7 000a      	bset #0xa,%d7
 fefecda8:	243c 5040 0000 	movel #0x50400000,%d2
 fefecdae:	23fc 0000 0020 	movel #0x20,0x50300000
 fefecdb4:	5030 0000
 fefecdb8:	4dfa 0006      	lea %pc@(0xfefecdc0),%fp
 fefecdbc:	6000 0580      	braw 0xfefed33e
+
 fefecdc0:	2a44           	moveal %d4,%a5
 fefecdc2:	2003           	movel %d3,%d0
 fefecdc4:	e480           	asrl #2,%d0
-fefecdc6:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefecdc6:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefecdcc:	0800
-fefecdce:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefecdce:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefecdd4:	0800
 fefecdd6:	2b81 2800      	movel %d1,%a5@(0,%d2:l)
 fefecdda:	588d           	addql #4,%a5
@@ -15782,9 +15960,9 @@ fefece12:	4dfa 0006      	lea %pc@(0xfefece1a),%fp
 fefece16:	6000 0526      	braw 0xfefed33e
 fefece1a:	203c 0003 ffff 	movel #0x3ffff,%d0
 fefece20:	223c ff00 ff00 	movel #0xff00ff00,%d1
-fefece26:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefece26:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefece2c:	0800
-fefece2e:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefece2e:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefece34:	0800
 fefece36:	2b81 2800      	movel %d1,%a5@(0,%d2:l)
 fefece3a:	588d           	addql #4,%a5
@@ -15807,9 +15985,9 @@ fefece7a:	263c 0000 0050 	movel #0x50,%d3
 fefece80:	203c 0003 ffff 	movel #0x3ffff,%d0
 fefece86:	223c ffff ffff 	movel #-1,%d1
 fefece8c:	203c 0000 031f 	movel #0x31f,%d0
-fefece92:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefece92:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefece98:	0800
-fefece9a:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefece9a:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefecea0:	0800
 fefecea2:	2b81 2800      	movel %d1,%a5@(0,%d2:l)
 fefecea6:	588d           	addql #4,%a5
@@ -15835,9 +16013,9 @@ fefeceee:	6000 044e      	braw 0xfefed33e
 fefecef2:	9bcd           	subal %a5,%a5
 fefecef4:	203c 0000 0031 	movel #0x31,%d0
 fefecefa:	223c 0000 0000 	movel #0,%d1
-fefecf00:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefecf00:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefecf06:	0800
-fefecf08:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefecf08:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefecf0e:	0800
 fefecf10:	2b81 2800      	movel %d1,%a5@(0,%d2:l)
 fefecf14:	588d           	addql #4,%a5
@@ -15876,9 +16054,9 @@ fefecf94:	2a7c 5040 0000 	moveal #0x50400000,%a5
 fefecf9a:	243c aaaa aaaa 	movel #0xaaaaaaaa,%d2
 fefecfa0:	383c 04ff      	movew #0x4ff,%d4
 fefecfa4:	363c 0031      	movew #0x31,%d3
-fefecfa8:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefecfa8:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefecfae:	0800
-fefecfb0:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefecfb0:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefecfb6:	0800
 fefecfb8:	2ac2           	movel %d2,%a5@+
 fefecfba:	51cb ffec      	dbf %d3,0xfefecfa8
@@ -15902,9 +16080,9 @@ fefecffe:	263c 0000 7e90 	movel #0x7e90,%d3
 fefed004:	203c 0003 ffff 	movel #0x3ffff,%d0
 fefed00a:	223c ffff ffff 	movel #-1,%d1
 fefed010:	203c 0000 050f 	movel #0x50f,%d0
-fefed016:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefed016:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefed01c:	0800
-fefed01e:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefed01e:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefed024:	0800
 fefed026:	2b81 2800      	movel %d1,%a5@(0,%d2:l)
 fefed02a:	588d           	addql #4,%a5
@@ -15948,9 +16126,9 @@ fefed0be:	588d           	addql #4,%a5
 fefed0c0:	51cb ffd6      	dbf %d3,0xfefed098
 fefed0c4:	203c 0000 0023 	movel #0x23,%d0
 fefed0ca:	223c 0000 0000 	movel #0,%d1
-fefed0d0:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefed0d0:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefed0d6:	0800
-fefed0d8:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefed0d8:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefed0de:	0800
 fefed0e0:	2b81 2800      	movel %d1,%a5@(0,%d2:l)
 fefed0e4:	588d           	addql #4,%a5
@@ -15971,9 +16149,9 @@ fefed11c:	2a7c 5040 0000 	moveal #0x50400000,%a5
 fefed122:	243c aaaa aaaa 	movel #0xaaaaaaaa,%d2
 fefed128:	383c 0383      	movew #0x383,%d4
 fefed12c:	363c 0023      	movew #0x23,%d3
-fefed130:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefed130:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefed136:	0800
-fefed138:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefed138:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefed13e:	0800
 fefed140:	2ac2           	movel %d2,%a5@+
 fefed142:	51cb ffec      	dbf %d3,0xfefed130
@@ -15995,9 +16173,9 @@ fefed17e:	2a7c 5040 0000 	moveal #0x50400000,%a5
 fefed184:	207c 0001 f9b0 	moveal #0x1f9b0,%a0
 fefed18a:	d1cd           	addal %a5,%a0
 fefed18c:	383c 008f      	movew #0x8f,%d4
-fefed190:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefed190:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefed196:	0800
-fefed198:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefed198:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefed19e:	0800
 fefed1a0:	1b7c 0008 0000 	moveb #8,%a5@(0)
 fefed1a6:	1b7c 001c 0090 	moveb #0x1c,%a5@(144)
@@ -16038,9 +16216,9 @@ fefed254:	d5c8           	addal %a0,%a2
 fefed256:	227c 0000 00c8 	moveal #0xc8,%a1
 fefed25c:	d3c8           	addal %a0,%a1
 fefed25e:	4281           	clrl %d1
-fefed260:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefed260:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefed266:	0800
-fefed268:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefed268:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefed26e:	0800
 fefed270:	25b0 1800 1800 	movel %a0@(0,%d1:l),%a2@(0,%d1:l)
 fefed276:	5881           	addql #4,%d1
@@ -16068,9 +16246,9 @@ fefed2ca:	4dfa 0004      	lea %pc@(0xfefed2d0),%fp
 fefed2ce:	606e           	bras 0xfefed33e
 fefed2d0:	4280           	clrl %d0
 fefed2d2:	2a40           	moveal %d0,%a5
-fefed2d4:	13fc 0000 6100 	moveb #0,0x61000800		; system XXX
+fefed2d4:	13fc 0000 6100 	moveb #0,0x61000800		; DIAG_REG
 fefed2da:	0800
-fefed2dc:	13fc 0001 6100 	moveb #1,0x61000800		; system XXX
+fefed2dc:	13fc 0001 6100 	moveb #1,0x61000800		; DIAG_REG
 fefed2e2:	0800
 fefed2e4:	1ac0           	moveb %d0,%a5@+
 fefed2e6:	5280           	addql #1,%d0
@@ -16094,7 +16272,7 @@ fefed324:	13c7 6f00 003c 	moveb %d7,0x6f00003c	; PP_data
 fefed32a:	2c3c 0000 ffff 	movel #0xffff,%d6
 fefed330:	5386           	subql #1,%d6
 fefed332:	6e00 fffc      	bgtw 0xfefed330
-fefed336:	60ff ffff d09c 	bral 0xfefea3d4		; ODD_print
+fefed336:	60ff ffff d09c 	bral 0xfefea3d4		; INI_print
 fefed33c:	4ed6           	jmp %fp@
 fefed33e:	46fc 3700      	movew #0x3700,%sr
 fefed342:	2e4e           	moveal %fp,%sp
@@ -16109,7 +16287,7 @@ fefed35c:	0887 0007      	bclr #7,%d7
 fefed360:	08c7 000d      	bset #0xd,%d7
 fefed364:	13c7 6f00 003c 	moveb %d7,0x6f00003c	; PP_data
 fefed36a:	2c0b           	movel %a3,%d6
-fefed36c:	60ff ffff d066 	bral 0xfefea3d4		; ODD_print
+fefed36c:	60ff ffff d066 	bral 0xfefea3d4		; INI_print
 fefed372:	4ed6           	jmp %fp@
 fefed374:	0807 000a      	btst #0xa,%d7
 fefed378:	6600 006a      	bnew 0xfefed3e4
@@ -16148,88 +16326,139 @@ fefed3fc:	204f           	moveal %sp,%a0
 fefed3fe:	46fc 2700      	movew #0x2700,%sr
 fefed402:	4ed0           	jmp %a0@
 fefed404:	4ed6           	jmp %fp@
+
 fefed406:	4e71           	nop
+
+; ---------------------------------------------------
+; Subroutine, decodes a hex string into d0
+; no arguments
+; hex_read()
+
 fefed408:	4280           	clrl %d0
+
+; code below jumps here
 fefed40a:	2c3c 0000 0180 	movel #0x180,%d6
-fefed410:	51ce fffe      	dbf %d6,0xfefed410
+fefed410:	51ce fffe      	dbf %d6,0xfefed410		; delay
+
 fefed414:	1c39 6200 2004 	moveb 0x62002004,%d6	; SCC
 fefed41a:	0806 0000      	btst #0,%d6
-fefed41e:	6700 ffea      	beqw 0xfefed40a
+fefed41e:	6700 ffea      	beqw 0xfefed40a			; loop up
+
+; *** read character into d6
 fefed422:	4286           	clrl %d6
 fefed424:	1c39 6200 2006 	moveb 0x62002006,%d6	; SCC
+
 fefed42a:	0886 0007      	bclr #7,%d6
-fefed42e:	0c06 0008      	cmpib #8,%d6
+fefed42e:	0c06 0008      	cmpib #8,%d6			; backspace ?
 fefed432:	6700 000a      	beqw 0xfefed43e
-fefed436:	0c06 007f      	cmpib #0x7f,%d6
+
+fefed436:	0c06 007f      	cmpib #0x7f,%d6			; DEL
 fefed43a:	6600 0032      	bnew 0xfefed46e
+
+; handle BS or DEL
 fefed43e:	123c 0008      	moveb #8,%d1
 fefed442:	49fa 0006      	lea %pc@(0xfefed44a),%a4
 fefed446:	6000 009c      	braw 0xfefed4e4
+
 fefed44a:	123c 0020      	moveb #0x20,%d1
 fefed44e:	49fa 0006      	lea %pc@(0xfefed456),%a4
 fefed452:	6000 0090      	braw 0xfefed4e4
+
 fefed456:	123c 0008      	moveb #8,%d1
 fefed45a:	49fa 0006      	lea %pc@(0xfefed462),%a4
 fefed45e:	6000 0084      	braw 0xfefed4e4
+
 fefed462:	0280 ffff fff0 	andil #0xfffffff0,%d0
-fefed468:	e888           	lsrl #4,%d0
-fefed46a:	6000 ff9e      	braw 0xfefed40a
+fefed468:	e888           	lsrl #4,%d0				; de-cumulate
+fefed46a:	6000 ff9e      	braw 0xfefed40a			; loop up
+
+; not a BS or DEL
 fefed46e:	2206           	movel %d6,%d1
 fefed470:	49fa 0004      	lea %pc@(0xfefed476),%a4
 fefed474:	606e           	bras 0xfefed4e4
-fefed476:	0c06 000a      	cmpib #0xa,%d6
+
+: fall through to decode the byte
+
+; This takes a single character in d6 and decodes
+; it as a hex digit, accumulating the result into d0
+
+fefed476:	0c06 000a      	cmpib #0xa,%d6			; '\n'
 fefed47a:	6700 ff8e      	beqw 0xfefed40a
-fefed47e:	0c06 0020      	cmpib #0x20,%d6
+fefed47e:	0c06 0020      	cmpib #0x20,%d6			; ' '
 fefed482:	6700 ff86      	beqw 0xfefed40a
-fefed486:	0c06 000d      	cmpib #0xd,%d6
-fefed48a:	6700 0056      	beqw 0xfefed4e2
-fefed48e:	0c06 0030      	cmpib #0x30,%d6
+fefed486:	0c06 000d      	cmpib #0xd,%d6			; '\r'
+fefed48a:	6700 0056      	beqw 0xfefed4e2			; return
+fefed48e:	0c06 0030      	cmpib #0x30,%d6			; '0'
 fefed492:	6d00 ff76      	bltw 0xfefed40a
-fefed496:	0c06 0039      	cmpib #0x39,%d6
+fefed496:	0c06 0039      	cmpib #0x39,%d6			; '9'
 fefed49a:	6e00 000a      	bgtw 0xfefed4a6
-fefed49e:	0406 0030      	subib #0x30,%d6
+fefed49e:	0406 0030      	subib #0x30,%d6			; '0'
 fefed4a2:	6000 0036      	braw 0xfefed4da
-fefed4a6:	0c06 0041      	cmpib #0x41,%d6
+
+fefed4a6:	0c06 0041      	cmpib #0x41,%d6			; 'A'
 fefed4aa:	6d00 ff5e      	bltw 0xfefed40a
-fefed4ae:	0c06 0046      	cmpib #0x46,%d6
+fefed4ae:	0c06 0046      	cmpib #0x46,%d6			; 'F'
 fefed4b2:	6e00 000e      	bgtw 0xfefed4c2
 fefed4b6:	0406 0040      	subib #0x40,%d6
 fefed4ba:	0606 0009      	addib #9,%d6
 fefed4be:	6000 001a      	braw 0xfefed4da
-fefed4c2:	0c06 0061      	cmpib #0x61,%d6
+
+fefed4c2:	0c06 0061      	cmpib #0x61,%d6			; 'a'
 fefed4c6:	6d00 ff42      	bltw 0xfefed40a
-fefed4ca:	0c06 0066      	cmpib #0x66,%d6
+fefed4ca:	0c06 0066      	cmpib #0x66,%d6			; 'f'
 fefed4ce:	6e00 ff3a      	bgtw 0xfefed40a
 fefed4d2:	0406 0060      	subib #0x60,%d6
 fefed4d6:	0606 0009      	addib #9,%d6
+
 fefed4da:	e980           	asll #4,%d0
-fefed4dc:	d086           	addl %d6,%d0
-fefed4de:	6000 ff2a      	braw 0xfefed40a
+fefed4dc:	d086           	addl %d6,%d0			; accumulate
+fefed4de:	6000 ff2a      	braw 0xfefed40a			; loop up
+
+; return
 fefed4e2:	4ed6           	jmp %fp@
+
+; 4 calls up above
+; This subroutine gets called with the return address in a4
+
 fefed4e4:	343c 0180      	movew #0x180,%d2
-fefed4e8:	51ca fffe      	dbf %d2,0xfefed4e8
+fefed4e8:	51ca fffe      	dbf %d2,0xfefed4e8		; delay
 fefed4ec:	1639 6200 2004 	moveb 0x62002004,%d3	; SCC
+
 fefed4f2:	0803 0000      	btst #0,%d3
+
 fefed4f6:	343c 0180      	movew #0x180,%d2
-fefed4fa:	51ca fffe      	dbf %d2,0xfefed4fa
+fefed4fa:	51ca fffe      	dbf %d2,0xfefed4fa		; delay
+
 fefed4fe:	0803 0002      	btst #2,%d3
-fefed502:	56ca ffe8      	dbne %d2,0xfefed4ec
+fefed502:	56ca ffe8      	dbne %d2,0xfefed4ec		; loop up
+
 fefed506:	343c 0180      	movew #0x180,%d2
-fefed50a:	51ca fffe      	dbf %d2,0xfefed50a
+fefed50a:	51ca fffe      	dbf %d2,0xfefed50a		; delay
+
 fefed50e:	13c1 6200 2006 	moveb %d1,0x62002006	; SCC
+
 fefed514:	343c 0180      	movew #0x180,%d2
-fefed518:	51ca fffe      	dbf %d2,0xfefed518
-fefed51c:	4ed4           	jmp %a4@
+fefed518:	51ca fffe      	dbf %d2,0xfefed518		; delay
+
+fefed51c:	4ed4           	jmp %a4@				; return
+
+; -------------------------------
 fefed51e:	2c3c 0000 0180 	movel #0x180,%d6
-fefed524:	51ce fffe      	dbf %d6,0xfefed524
+fefed524:	51ce fffe      	dbf %d6,0xfefed524		; delay
+
 fefed528:	1c39 6200 2004 	moveb 0x62002004,%d6	; SCC
+
 fefed52e:	0806 0000      	btst #0,%d6
 fefed532:	6700 ffea      	beqw 0xfefed51e
+
 fefed536:	1039 6200 2006 	moveb 0x62002006,%d0	; SCC
+
 fefed53c:	2c3c 0000 0180 	movel #0x180,%d6
-fefed542:	51ce fffe      	dbf %d6,0xfefed542
+fefed542:	51ce fffe      	dbf %d6,0xfefed542		; delay
+
 fefed546:	13c0 6200 2006 	moveb %d0,0x62002006	; SCC
 fefed54c:	4ed6           	jmp %fp@
+
 fefed54e:	2c3c 0000 0180 	movel #0x180,%d6
 fefed554:	51ce fffe      	dbf %d6,0xfefed554
 fefed558:	1c39 6200 2004 	moveb 0x62002004,%d6	; SCC
@@ -16239,26 +16468,35 @@ fefed566:	1039 6200 2006 	moveb 0x62002006,%d0	; SCC
 fefed56c:	2c3c 0000 0180 	movel #0x180,%d6
 fefed572:	51ce fffe      	dbf %d6,0xfefed572
 fefed576:	4ed6           	jmp %fp@
+
 fefed578:	0887 0007      	bclr #7,%d7
 fefed57c:	0887 0006      	bclr #6,%d7
 fefed580:	13c7 6f00 003c 	moveb %d7,0x6f00003c	; PP_data
+
 fefed586:	49fa 0052      	lea %pc@(0xfefed5da),%a4
+; 0xfefed5da \r\n Unexp'd bus err, pc 0x%d0
 fefed58a:	4dfa 000e      	lea %pc@(0xfefed59a),%fp
 fefed58e:	202f 0002      	movel %sp@(2),%d0
-fefed592:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; ODD_print
+fefed592:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; INI_print
 fefed598:	4ed0           	jmp %a0@
+
 fefed59a:	60fe           	bras 0xfefed59a
 fefed59c:	202f 0010      	movel %sp@(16),%d0
 fefed5a0:	49fa 0055      	lea %pc@(0xfefed5f7),%a4
+; 0xfefed5f7  access addr 0x%d0
 fefed5a4:	4dfa 000a      	lea %pc@(0xfefed5b0),%fp
-fefed5a8:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; ODD_print
+fefed5a8:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; INI_print
 fefed5ae:	4ed0           	jmp %a0@
+
 fefed5b0:	4280           	clrl %d0
 fefed5b2:	1039 6100 0400 	moveb 0x61000400,%d0
 fefed5b8:	49fa 0050      	lea %pc@(0xfefed60a),%a4
+; 0xfefed60a  bus err reg 0x%d0
 fefed5bc:	4dfa 000a      	lea %pc@(0xfefed5c8),%fp
-fefed5c0:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; ODD_print
+fefed5c0:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; INI_print
 fefed5c6:	4ed0           	jmp %a0@
+
+; strings
 fefed5c8:	2e7c 0002 1000 	moveal #0x21000,%sp
 fefed5ce:	46fc 3700      	movew #0x3700,%sr
 fefed5d2:	204f           	moveal %sp,%a0
@@ -16296,18 +16534,18 @@ fefed628:	6f00 003c      	blew 0xfefed666
 fefed62c:	49fa 0050      	lea %pc@(0xfefed67e),%a4
 fefed630:	4dfa 000e      	lea %pc@(0xfefed640),%fp
 fefed634:	202f 0002      	movel %sp@(2),%d0
-fefed638:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; ODD_print
+fefed638:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; INI_print
 fefed63e:	4ed0           	jmp %a0@
 fefed640:	202f 0010      	movel %sp@(16),%d0
 fefed644:	49fa ffb1      	lea %pc@(0xfefed5f7),%a4
 fefed648:	4dfa 000a      	lea %pc@(0xfefed654),%fp
-fefed64c:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; ODD_print
+fefed64c:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; INI_print
 fefed652:	4ed0           	jmp %a0@
 fefed654:	4280           	clrl %d0
 fefed656:	1039 6100 0400 	moveb 0x61000400,%d0
 fefed65c:	49fa ffac      	lea %pc@(0xfefed60a),%a4
 fefed660:	4dfa 000a      	lea %pc@(0xfefed66c),%fp
-fefed664:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; ODD_print
+fefed664:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; INI_print
 fefed66a:	4ed0           	jmp %a0@
 fefed66c:	2e7c 0002 1000 	moveal #0x21000,%sp
 fefed672:	46fc 3700      	movew #0x3700,%sr
@@ -16330,20 +16568,24 @@ fefed6a2:	13c7 6f00 003c 	moveb %d7,0x6f00003c	; PP_data
 fefed6a8:	49fa 003e      	lea %pc@(0xfefed6e8),%a4
 fefed6ac:	4dfa 000e      	lea %pc@(0xfefed6bc),%fp
 fefed6b0:	202f 0002      	movel %sp@(2),%d0
-fefed6b4:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; ODD_print
+fefed6b4:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; INI_print
 fefed6ba:	4ed0           	jmp %a0@
+
 fefed6bc:	49fa 004d      	lea %pc@(0xfefed70b),%a4
 fefed6c0:	4280           	clrl %d0
 fefed6c2:	302f 0006      	movew %sp@(6),%d0
 fefed6c6:	0240 0fff      	andiw #0xfff,%d0
 fefed6ca:	4dfa 000a      	lea %pc@(0xfefed6d6),%fp
-fefed6ce:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; ODD_print
+fefed6ce:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; INI_print
 fefed6d4:	4ed0           	jmp %a0@
+
 fefed6d6:	2e7c 0002 1000 	moveal #0x21000,%sp
 fefed6dc:	46fc 3700      	movew #0x3700,%sr
 fefed6e0:	204f           	moveal %sp,%a0
 fefed6e2:	46fc 2700      	movew #0x2700,%sr
 fefed6e6:	4ed0           	jmp %a0@
+
+; strings
 fefed6e8:	0d0a 2055      	movepw %a2@(8277),%d6
 fefed6ec:	6e65           	bgts 0xfefed753
 fefed6ee:	7870           	moveq #112,%d4
@@ -16368,27 +16610,35 @@ fefed718:	7420           	moveq #32,%d2
 fefed71a:	3078 2564      	moveaw 0x2564,%a0
 fefed71e:	3000           	movew %d0,%d0
 fefed720:	49fa 0066      	lea %pc@(0xfefed788),%a4
+; 0xfefed788 \r\n unexpected trap/vector
 fefed724:	4dfa 000a      	lea %pc@(0xfefed730),%fp
-fefed728:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; ODD_print
+fefed728:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; INI_print
 fefed72e:	4ed0           	jmp %a0@
+
 fefed730:	202f 0002      	movel %sp@(2),%d0
 fefed734:	49fa 006c      	lea %pc@(0xfefed7a2),%a4
+; 0xfefed7a2 \r\n pc: %d0
 fefed738:	4dfa 000a      	lea %pc@(0xfefed744),%fp
-fefed73c:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; ODD_print
+fefed73c:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; INI_print
 fefed742:	4ed0           	jmp %a0@
+
 fefed744:	302f 0006      	movew %sp@(6),%d0
 fefed748:	0240 0fff      	andiw #0xfff,%d0
 fefed74c:	49fa 005f      	lea %pc@(0xfefed7ad),%a4
+; 0xfefed7ad  vector offset: %d0
 fefed750:	4dfa 000a      	lea %pc@(0xfefed75c),%fp
-fefed754:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; ODD_print
+fefed754:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; INI_print
 fefed75a:	4ed0           	jmp %a0@
+
 fefed75c:	302f 0006      	movew %sp@(6),%d0
 fefed760:	0240 f000      	andiw #0xf000,%d0
 fefed764:	e848           	lsrw #4,%d0
 fefed766:	49fa 0059      	lea %pc@(0xfefed7c1),%a4
+; 0xfefed7c1  type: %d0
 fefed76a:	4dfa 000a      	lea %pc@(0xfefed776),%fp
-fefed76e:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; ODD_print
+fefed76e:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; INI_print
 fefed774:	4ed0           	jmp %a0@
+
 fefed776:	4ff9 0002 1000 	lea 0x21000,%sp
 fefed77c:	46fc 3700      	movew #0x3700,%sr
 fefed780:	204f           	moveal %sp,%a0
@@ -16468,16 +16718,16 @@ fefeddfb:    Do you want to exit from scope loops <y/n> ?
 
 fefede2a:	0000
 
-; Once call via branch
+; One call via branch
 fefede2c:	6000 0002      	braw 0xfefede30
 fefede30:	49fa 040e      	lea %pc@(0xfefee240),%a4
 ; 0xfefee240 \n\rConfiguration Memory Check
 fefede34:	1e3c 0020      	moveb #0x20,%d7
 fefede38:	4dfa 0008      	lea %pc@(0xfefede42),%fp
-fefede3c:	60ff ffff bd0a 	bral 0xfefe9b48			; ODD_test
+fefede3c:	60ff ffff bd0a 	bral 0xfefe9b48			; INI_test
 
 fefede42:	4dfa 0008      	lea %pc@(0xfefede4c),%fp
-fefede46:	60ff ffff bdda 	bral 0xfefe9c22			; ODD_stash_fp
+fefede46:	60ff ffff bdda 	bral 0xfefe9c22			; INI_stash_fp
 
 fefede4c:	41f9 6400 0000 	lea 0x64000000,%a0		; EEPROM
 fefede52:	2248           	moveal %a0,%a1
@@ -16509,7 +16759,7 @@ fefede96:	6700 0010      	beqw 0xfefedea8
 fefede9a:	49fa 03e6      	lea %pc@(0xfefee282),%a4
 ; 0xfefee282 \n\r Configuration RAM ERROR: Address uniqueness Fault
 fefede9e:	4dfa 0008      	lea %pc@(0xfefedea8),%fp
-fefedea2:	60ff ffff be04 	bral 0xfefe9ca8		; ODD_print2
+fefedea2:	60ff ffff be04 	bral 0xfefe9ca8		; INI_print2
 
 fefedea8:	1029 0001      	moveb %a1@(1),%d0
 fefedeac:	b001           	cmpb %d1,%d0
@@ -16519,7 +16769,7 @@ fefedeb8:	0281 0000 00ff 	andil #0xff,%d1
 fefedebe:	49fa 03f7      	lea %pc@(0xfefee2b7),%a4
 ; 0xfefee2b7 \n\r Data Path error Expected [%d1] Found [%d0]
 fefedec2:	4dfa 0008      	lea %pc@(0xfefedecc),%fp
-fefedec6:	60ff ffff bde0 	bral 0xfefe9ca8		; ODD_print2
+fefedec6:	60ff ffff bde0 	bral 0xfefe9ca8		; INI_print2
 fefedecc:	0601 0001      	addib #1,%d1
 fefeded0:	6600 ffb0      	bnew 0xfefede82
 fefeded4:	2248           	moveal %a0,%a1
@@ -16533,55 +16783,70 @@ fefedee8:	1343 0003      	moveb %d3,%a1@(3)
 fefedeec:	6000 003a      	braw 0xfefedf28
 
 fefedef0:	41f9 6400 0010 	lea 0x64000010,%a0		; in EEPROM
-fefedef6:	4280           	clrl %d0
-fefedef8:	2400           	movel %d0,%d2
-fefedefa:	223c 0000 04f6 	movel #0x4f6,%d1
+fefedef6:	4280           	clrl %d0			; d0 = 0
+fefedef8:	2400           	movel %d0,%d2		; d2 = d0 = 0
+
+fefedefa:	223c 0000 04f6 	movel #0x4f6,%d1	; count
+
+; loop to calculate checksum
 fefedf00:	1418           	moveb %a0@+,%d2
 fefedf02:	d082           	addl %d2,%d0
 fefedf04:	5381           	subql #1,%d1
-fefedf06:	6600 fff8      	bnew 0xfefedf00
-fefedf0a:	4282           	clrl %d2
-fefedf0c:	0280 0000 00ff 	andil #0xff,%d0
-fefedf12:	1418           	moveb %a0@+,%d2
-fefedf14:	b002           	cmpb %d2,%d0
+fefedf06:	6600 fff8      	bnew 0xfefedf00		; loop up
+
+fefedf0a:	4282           	clrl %d2			; d2 = 0
+fefedf0c:	0280 0000 00ff 	andil #0xff,%d0		; sum &= 0xff
+fefedf12:	1418           	moveb %a0@+,%d2		; fetch cksum
+fefedf14:	b002           	cmpb %d2,%d0		; compare
 fefedf16:	6700 0010      	beqw 0xfefedf28
+
 fefedf1a:	49fa 03c9      	lea %pc@(0xfefee2e5),%a4
 ; 0xfefee2e5 \n\r Reserved Area Checksum bad, Calculated [%d0] Found [%d2]
 fefedf1e:	4dfa 0008      	lea %pc@(0xfefedf28),%fp
-fefedf22:	60ff ffff c4b0 	bral 0xfefea3d4		; ODD_print
+fefedf22:	60ff ffff c4b0 	bral 0xfefea3d4		; INI_print
 
+; here is checksum is OK
 fefedf28:	4dfa 0008      	lea %pc@(0xfefedf32),%fp
-fefedf2c:	60ff ffff bdee 	bral 0xfefe9d1c			; ODD_func
+fefedf2c:	60ff ffff bdee 	bral 0xfefe9d1c			; INI_func
+
 fefedf32:	0807 0009      	btst #9,%d7
 fefedf36:	6600 ff0a      	bnew 0xfefede42
 fefedf3a:	6024           	bras 0xfefedf60
 
+; no path here
+; a0 should still be valid from above
 fefedf3c:	41f9 6400 0000 	lea 0x64000000,%a0		; EEPROM
+
 fefedf42:	4280           	clrl %d0
 fefedf44:	1010           	moveb %a0@,%d0
 fefedf46:	4610           	notb %a0@
 fefedf48:	b010           	cmpb %a0@,%d0
 fefedf4a:	6600 000a      	bnew 0xfefedf56
+
 fefedf4e:	203c ffff ffff 	movel #-1,%d0
 fefedf54:	6008           	bras 0xfefedf5e
+
 fefedf56:	1080           	moveb %d0,%a0@
 fefedf58:	203c 0000 0000 	movel #0,%d0
-fefedf5e:	4ed6           	jmp %fp@
+fefedf5e:	4ed6           	jmp %fp@			; return
 
+; The above is the last use of the jmp %fp@ return scheme
+
+; ---------------------------------------------
 fefedf60:	49fa 03c0      	lea %pc@(0xfefee322),%a4
 ; 0xfefee322 \n\rLANCE Controller Check
 fefedf64:	1e3c 0022      	moveb #0x22,%d7
 fefedf68:	4dfa 0008      	lea %pc@(0xfefedf72),%fp
-fefedf6c:	60ff ffff bbda 	bral 0xfefe9b48			; ODD_test
+fefedf6c:	60ff ffff bbda 	bral 0xfefe9b48			; INI_test
 
 fefedf72:	4dfa 0008      	lea %pc@(0xfefedf7c),%fp
-fefedf76:	60ff ffff bcaa 	bral 0xfefe9c22			; ODD_stash_fp
+fefedf76:	60ff ffff bcaa 	bral 0xfefe9c22			; INI_stash_fp
 
 fefedf7c:	41f9 6500 2000 	lea 0x65002000,%a0
 fefedf82:	3010           	movew %a0@,%d0
 fefedf84:	3028 0002      	movew %a0@(2),%d0
 fefedf88:	4dfa 0008      	lea %pc@(0xfefedf92),%fp
-fefedf8c:	60ff ffff bd8e 	bral 0xfefe9d1c			; ODD_func
+fefedf8c:	60ff ffff bd8e 	bral 0xfefe9d1c			; INI_func
 
 fefedf92:	0807 0009      	btst #9,%d7
 fefedf96:	6600 ffda      	bnew 0xfefedf72
@@ -16590,9 +16855,9 @@ fefedf9e:	49fa 03b6      	lea %pc@(0xfefee356),%a4
 ; 0xfefee356 \n\rESP SCSI Controller Check
 fefedfa2:	1e3c 0023      	moveb #0x23,%d7
 fefedfa6:	4dfa 0008      	lea %pc@(0xfefedfb0),%fp
-fefedfaa:	60ff ffff bb9c 	bral 0xfefe9b48			; ODD_test
+fefedfaa:	60ff ffff bb9c 	bral 0xfefe9b48			; INI_test
 fefedfb0:	4dfa 0008      	lea %pc@(0xfefedfba),%fp
-fefedfb4:	60ff ffff bc6c 	bral 0xfefe9c22			; ODD_stash_fp
+fefedfb4:	60ff ffff bc6c 	bral 0xfefe9c22			; INI_stash_fp
 
 fefedfba:	23fc 0000 0080 	movel #0x80,0x66001000
 fefedfc0:	6600 1000
@@ -16644,9 +16909,9 @@ fefee06a:	000c
 fefee06c:	49fa 0305      	lea %pc@(0xfefee373),%a4
 ; 0xfefee373 \n\r ESP Controller Bad  FLAGS 0x%d0 FIFO 0x%d1 [%d2]
 fefee070:	4dfa 0008      	lea %pc@(0xfefee07a),%fp
-fefee074:	60ff ffff bc32 	bral 0xfefe9ca8		; ODD_print2
+fefee074:	60ff ffff bc32 	bral 0xfefe9ca8		; INI_print2
 fefee07a:	4dfa 0008      	lea %pc@(0xfefee084),%fp
-fefee07e:	60ff ffff bc9c 	bral 0xfefe9d1c			; ODD_func
+fefee07e:	60ff ffff bc9c 	bral 0xfefe9d1c			; INI_func
 fefee084:	0807 0009      	btst #9,%d7
 fefee088:	6600 ff26      	bnew 0xfefedfb0
 fefee08c:	6000 0002      	braw 0xfefee090
@@ -16654,9 +16919,9 @@ fefee090:	49fa 0316      	lea %pc@(0xfefee3a8),%a4
 ; 0xfefee3a8 \n\rFloppy Controller Check
 fefee094:	1e3c 0024      	moveb #0x24,%d7
 fefee098:	4dfa 0008      	lea %pc@(0xfefee0a2),%fp
-fefee09c:	60ff ffff baaa 	bral 0xfefe9b48			; ODD_test
+fefee09c:	60ff ffff baaa 	bral 0xfefe9b48			; INI_test
 fefee0a2:	4dfa 0008      	lea %pc@(0xfefee0ac),%fp
-fefee0a6:	60ff ffff bb7a 	bral 0xfefe9c22			; ODD_stash_fp
+fefee0a6:	60ff ffff bb7a 	bral 0xfefe9c22			; INI_stash_fp
 fefee0ac:	1039 6e00 0000 	moveb 0x6e000000,%d0
 fefee0b2:	223c 0000 0001 	movel #1,%d1
 fefee0b8:	0c00 0080      	cmpib #0x80,%d0
@@ -16703,14 +16968,14 @@ fefee17c:	51c9 ffe6      	dbf %d1,0xfefee164
 fefee180:	49fa 0276      	lea %pc@(0xfefee3f8),%a4
 ; 0xfefee3f8 \n\r Floppy Controller Timeout
 fefee184:	4dfa 0020      	lea %pc@(0xfefee1a6),%fp
-fefee188:	60ff ffff bb1e 	bral 0xfefe9ca8		; ODD_print2
+fefee188:	60ff ffff bb1e 	bral 0xfefe9ca8		; INI_print2
 fefee18e:	6000 0016      	braw 0xfefee1a6
 fefee192:	223c 0000 0005 	movel #5,%d1
 fefee198:	0280 0000 00ff 	andil #0xff,%d0
 fefee19e:	49fa 0223      	lea %pc@(0xfefee3c3),%a4
 fefee1a2:	4dfa 0002      	lea %pc@(0xfefee1a6),%fp
 fefee1a6:	4dfa 0008      	lea %pc@(0xfefee1b0),%fp
-fefee1aa:	60ff ffff bb70 	bral 0xfefe9d1c			; ODD_func
+fefee1aa:	60ff ffff bb70 	bral 0xfefe9d1c			; INI_func
 fefee1b0:	0807 0009      	btst #9,%d7
 fefee1b4:	6600 feec      	bnew 0xfefee0a2
 
@@ -16723,10 +16988,10 @@ fefee1bc:	49fa 0258      	lea %pc@(0xfefee416),%a4
 ; 0xfefee416 \n\rPrinter Controller Check
 fefee1c0:	1e3c 0025      	moveb #0x25,%d7
 fefee1c4:	4dfa 0008      	lea %pc@(0xfefee1ce),%fp
-fefee1c8:	60ff ffff b97e 	bral 0xfefe9b48			; ODD_test
+fefee1c8:	60ff ffff b97e 	bral 0xfefe9b48			; INI_test
 
 fefee1ce:	4dfa 0008      	lea %pc@(0xfefee1d8),%fp
-fefee1d2:	60ff ffff ba4e 	bral 0xfefe9c22			; ODD_stash_fp
+fefee1d2:	60ff ffff ba4e 	bral 0xfefe9c22			; INI_stash_fp
 
 fefee1d8:	223c 0000 0000 	movel #0,%d1
 fefee1de:	13c1 6f00 003c 	moveb %d1,0x6f00003c	; PP_data
@@ -16751,7 +17016,7 @@ fefee208:	0280 0000 00ff 	andil #0xff,%d0
 fefee20e:	49fa 023d      	lea %pc@(0xfefee44d),%a4
 ; 0xfefee44d \n\r Printer Controller Data Error Expected 0x%d1, OBS 0x%d0
 fefee212:	4dfa 0008      	lea %pc@(0xfefee21c),%fp
-fefee216:	60ff ffff ba90 	bral 0xfefe9ca8		; ODD_print2
+fefee216:	60ff ffff ba90 	bral 0xfefe9ca8		; INI_print2
 
 fefee21c:	220b           	movel %a3,%d1
 fefee21e:	5201           	addqb #1,%d1
@@ -16759,7 +17024,7 @@ fefee220:	0c01 0000      	cmpib #0,%d1
 fefee224:	6600 ffb8      	bnew 0xfefee1de
 
 fefee228:	4dfa 0008      	lea %pc@(0xfefee232),%fp
-fefee22c:	60ff ffff baee 	bral 0xfefe9d1c			; ODD_func
+fefee22c:	60ff ffff baee 	bral 0xfefe9d1c			; INI_func
 
 fefee232:	0807 0009      	btst #9,%d7
 fefee236:	6600 ff96      	bnew 0xfefee1ce

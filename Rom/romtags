@@ -20,11 +20,13 @@ def process_OLD ( line, num, prefix ) :
 # Use pattern
 def process ( line, num, prefix ) :
     tag = re.sub ( r":.*", "", line )
-    xtag = "0x" + tag
+    xtag = prefix + tag
     srch = "/^" + tag + "/"
     cmd = [ xtag, infile, srch ]
     of.write ( "\t".join(cmd) + "\n" )
 
+# spit out tags with 0x prefix.
+# vim likes these first so tags are "sorted"
 with open ( infile ) as f:
     for raw in f:
         line = raw.strip()
@@ -32,11 +34,13 @@ with open ( infile ) as f:
             process ( line, num, "0x" )
         num += 1
 
-#with open ( infile ) as f:
-#    for raw in f:
-#        line = raw.strip()
-#        if re.search(pattern, line):
-#            process ( line, num, "" )
-#        num += 1
+# spit out tags without 0x prefix.
+# Not as common as the above, but handy also
+with open ( infile ) as f:
+    for raw in f:
+        line = raw.strip()
+        if re.search(pattern, line):
+            process ( line, num, "" )
+        num += 1
 
 # THE END

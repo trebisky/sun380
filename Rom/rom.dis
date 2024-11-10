@@ -331,7 +331,7 @@ fefe023a:	33c0 6100 0000 	movew %d0,0x61000000	; SYSENA
 fefe0240:	13c0 6100 1400 	moveb %d0,0x61001400	; interrupt
 fefe0246:	23c0 6100 1004 	movel %d0,0x61001004
 
-fefe024c:	1e39 6100 0400 	moveb 0x61000400,%d7	; bus error
+fefe024c:	1e39 6100 0400 	moveb 0x61000400,%d7	; BUS_ERR register
 fefe0252:	0807 0000      	btst #0,%d7
 fefe0256:	67ff 0000 6e08 	beql 0xfefe7060		; BIG_init
 
@@ -3347,39 +3347,49 @@ fefe22e6:	606a           	bras 0xfefe2352
 fefe22e8:	7000           	moveq #0,%d0
 fefe22ea:	1007           	moveb %d7,%d0
 fefe22ec:	0480 0000 00a0 	subil #0xa0,%d0
-fefe22f2:	7e08           	moveq #8,%d7
+
+fefe22f2:	7e08           	moveq #8,%d7			; d7 = 8
 fefe22f4:	b087           	cmpl %d7,%d0
 fefe22f6:	625a           	bhis 0xfefe2352
+
+; jump table
 fefe22f8:	303b 0a06      	movew %pc@(0xfefe2300,%d0:l:2),%d0
 fefe22fc:	4efb 0002      	jmp %pc@(0xfefe2300,%d0:w)
-fefe2300:	0012 0052      	orib #0x52,%a2@
-fefe2304:	0052 0014      	oriw #0x14,%a2@
-fefe2308:	0028 001c 0034 	orib #0x1c,%a0@(52)
-fefe230e:	0042 0034      	oriw #0x34,%d2
-fefe2312:	603e           	bras 0xfefe2352
-fefe2314:	2015           	movel %a5@,%d0
+
+; Offsets
+fefe2300:	0012 0052
+fefe2304:	0052 0014
+
+fefe2308:	0028 001c 0034
+fefe230e:	0042 0034
+
+fefe2312:	603e           	bras 0xfefe2352		; 0
+
+fefe2314:	2015           	movel %a5@,%d0		; 3
 fefe2316:	0800 0008      	btst #8,%d0
 fefe231a:	670c           	beqs 0xfefe2328
-fefe231c:	0295 ffff feff 	andil #0xfffffeff,%a5@
-fefe2322:	7011           	moveq #17,%d0
-fefe2324:	6000 00fe      	braw 0xfefe2424
-fefe2328:	0095 0000 0100 	oril #0x100,%a5@
-fefe232e:	7013           	moveq #19,%d0
-fefe2330:	6000 00f2      	braw 0xfefe2424
 
-fefe2334:	2052           	moveal %a2@,%a0
+fefe231c:	0295 ffff feff 	andil #0xfffffeff,%a5@	; 5
+fefe2322:	7011           	moveq #17,%d0
+fefe2324:	6000 00fe      	braw 0xfefe2424		; return
+
+fefe2328:	0095 0000 0100 	oril #0x100,%a5@	; 4
+fefe232e:	7013           	moveq #19,%d0
+fefe2330:	6000 00f2      	braw 0xfefe2424		; return
+
+fefe2334:	2052           	moveal %a2@,%a0		; 6, 8
 fefe2336:	2028 0014      	movel %a0@(20),%d0
 fefe233a:	c195           	andl %d0,%a5@
 fefe233c:	18bc 007f      	moveb #0x7f,%a4@
 fefe2340:	6010           	bras 0xfefe2352
 
-fefe2342:	4879 feff 5218 	pea 0xfeff5218
+fefe2342:	4879 feff 5218 	pea 0xfeff5218		; 7
 fefe2348:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Keyboard error detected\n" )
 fefe234e:	584f           	addqw #4,%sp
 fefe2350:	60e2           	bras 0xfefe2334
 
-fefe2352:	206e ffec      	moveal %fp@(-20),%a0
+fefe2352:	206e ffec      	moveal %fp@(-20),%a0	; 1, 2
 fefe2356:	2013           	movel %a3@,%d0
 fefe2358:	b090           	cmpl %a0@,%d0
 fefe235a:	660e           	bnes 0xfefe236a
@@ -3450,6 +3460,8 @@ fefe23f8:	e888           	lsrl #4,%d0
 fefe23fa:	7a0a           	moveq #10,%d5
 fefe23fc:	b085           	cmpl %d5,%d0
 fefe23fe:	6200 ff52      	bhiw 0xfefe2352
+
+; another jump tabl
 fefe2402:	303b 0a06      	movew %pc@(0xfefe240a,%d0:l:2),%d0
 fefe2406:	4efb 0002      	jmp %pc@(0xfefe240a,%d0:w)
 fefe240a:	fea6           	.short 0xfea6
@@ -3464,6 +3476,7 @@ fefe241a:	fed2           	.short 0xfed2
 fefe241c:	ff48           	.short 0xff48
 fefe241e:	fede           	.short 0xfede
 fefe2420:	6000 ff30      	braw 0xfefe2352
+
 fefe2424:	4cee 3cfc ffc0 	moveml %fp@(-64),%d2-%d7/%a2-%a5
 fefe242a:	4e5e           	unlk %fp
 fefe242c:	4e75           	rts
@@ -3585,6 +3598,8 @@ fefe255c:	1001           	moveb %d1,%d0
 fefe255e:	4e5e           	unlk %fp
 fefe2560:	4e75           	rts
 
+; lots of calls.
+; fetch byte from fef72020
 fefe2562:	4e56 fffc      	linkw %fp,#-4
 fefe2566:	2079 fef7 2020 	moveal 0xfef72020,%a0
 fefe256c:	1210           	moveb %a0@,%d1
@@ -3595,10 +3610,12 @@ fefe2574:	4e75           	rts
 
 fefe2576:	4e56 0000      	linkw %fp,#0
 fefe257a:	6002           	bras 0xfefe257e
+
 fefe257c:	61b8           	bsrs 0xfefe2536
 fefe257e:	61e2           	bsrs 0xfefe2562
 fefe2580:	0c00 0020      	cmpib #0x20,%d0
-fefe2584:	67f6           	beqs 0xfefe257c
+fefe2584:	67f6           	beqs 0xfefe257c		; loop up
+
 fefe2586:	7000           	moveq #0,%d0
 fefe2588:	4e5e           	unlk %fp
 fefe258a:	4e75           	rts
@@ -4243,28 +4260,41 @@ fefe2c4a:	4cee 00f0 fff0 	moveml %fp@(-16),%d4-%d7
 fefe2c50:	4e5e           	unlk %fp
 fefe2c52:	4e75           	rts
 
+; print - 2 arguments
+; arg1 is value to print
+; arg2 is how many hex digits to print
+; print_hex
 fefe2c54:	4e56 fff4      	linkw %fp,#-12
 fefe2c58:	48d7 20c0      	moveml %d6-%d7/%a5,%sp@
-fefe2c5c:	2e2e 000c      	movel %fp@(12),%d7
-fefe2c60:	5387           	subql #1,%d7
+
+fefe2c5c:	2e2e 000c      	movel %fp@(12),%d7		; arg2
+fefe2c60:	5387           	subql #1,%d7			; val = arg2 - 1
 fefe2c62:	7c07           	moveq #7,%d6
-fefe2c64:	ce86           	andl %d6,%d7
-fefe2c66:	e587           	asll #2,%d7
-fefe2c68:	2c2e 0008      	movel %fp@(8),%d6
+fefe2c64:	ce86           	andl %d6,%d7			; (val) & 7
+fefe2c66:	e587           	asll #2,%d7				; n = d7 << 2
+fefe2c68:	2c2e 0008      	movel %fp@(8),%d6		; arg1
+
+; -- feff5468: 0123456789ABCDEF
 fefe2c6c:	2a7c feff 5468 	moveal #0xfeff5468,%a5
+
 fefe2c72:	601a           	bras 0xfefe2c8e
-fefe2c74:	2006           	movel %d6,%d0
-fefe2c76:	eea0           	asrl %d7,%d0
+
+; loop
+fefe2c74:	2006           	movel %d6,%d0			; d0 = arg1
+fefe2c76:	eea0           	asrl %d7,%d0			; arg1 >> n
 fefe2c78:	720f           	moveq #15,%d1
-fefe2c7a:	c081           	andl %d1,%d0
+fefe2c7a:	c081           	andl %d1,%d0			; val & 0xf
 fefe2c7c:	1035 0800      	moveb %a5@(0,%d0:l),%d0
 fefe2c80:	49c0           	extbl %d0
+
 fefe2c82:	2f00           	movel %d0,%sp@-
 fefe2c84:	4eb9 fefe 1e74 	jsr 0xfefe1e74			; putchar
 fefe2c8a:	584f           	addqw #4,%sp
-fefe2c8c:	5987           	subql #4,%d7
+
+fefe2c8c:	5987           	subql #4,%d7		; n -= 4
 fefe2c8e:	4a87           	tstl %d7
-fefe2c90:	6ce2           	bges 0xfefe2c74
+fefe2c90:	6ce2           	bges 0xfefe2c74		; loop up
+
 fefe2c92:	7000           	moveq #0,%d0
 fefe2c94:	4cee 20c0 fff4 	moveml %fp@(-12),%d6-%d7/%a5
 fefe2c9a:	4e5e           	unlk %fp
@@ -5290,32 +5320,41 @@ fefe38f0:	4e75           	rts
 ; ---------------------------------
 fefe38f2:	4e56 fffc      	linkw %fp,#-4
 fefe38f6:	2e87           	movel %d7,%sp@
-fefe38f8:	2e2e 0008      	movel %fp@(8),%d7
+fefe38f8:	2e2e 0008      	movel %fp@(8),%d7	; arg1
+
 fefe38fc:	4879 feff 55ae 	pea 0xfeff55ae
-fefe3902:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe3902:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( " -> " )
 fefe3908:	584f           	addqw #4,%sp
+
 fefe390a:	2f07           	movel %d7,%sp@-
-fefe390c:	2f2e 0014      	movel %fp@(20),%sp@-
-fefe3910:	4eb9 fefe 2c54 	jsr 0xfefe2c54
+fefe390c:	2f2e 0014      	movel %fp@(20),%sp@-	; arg3
+fefe3910:	4eb9 fefe 2c54 	jsr 0xfefe2c54			; print_hex
 fefe3916:	504f           	addqw #8,%sp
-fefe3918:	4878 000a      	pea 0xa
+
+fefe3918:	4878 000a      	pea 0xa					; '\n'
 fefe391c:	4eb9 fefe 1e74 	jsr 0xfefe1e74			; putchar
 fefe3922:	584f           	addqw #4,%sp
+
 fefe3924:	4eb9 fefe 2576 	jsr 0xfefe2576
+
 fefe392a:	2f2e 0014      	movel %fp@(20),%sp@-
 fefe392e:	2f2e 0010      	movel %fp@(16),%sp@-
 fefe3932:	2f2e 000c      	movel %fp@(12),%sp@-
 fefe3936:	2f07           	movel %d7,%sp@-
 fefe3938:	4eb9 fefe 395c 	jsr 0xfefe395c
 fefe393e:	4fef 0010      	lea %sp@(16),%sp
+
 fefe3942:	4eb9 fefe 2562 	jsr 0xfefe2562
-fefe3948:	7e0d           	moveq #13,%d7
+			
+fefe3948:	7e0d           	moveq #13,%d7			; '\r'
 fefe394a:	b087           	cmpl %d7,%d0
 fefe394c:	6604           	bnes 0xfefe3952
-fefe394e:	7000           	moveq #0,%d0
+
+fefe394e:	7000           	moveq #0,%d0		; return 0
 fefe3950:	6002           	bras 0xfefe3954
-fefe3952:	7001           	moveq #1,%d0
+
+fefe3952:	7001           	moveq #1,%d0		; return 1
 fefe3954:	2e2e fffc      	movel %fp@(-4),%d7
 fefe3958:	4e5e           	unlk %fp
 fefe395a:	4e75           	rts
@@ -5366,7 +5405,7 @@ fefe39e4:	6534           	bcss 0xfefe3a1a
 fefe39e6:	0c87 fef0 449c 	cmpil #0xfef0449c,%d7
 fefe39ec:	622c           	bhis 0xfefe3a1a
 fefe39ee:	4879 feff 55b3 	pea 0xfeff55b3
-fefe39f4:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe39f4:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Modifiying security location(s). Are you sure?(y/N) " )
 fefe39fa:	584f           	addqw #4,%sp
 fefe39fc:	4eb9 fefe 1f80 	jsr 0xfefe1f80			; relish
@@ -5375,7 +5414,7 @@ fefe3a04:	6ff6           	bles 0xfefe39fc
 fefe3a06:	0c07 0079      	cmpib #0x79,%d7
 fefe3a0a:	662a           	bnes 0xfefe3a36
 fefe3a0c:	4879 feff 55ec 	pea 0xfeff55ec
-fefe3a12:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe3a12:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Yes\n" )
 fefe3a18:	584f           	addqw #4,%sp
 fefe3a1a:	282e 0010      	movel %fp@(16),%d4
@@ -5390,7 +5429,7 @@ fefe3a34:	6040           	bras 0xfefe3a76
 fefe3a36:	0c07 0059      	cmpib #0x59,%d7
 fefe3a3a:	67d0           	beqs 0xfefe3a0c
 fefe3a3c:	4879 feff 55e8 	pea 0xfeff55e8
-fefe3a42:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe3a42:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "No\n" )
 fefe3a48:	584f           	addqw #4,%sp
 fefe3a4a:	6028           	bras 0xfefe3a74
@@ -5545,11 +5584,11 @@ fefe3c2c:	6216           	bhis 0xfefe3c44
 fefe3c2e:	7000           	moveq #0,%d0
 fefe3c30:	102e fffb      	moveb %fp@(-5),%d0
 fefe3c34:	41f9 feff 55fc 	lea 0xfeff55fc,%a0
-fefe3c3a:	2070 0d20 fefc 	moveal %a0@(fffffffffffffefc,%d0:l:4),%a0
+fefe3c3a:	2070 0d20 fefc 	moveal %a0@(fefc,%d0:l:4),%a0
 fefe3c40:	4e90           	jsr %a0@
 fefe3c42:	600e           	bras 0xfefe3c52
 fefe3c44:	2f39 feff 55f8 	movel 0xfeff55f8,%sp@-
-fefe3c4a:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe3c4a:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Monitor: Invalid command.\n" )
 fefe3c50:	584f           	addqw #4,%sp
 fefe3c52:	2014           	movel %a4@,%d0
@@ -5564,7 +5603,7 @@ fefe3c6c:	6026           	bras 0xfefe3c94
 fefe3c6e:	23cc fef7 2020 	movel %a4,0xfef72020
 fefe3c74:	4854           	pea %a4@
 fefe3c76:	4879 feff 5664 	pea 0xfeff5664
-fefe3c7c:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe3c7c:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%s\n" )
 fefe3c82:	504f           	addqw #8,%sp
 fefe3c84:	4eb9 fefe 2536 	jsr 0xfefe2536
@@ -5659,7 +5698,7 @@ fefe3daa:	4e75           	rts
 fefe3dac:	4e56 fffc      	linkw %fp,#-4
 fefe3db0:	2e8d           	movel %a5,%sp@
 fefe3db2:	4879 feff 5668 	pea 0xfeff5668
-fefe3db8:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe3db8:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Tracing...\n" )
 fefe3dbe:	584f           	addqw #4,%sp
 fefe3dc0:	2a79 fef7 252c 	moveal 0xfef7252c,%a5
@@ -5705,7 +5744,7 @@ fefe3e42:	6002           	bras 0xfefe3e46
 fefe3e44:	dbd4           	addal %a4@,%a5
 fefe3e46:	4855           	pea %a5@
 fefe3e48:	4879 feff 5674 	pea 0xfeff5674
-fefe3e4e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe3e4e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%8x" )
 fefe3e54:	504f           	addqw #8,%sp
 fefe3e56:	2f13           	movel %a3@,%sp@-
@@ -5779,7 +5818,7 @@ fefe3f36:	2f07           	movel %d7,%sp@-
 fefe3f38:	4854           	pea %a4@
 fefe3f3a:	4853           	pea %a3@
 fefe3f3c:	4879 feff 568c 	pea 0xfeff568c
-fefe3f42:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe3f42:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%sCache %s 0x%x" )
 fefe3f48:	4fef 0010      	lea %sp@(16),%sp
 fefe3f4c:	42a7           	clrl %sp@-
@@ -5792,7 +5831,7 @@ fefe3f5e:	6712           	beqs 0xfefe3f72
 fefe3f60:	de86           	addl %d6,%d7
 fefe3f62:	60d2           	bras 0xfefe3f36
 fefe3f64:	4879 feff 569c 	pea 0xfeff569c
-fefe3f6a:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe3f6a:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Invalid Monitor Command for Sun3x/80\n" )
 fefe3f70:	584f           	addqw #4,%sp
 fefe3f72:	7e00           	moveq #0,%d7
@@ -5945,9 +5984,12 @@ fefe415a:	4cee 20e0 fff0 	moveml %fp@(-16),%d5-%d7/%a5
 fefe4160:	4e5e           	unlk %fp
 fefe4162:	4e75           	rts
 
+; Which of these do you like better ?
+; neither one ever gets called.
+
 fefe4164:	4e56 0000      	linkw %fp,#0
 fefe4168:	2f39 feff 55f8 	movel 0xfeff55f8,%sp@-
-fefe416e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe416e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Monitor: Invalid command.\n" )
 fefe4174:	584f           	addqw #4,%sp
 fefe4176:	7000           	moveq #0,%d0
@@ -5956,7 +5998,7 @@ fefe417a:	4e75           	rts
 
 fefe417c:	4e56 0000      	linkw %fp,#0
 fefe4180:	2f39 feff 55f8 	movel 0xfeff55f8,%sp@-
-fefe4186:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4186:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Monitor: Invalid command.\n" )
 fefe418c:	584f           	addqw #4,%sp
 fefe418e:	7000           	moveq #0,%d0
@@ -5981,7 +6023,7 @@ fefe41c8:	0c00 000d      	cmpib #0xd,%d0
 fefe41cc:	6614           	bnes 0xfefe41e2
 fefe41ce:	4855           	pea %a5@
 fefe41d0:	4879 feff 56c2 	pea 0xfeff56c2
-fefe41d6:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe41d6:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%8x now.\n" )
 fefe41dc:	504f           	addqw #8,%sp
 fefe41de:	6000 009e      	braw 0xfefe427e
@@ -6023,7 +6065,7 @@ fefe4264:	23c0 fef7 21ce 	movel %d0,0xfef721ce
 fefe426a:	3053           	moveaw %a3@,%a0
 fefe426c:	2f08           	movel %a0,%sp@-
 fefe426e:	4879 feff 56cc 	pea 0xfeff56cc
-fefe4274:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4274:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Break %x installed\n" )
 fefe427a:	504f           	addqw #8,%sp
 fefe427c:	2887           	movel %d7,%a4@
@@ -6112,7 +6154,7 @@ fefe43b8:	584f           	addqw #4,%sp
 fefe43ba:	2f00           	movel %d0,%sp@-
 fefe43bc:	2f07           	movel %d7,%sp@-
 fefe43be:	4879 feff 56e0 	pea 0xfeff56e0
-fefe43c4:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe43c4:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "TIB Map %8x [%8x] = %8x? " )
 fefe43ca:	4fef 0010      	lea %sp@(16),%sp
 fefe43ce:	7000           	moveq #0,%d0
@@ -6155,7 +6197,7 @@ fefe444e:	2f00           	movel %d0,%sp@-
 fefe4450:	2f2e fffc      	movel %fp@(-4),%sp@-
 fefe4454:	2f07           	movel %d7,%sp@-
 fefe4456:	4879 feff 56fa 	pea 0xfeff56fa
-fefe445c:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe445c:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "TIA Map %8x [%8x] = %8x? " )
 fefe4462:	4fef 0010      	lea %sp@(16),%sp
 fefe4466:	7000           	moveq #0,%d0
@@ -6201,7 +6243,7 @@ fefe44ec:	c086           	andl %d6,%d0
 fefe44ee:	2f00           	movel %d0,%sp@-
 fefe44f0:	2f07           	movel %d7,%sp@-
 fefe44f2:	4879 feff 5714 	pea 0xfeff5714
-fefe44f8:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe44f8:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "PageMap %8x [%8x] = %8x? " )
 fefe44fe:	4fef 0010      	lea %sp@(16),%sp
 fefe4502:	7000           	moveq #0,%d0
@@ -6249,7 +6291,7 @@ fefe4584:	4eb9 fefe 2562 	jsr 0xfefe2562
 fefe458a:	0c00 002a      	cmpib #0x2a,%d0
 fefe458e:	6610           	bnes 0xfefe45a0
 fefe4590:	4879 feff 572e 	pea 0xfeff572e
-fefe4596:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4596:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "[q*] is not supported for Sun3x/80\n" )
 fefe459c:	584f           	addqw #4,%sp
 fefe459e:	607a           	bras 0xfefe461a
@@ -6266,7 +6308,7 @@ fefe45c6:	3006           	movew %d6,%d0
 fefe45c8:	0280 0000 07ff 	andil #0x7ff,%d0
 fefe45ce:	2f00           	movel %d0,%sp@-
 fefe45d0:	4879 feff 5752 	pea 0xfeff5752
-fefe45d6:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe45d6:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "EEPROM %3x" )
 fefe45dc:	504f           	addqw #8,%sp
 fefe45de:	2f15           	movel %a5@,%sp@-
@@ -6317,7 +6359,7 @@ fefe4668:	4854           	pea %a4@
 fefe466a:	2f15           	movel %a5@,%sp@-
 fefe466c:	4eb9 fefe 381e 	jsr 0xfefe381e
 fefe4672:	504f           	addqw #8,%sp
-fefe4674:	6100 f70c      	bsrw 0xfefe3d82
+fefe4674:	6100 f70c      	bsrw 0xfefe3d82		; just returns 0
 fefe4678:	7000           	moveq #0,%d0
 fefe467a:	4cee 3000 fff8 	moveml %fp@(-8),%a4-%a5
 fefe4680:	4e5e           	unlk %fp
@@ -6334,7 +6376,7 @@ fefe4698:	23c7 fef7 2532 	movel %d7,0xfef72532
 fefe469e:	6014           	bras 0xfefe46b4
 fefe46a0:	2f39 fef7 2532 	movel 0xfef72532,%sp@-
 fefe46a6:	4879 feff 575d 	pea 0xfeff575d
-fefe46ac:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe46ac:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "FC%x space\n" )
 fefe46b2:	504f           	addqw #8,%sp
 fefe46b4:	7000           	moveq #0,%d0
@@ -6362,7 +6404,7 @@ fefe46f6:	4878 0024      	pea 0x24
 fefe46fa:	4eb9 fefe 072a 	jsr 0xfefe072a
 fefe4700:	504f           	addqw #8,%sp
 fefe4702:	4879 feff 5769 	pea 0xfeff5769
-fefe4708:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4708:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Trace Off\n" )
 fefe470e:	584f           	addqw #4,%sp
 fefe4710:	6004           	bras 0xfefe4716
@@ -6417,7 +6459,7 @@ fefe47a4:	bc82           	cmpl %d2,%d6
 fefe47a6:	6e00 00ee      	bgtw 0xfefe4896
 fefe47aa:	2f06           	movel %d6,%sp@-
 fefe47ac:	4879 feff 5774 	pea 0xfeff5774
-fefe47b2:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe47b2:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%8x:." )
 fefe47b8:	504f           	addqw #8,%sp
 fefe47ba:	2e06           	movel %d6,%d7
@@ -6451,14 +6493,14 @@ fefe4800:	4eb9 fefe 0110 	jsr 0xfefe0110			; readl
 fefe4806:	504f           	addqw #8,%sp
 fefe4808:	2f00           	movel %d0,%sp@-
 fefe480a:	4879 feff 5784 	pea 0xfeff5784
-fefe4810:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4810:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%8x " )
 fefe4816:	504f           	addqw #8,%sp
 fefe4818:	de83           	addl %d3,%d7
 fefe481a:	be85           	cmpl %d5,%d7
 fefe481c:	6da6           	blts 0xfefe47c4
 fefe481e:	4879 feff 5789 	pea 0xfeff5789
-fefe4824:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4824:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "." )
 fefe482a:	584f           	addqw #4,%sp
 fefe482c:	2e06           	movel %d6,%d7
@@ -6486,7 +6528,7 @@ fefe4862:	5287           	addql #1,%d7
 fefe4864:	be85           	cmpl %d5,%d7
 fefe4866:	6dc8           	blts 0xfefe4830
 fefe4868:	4879 feff 578b 	pea 0xfeff578b
-fefe486e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe486e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n" )
 fefe4874:	584f           	addqw #4,%sp
 fefe4876:	4eb9 fefe 1f80 	jsr 0xfefe1f80			; relish
@@ -6512,7 +6554,7 @@ fefe48a8:	4e56 0000      	linkw %fp,#0
 fefe48ac:	4eb9 fefe 258c 	jsr 0xfefe258c		; user_num
 fefe48b2:	23c0 fef7 257c 	movel %d0,0xfef7257c
 fefe48b8:	2079 fef7 20c6 	moveal 0xfef720c6,%a0
-fefe48be:	4230 0170 fef7 	clrb %a0@(fffffffffef72028)
+fefe48be:	4230 0170 fef7 	clrb %a0@(fef72028)
 fefe48c4:	2028
 fefe48c6:	4eb9 fefe 2576 	jsr 0xfefe2576
 fefe48cc:	6100 f4be      	bsrw 0xfefe3d8c
@@ -6569,7 +6611,7 @@ fefe4936:	6700 00a8      	beqw 0xfefe49e0
 
 ; invalid
 fefe493a:	2f39 feff 55f8 	movel 0xfeff55f8,%sp@-
-fefe4940:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4940:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Monitor: Invalid command.\n" )
 fefe4946:	584f           	addqw #4,%sp
 fefe4948:	6000 0248      	braw 0xfefe4b92		; return
@@ -6592,7 +6634,7 @@ fefe4974:	584f           	addqw #4,%sp
 fefe4976:	2f00           	movel %d0,%sp@-
 fefe4978:	4879 feff 578d 	pea 0xfeff578d
 ; 0xfeff578d TC: (0x%x) CRP: (0x%x) (0x%x)\n
-fefe497e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe497e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 
 fefe4984:	4fef 0010      	lea %sp@(16),%sp
 fefe4988:	4eb9 fefe 0804 	jsr 0xfefe0804				; get_VBR
@@ -6612,7 +6654,7 @@ fefe49ac:	2f00           	movel %d0,%sp@-
 
 fefe49ae:	4879 feff 57ac 	pea 0xfeff57ac
 ; 0xfeff57ac SYS ENA: (0x%x) INT: (0x%x) BERR: (0x%x) VBR: (0x%x)\n
-fefe49b4:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe49b4:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 
 fefe49ba:	4fef 0014      	lea %sp@(20),%sp
 fefe49be:	2f39 fef0 9024 	movel 0xfef09024,%sp@-
@@ -6640,7 +6682,7 @@ fefe4a0c:	d081           	addl %d1,%d0
 fefe4a0e:	2f00           	movel %d0,%sp@-
 fefe4a10:	2f07           	movel %d7,%sp@-
 fefe4a12:	4879 feff 580e 	pea 0xfeff580e
-fefe4a18:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4a18:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Virtual Addr 0x%x is mapped to Physical Addr 0x%x.\n" )
 
 fefe4a1e:	4fef 000c      	lea %sp@(12),%sp
@@ -6657,47 +6699,47 @@ fefe4a36:	584f           	addqw #4,%sp
 
 fefe4a38:	2f00           	movel %d0,%sp@-
 fefe4a3a:	4879 feff 5842 	pea 0xfeff5842
-fefe4a40:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4a40:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "TIA Entry = 0x%x, TIB Entry = 0x%x.\n" )
 fefe4a46:	4fef 000c      	lea %sp@(12),%sp
 fefe4a4a:	2f2e fff0      	movel %fp@(-16),%sp@-
 fefe4a4e:	4879 feff 5867 	pea 0xfeff5867
-fefe4a54:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4a54:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "PTE = 0x%x\n" )
 fefe4a5a:	504f           	addqw #8,%sp
 fefe4a5c:	206e ffec      	moveal %fp@(-20),%a0
 fefe4a60:	e9d0 0013      	bfextu %a0@,0,19,%d0
 fefe4a64:	2f00           	movel %d0,%sp@-
 fefe4a66:	4879 feff 5873 	pea 0xfeff5873
-fefe4a6c:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4a6c:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Page 0x%x has these attributes:\n ++" )
 fefe4a72:	504f           	addqw #8,%sp
 fefe4a74:	206e ffec      	moveal %fp@(-20),%a0
 fefe4a78:	e9d0 0641      	bfextu %a0@,25,1,%d0
 fefe4a7c:	2f00           	movel %d0,%sp@-
 fefe4a7e:	4879 feff 5895 	pea 0xfeff5895
-fefe4a84:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4a84:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( ".No Cache          = %d\n" )
 fefe4a8a:	504f           	addqw #8,%sp
 fefe4a8c:	206e ffec      	moveal %fp@(-20),%a0
 fefe4a90:	e9d0 06c1      	bfextu %a0@,27,1,%d0
 fefe4a94:	2f00           	movel %d0,%sp@-
 fefe4a96:	4879 feff 58ae 	pea 0xfeff58ae
-fefe4a9c:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4a9c:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( ".Modify bit        = %d\n" )
 fefe4aa2:	504f           	addqw #8,%sp
 fefe4aa4:	206e ffec      	moveal %fp@(-20),%a0
 fefe4aa8:	e9d0 0701      	bfextu %a0@,28,1,%d0
 fefe4aac:	2f00           	movel %d0,%sp@-
 fefe4aae:	4879 feff 58c7 	pea 0xfeff58c7
-fefe4ab4:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4ab4:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( ".Access bit        = %d\n" )
 fefe4aba:	504f           	addqw #8,%sp
 fefe4abc:	206e ffec      	moveal %fp@(-20),%a0
 fefe4ac0:	e9d0 0741      	bfextu %a0@,29,1,%d0
 fefe4ac4:	2f00           	movel %d0,%sp@-
 fefe4ac6:	4879 feff 58e0 	pea 0xfeff58e0
-fefe4acc:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4acc:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( ".Write Protect bit = %d\n" )
 fefe4ad2:	504f           	addqw #8,%sp
 fefe4ad4:	206e ffec      	moveal %fp@(-20),%a0
@@ -6706,7 +6748,7 @@ fefe4ada:	1028 0003      	moveb %a0@(3),%d0
 fefe4ade:	0200 0003      	andib #3,%d0
 fefe4ae2:	2f00           	movel %d0,%sp@-
 fefe4ae4:	4879 feff 58f9 	pea 0xfeff58f9
-fefe4aea:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4aea:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( ".Descriptor Type   = %d\n" )
 fefe4af0:	504f           	addqw #8,%sp
 fefe4af2:	6000 009e      	braw 0xfefe4b92		; return
@@ -6756,7 +6798,7 @@ fefe4b64:	60f8           	bras 0xfefe4b5e		; next
 ; (prints info about the build)
 
 fefe4b66:	4879 feff 5cd0 	pea 0xfeff5cd0
-fefe4b6c:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4b6c:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 fefe4b72:	584f           	addqw #4,%sp
 
@@ -6769,7 +6811,7 @@ fefe4b7a:	4879 feff 5cca 	pea 0xfeff5cca		; lucid
 fefe4b80:	4879 feff 5ca8 	pea 0xfeff5ca8		; 01/11/90
 
 fefe4b86:	4879 feff 5912 	pea 0xfeff5912
-fefe4b8c:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe4b8c:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Compiled on %s using %s:%s\n" )
 
 ; return
@@ -8367,12 +8409,12 @@ fefe5dae:	6606           	bnes 0xfefe5db6
 fefe5db0:	4eb9 fefe 0208 	jsr 0xfefe0208		; re_init (start ROM over)
 
 fefe5db6:	4879 feff 598c 	pea 0xfeff598c
-fefe5dbc:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe5dbc:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 fefe5dc2:	584f           	addqw #4,%sp
 fefe5dc4:	6000 045e      	braw 0xfefe6224
 fefe5dc8:	4879 feff 599e 	pea 0xfeff599e
-fefe5dce:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe5dce:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Auto-boot in progress...\n" )
 fefe5dd4:	584f           	addqw #4,%sp
 fefe5dd6:	2e3c fef7 2028 	movel #0xfef72028,%d7
@@ -8385,7 +8427,7 @@ fefe5dee:	6700 0434      	beqw 0xfefe6224
 fefe5df2:	6000 04e0      	braw 0xfefe62d4
 fefe5df6:	4239 fef7 2019 	clrb 0xfef72019
 fefe5dfc:	4879 feff 59b8 	pea 0xfeff59b8
-fefe5e02:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe5e02:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 fefe5e08:	584f           	addqw #4,%sp
 fefe5e0a:	4eb9 fefe 6320 	jsr 0xfefe6320
@@ -8398,7 +8440,7 @@ fefe5e22:	7000           	moveq #0,%d0
 fefe5e24:	1039 fef0 9000 	moveb 0xfef09000,%d0
 fefe5e2a:	2f00           	movel %d0,%sp@-
 fefe5e2c:	4879 feff 59bf 	pea 0xfeff59bf
-fefe5e32:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe5e32:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 fefe5e38:	4fef 000c      	lea %sp@(12),%sp
 fefe5e3c:	2047           	moveal %d7,%a0
@@ -8407,7 +8449,7 @@ fefe5e40:	0286 3fff ffff 	andil #0x3fffffff,%d6
 fefe5e46:	2f06           	movel %d6,%sp@-
 fefe5e48:	42a7           	clrl %sp@-
 fefe5e4a:	4879 feff 59e8 	pea 0xfeff59e8
-fefe5e50:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe5e50:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Vaddr: %x, Paddr: %8x," )
 fefe5e56:	4fef 000c      	lea %sp@(12),%sp
 fefe5e5a:	4eb9 fefe 6320 	jsr 0xfefe6320
@@ -8476,7 +8518,7 @@ fefe5f3e:	3010           	movew %a0@,%d0
 fefe5f40:	48c0           	extl %d0
 fefe5f42:	2f00           	movel %d0,%sp@-
 fefe5f44:	4879 feff 59ff 	pea 0xfeff59ff
-fefe5f4a:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe5f4a:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Trace %8x" )
 fefe5f50:	504f           	addqw #8,%sp
 fefe5f52:	4eb9 fefe 6320 	jsr 0xfefe6320
@@ -8516,22 +8558,22 @@ fefe5fd8:	6002           	bras 0xfefe5fdc
 fefe5fda:	7e42           	moveq #66,%d7
 fefe5fdc:	2f07           	movel %d7,%sp@-
 fefe5fde:	4879 feff 5a09 	pea 0xfeff5a09
-fefe5fe4:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe5fe4:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "INVALID TI%c Entry " )
 fefe5fea:	504f           	addqw #8,%sp
 fefe5fec:	6000 0096      	braw 0xfefe6084
 fefe5ff0:	4879 feff 5a1d 	pea 0xfeff5a1d
-fefe5ff6:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe5ff6:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "INVALID Page " )
 fefe5ffc:	584f           	addqw #4,%sp
 fefe5ffe:	6000 0084      	braw 0xfefe6084
 fefe6002:	4879 feff 5a2b 	pea 0xfeff5a2b
-fefe6008:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe6008:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Attempted Write of Read Only Memory " )
 fefe600e:	584f           	addqw #4,%sp
 fefe6010:	6072           	bras 0xfefe6084
 fefe6012:	4879 feff 5a50 	pea 0xfeff5a50
-fefe6018:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe6018:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Limit Violation, Invalid Address " )
 fefe601e:	584f           	addqw #4,%sp
 fefe6020:	6062           	bras 0xfefe6084
@@ -8542,12 +8584,12 @@ fefe6030:	6006           	bras 0xfefe6038
 fefe6032:	2e3c feff 5a8f 	movel #0xfeff5a8f,%d7
 fefe6038:	2f07           	movel %d7,%sp@-
 fefe603a:	4879 feff 5a72 	pea 0xfeff5a72
-fefe6040:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe6040:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "(PTEST) TI%s Table Search " )
 fefe6046:	504f           	addqw #8,%sp
 fefe6048:	603a           	bras 0xfefe6084
 fefe604a:	4879 feff 5a91 	pea 0xfeff5a91
-fefe6050:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe6050:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "(PTEST) Page Table Search " )
 fefe6056:	584f           	addqw #4,%sp
 fefe6058:	602a           	bras 0xfefe6084
@@ -8555,7 +8597,7 @@ fefe605a:	7000           	moveq #0,%d0
 fefe605c:	302e fffc      	movew %fp@(-4),%d0
 fefe6060:	2f00           	movel %d0,%sp@-
 fefe6062:	4879 feff 5aac 	pea 0xfeff5aac
-fefe6068:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe6068:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Error (PSR = 0x%x) " )
 fefe606e:	504f           	addqw #8,%sp
 fefe6070:	6012           	bras 0xfefe6084
@@ -8586,18 +8628,18 @@ fefe60ba:	2047           	moveal %d7,%a0
 fefe60bc:	0810 0002      	btst #2,%a0@
 fefe60c0:	670e           	beqs 0xfefe60d0
 fefe60c2:	4879 feff 5adf 	pea 0xfeff5adf
-fefe60c8:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe60c8:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "FPA Enable " )
 fefe60ce:	584f           	addqw #4,%sp
 fefe60d0:	4879 feff 5aeb 	pea 0xfeff5aeb
-fefe60d6:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe60d6:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Bus " )
 fefe60dc:	584f           	addqw #4,%sp
 fefe60de:	4eb9 fefe 637c 	jsr 0xfefe637c
 fefe60e4:	4eb9 fefe 6320 	jsr 0xfefe6320
 fefe60ea:	6000 0138      	braw 0xfefe6224
 fefe60ee:	4879 feff 5af0 	pea 0xfeff5af0
-fefe60f4:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe60f4:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Address " )
 fefe60fa:	584f           	addqw #4,%sp
 fefe60fc:	4eb9 fefe 637c 	jsr 0xfefe637c
@@ -8616,7 +8658,7 @@ fefe6136:	2005
 fefe6138:	6700 00ea      	beqw 0xfefe6224
 fefe613c:	4879 feff 5950 	pea 0xfeff5950
 fefe6142:	4879 feff 5af9 	pea 0xfeff5af9
-fefe6148:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe6148:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%s" )
 fefe614e:	504f           	addqw #8,%sp
 fefe6150:	7c00           	moveq #0,%d6
@@ -8652,7 +8694,7 @@ fefe61b8:	606a           	bras 0xfefe6224
 fefe61ba:	206e 0060      	moveal %fp@(96),%a0
 fefe61be:	2f10           	movel %a0@,%sp@-
 fefe61c0:	4879 feff 5afc 	pea 0xfeff5afc
-fefe61c6:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe61c6:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 fefe61cc:	504f           	addqw #8,%sp
 fefe61ce:	4eb9 fefe 6320 	jsr 0xfefe6320
@@ -8660,7 +8702,7 @@ fefe61d4:	604e           	bras 0xfefe6224
 fefe61d6:	206e 0060      	moveal %fp@(96),%a0
 fefe61da:	2f10           	movel %a0@,%sp@-
 fefe61dc:	4879 feff 5b19 	pea 0xfeff5b19
-fefe61e2:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe61e2:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 fefe61e8:	504f           	addqw #8,%sp
 fefe61ea:	4eb9 fefe 6320 	jsr 0xfefe6320
@@ -8670,7 +8712,7 @@ fefe61f4:	302e 0064      	movew %fp@(100),%d0
 fefe61f8:	0240 0fff      	andiw #0xfff,%d0
 fefe61fc:	2f00           	movel %d0,%sp@-
 fefe61fe:	4879 feff 5b3a 	pea 0xfeff5b3a
-fefe6204:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe6204:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 fefe620a:	504f           	addqw #8,%sp
 fefe620c:	4eb9 fefe 6320 	jsr 0xfefe6320
@@ -8763,7 +8805,7 @@ fefe633c:	6010           	bras 0xfefe634e
 fefe633e:	2079 fef7 252c 	moveal 0xfef7252c,%a0
 fefe6344:	2f28 0058      	movel %a0@(88),%sp@-
 fefe6348:	4879 feff 5b56 	pea 0xfeff5b56
-fefe634e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe634e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( " at 0x%8x.\n" )
 fefe6354:	504f           	addqw #8,%sp
 fefe6356:	7000           	moveq #0,%d0
@@ -8774,7 +8816,7 @@ fefe635c:	4e56 0000      	linkw %fp,#0
 fefe6360:	3079 fef7 207a 	moveaw 0xfef7207a,%a0
 fefe6366:	2f08           	movel %a0,%sp@-
 fefe6368:	4879 feff 5b62 	pea 0xfeff5b62
-fefe636e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe636e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 fefe6374:	504f           	addqw #8,%sp
 fefe6376:	7000           	moveq #0,%d0
@@ -8784,7 +8826,7 @@ fefe637a:	4e75           	rts
 fefe637c:	4e56 fff0      	linkw %fp,#-16
 fefe6380:	48d7 30c0      	moveml %d6-%d7/%a4-%a5,%sp@
 fefe6384:	4879 feff 5b6d 	pea 0xfeff5b6d
-fefe638a:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe638a:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Error" )
 fefe6390:	584f           	addqw #4,%sp
 fefe6392:	0839 0000 fef7 	btst #0,0xfef72414
@@ -8823,7 +8865,7 @@ fefe6406:	d081           	addl %d1,%d0
 fefe6408:	2f00           	movel %d0,%sp@-
 fefe640a:	2f07           	movel %d7,%sp@-
 fefe640c:	4879 feff 5b73 	pea 0xfeff5b73
-fefe6412:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe6412:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( ":\n ++" )
 fefe6418:	607e           	bras 0xfefe6498
 fefe641a:	2e39 fef7 2476 	movel 0xfef72476,%d7
@@ -8856,11 +8898,11 @@ fefe6476:	d081           	addl %d1,%d0
 fefe6478:	2f00           	movel %d0,%sp@-
 fefe647a:	2f07           	movel %d7,%sp@-
 fefe647c:	4879 feff 5bad 	pea 0xfeff5bad
-fefe6482:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe6482:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( ":\n ++" )
 fefe6488:	600e           	bras 0xfefe6498
 fefe648a:	4879 feff 5be7 	pea 0xfeff5be7
-fefe6490:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe6490:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( ", PC fetch" )
 fefe6496:	584f           	addqw #4,%sp
 fefe6498:	7000           	moveq #0,%d0
@@ -9094,7 +9136,7 @@ fefe6790:	7270           	moveq #112,%d1
 fefe6792:	2d41 ffe8      	movel %d1,%fp@(-24)
 fefe6796:	2f01           	movel %d1,%sp@-
 fefe6798:	4879 feff 5c28 	pea 0xfeff5c28
-fefe679e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe679e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( ".[%c" )
 fefe67a4:	504f           	addqw #8,%sp
 fefe67a6:	7201           	moveq #1,%d1
@@ -9656,7 +9698,7 @@ fefe6e5e:	bc80           	cmpl %d0,%d6
 fefe6e60:	660c           	bnes 0xfefe6e6e
 fefe6e62:	4853           	pea %a3@
 Skip: fefe6e62:	4853           	pea %a3@
-fefe6e64:	4eb9 fefe 2b04 	jsr 0xfefe2b04			; printf
+fefe6e64:	4eb9 fefe 2b04 	jsr 0xfefe2b04			; printf		; printf
 fefe6e6a:	584f           	addqw #4,%sp
 fefe6e6c:	6038           	bras 0xfefe6ea6
 fefe6e6e:	7000           	moveq #0,%d0
@@ -9694,7 +9736,7 @@ fefe6ed4:	2f39 fef7 258e 	movel 0xfef7258e,%sp@-
 fefe6eda:	2f39 fef7 258a 	movel 0xfef7258a,%sp@-
 fefe6ee0:	2f39 fef7 2586 	movel 0xfef72586,%sp@-
 fefe6ee6:	4879 feff 5c70 	pea 0xfeff5c70
-fefe6eec:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefe6eec:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%x %x %x %c %x %x \n" )
 fefe6ef2:	7000           	moveq #0,%d0
 fefe6ef4:	4e5e           	unlk %fp
@@ -10002,7 +10044,7 @@ fefe716e:	3140 0002      	movew %d0,%a0@(2)
 fefe7172:	203c 0000 0004 	movel #4,%d0
 fefe7178:	3080           	movew %d0,%a0@
 
-fefe717a:	41f9 6600 0000 	lea 0x66000000,%a0
+fefe717a:	41f9 6600 0000 	lea 0x66000000,%a0		; SCSI
 fefe7180:	d1fc 0000 1000 	addal #0x1000,%a0
 fefe7186:	20bc 0000 0000 	movel #0,%a0@
 fefe718c:	217c 0000 0000 	movel #0,%a0@(4)
@@ -10959,7 +11001,7 @@ fefe8472:	49fa 02e4      	lea %pc@(0xfefe8758),%a4
 fefe8476:	4dfa 0008      	lea %pc@(0xfefe8480),%fp
 fefe847a:	60ff 0000 182c 	bral 0xfefe9ca8		; INI_print2
 fefe8480:	4ff9 0002 1000 	lea 0x21000,%sp
-fefe8486:	1039 6100 0400 	moveb 0x61000400,%d0
+fefe8486:	1039 6100 0400 	moveb 0x61000400,%d0	; BUS_ERR register
 fefe848c:	0200 0020      	andib #0x20,%d0
 fefe8490:	6700 0006      	beqw 0xfefe8498
 fefe8494:	6000 0010      	braw 0xfefe84a6
@@ -14302,7 +14344,7 @@ fefeb178:	6010           	bras 0xfefeb18a
 fefeb17a:	207c 0000 0900 	moveal #0x900,%a0
 fefeb180:	20bc 5555 0000 	movel #0x55550000,%a0@
 fefeb186:	363c 0000      	movew #0,%d3
-fefeb18a:	13fc 0000 6100 	moveb #0,0x61000400
+fefeb18a:	13fc 0000 6100 	moveb #0,0x61000400	; BUS_ERR register
 fefeb190:	0400
 fefeb192:	2005           	movel %d5,%d0
 fefeb194:	2c45           	moveal %d5,%fp
@@ -16489,7 +16531,7 @@ fefed5a8:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; INI_print
 fefed5ae:	4ed0           	jmp %a0@
 
 fefed5b0:	4280           	clrl %d0
-fefed5b2:	1039 6100 0400 	moveb 0x61000400,%d0
+fefed5b2:	1039 6100 0400 	moveb 0x61000400,%d0	; BUS_ERR register
 fefed5b8:	49fa 0050      	lea %pc@(0xfefed60a),%a4
 ; 0xfefed60a  bus err reg 0x%d0
 fefed5bc:	4dfa 000a      	lea %pc@(0xfefed5c8),%fp
@@ -16542,7 +16584,7 @@ fefed648:	4dfa 000a      	lea %pc@(0xfefed654),%fp
 fefed64c:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; INI_print
 fefed652:	4ed0           	jmp %a0@
 fefed654:	4280           	clrl %d0
-fefed656:	1039 6100 0400 	moveb 0x61000400,%d0
+fefed656:	1039 6100 0400 	moveb 0x61000400,%d0	; BUS_ERR register
 fefed65c:	49fa ffac      	lea %pc@(0xfefed60a),%a4
 fefed660:	4dfa 000a      	lea %pc@(0xfefed66c),%fp
 fefed664:	41f9 fefe a3d4 	lea 0xfefea3d4,%a0		; INI_print
@@ -16831,6 +16873,7 @@ fefedf58:	203c 0000 0000 	movel #0,%d0
 fefedf5e:	4ed6           	jmp %fp@			; return
 
 ; The above is the last use of the jmp %fp@ return scheme
+; (there are still such calls below)
 
 ; ---------------------------------------------
 fefedf60:	49fa 03c0      	lea %pc@(0xfefee322),%a4
@@ -16842,45 +16885,52 @@ fefedf6c:	60ff ffff bbda 	bral 0xfefe9b48			; INI_test
 fefedf72:	4dfa 0008      	lea %pc@(0xfefedf7c),%fp
 fefedf76:	60ff ffff bcaa 	bral 0xfefe9c22			; INI_stash_fp
 
-fefedf7c:	41f9 6500 2000 	lea 0x65002000,%a0
+; The "check" seems to be to read the two registers
+fefedf7c:	41f9 6500 2000 	lea 0x65002000,%a0		; LANCE
 fefedf82:	3010           	movew %a0@,%d0
 fefedf84:	3028 0002      	movew %a0@(2),%d0
+
 fefedf88:	4dfa 0008      	lea %pc@(0xfefedf92),%fp
 fefedf8c:	60ff ffff bd8e 	bral 0xfefe9d1c			; INI_func
 
 fefedf92:	0807 0009      	btst #9,%d7
-fefedf96:	6600 ffda      	bnew 0xfefedf72
-fefedf9a:	6000 0002      	braw 0xfefedf9e
+fefedf96:	6600 ffda      	bnew 0xfefedf72		; branch up
+
+fefedf9a:	6000 0002      	braw 0xfefedf9e		; ha ha
+
+; -------------
+
 fefedf9e:	49fa 03b6      	lea %pc@(0xfefee356),%a4
 ; 0xfefee356 \n\rESP SCSI Controller Check
 fefedfa2:	1e3c 0023      	moveb #0x23,%d7
 fefedfa6:	4dfa 0008      	lea %pc@(0xfefedfb0),%fp
 fefedfaa:	60ff ffff bb9c 	bral 0xfefe9b48			; INI_test
+
 fefedfb0:	4dfa 0008      	lea %pc@(0xfefedfba),%fp
 fefedfb4:	60ff ffff bc6c 	bral 0xfefe9c22			; INI_stash_fp
 
-fefedfba:	23fc 0000 0080 	movel #0x80,0x66001000
+fefedfba:	23fc 0000 0080 	movel #0x80,0x66001000	; SCSI
 fefedfc0:	6600 1000
 
 fefedfc4:	203c 0000 1000 	movel #0x1000,%d0
 fefedfca:	51c8 fffe      	dbf %d0,0xfefedfca		; delay
 
-fefedfce:	23fc 0000 0000 	movel #0,0x66001000
+fefedfce:	23fc 0000 0000 	movel #0,0x66001000		; SCSI
 fefedfd4:	6600 1000
 
 fefedfd8:	203c 0000 2000 	movel #0x2000,%d0
 fefedfde:	51c8 fffe      	dbf %d0,0xfefedfde		; delay
 
-fefedfe2:	41f9 6600 0000 	lea 0x66000000,%a0
+fefedfe2:	41f9 6600 0000 	lea 0x66000000,%a0		; SCSI
 fefedfe8:	223c 0000 000a 	movel #0xa,%d1
 fefedfee:	1010           	moveb %a0@,%d0
 fefedff0:	5888           	addql #4,%a0
 fefedff2:	5381           	subql #1,%d1
 fefedff4:	6600 fff8      	bnew 0xfefedfee
-fefedff8:	13f8 0002 6600 	moveb 0x2,0x6600000c
+fefedff8:	13f8 0002 6600 	moveb 0x2,0x6600000c		; SCSI
 fefedffe:	000c
-fefee000:	41f9 6600 0008 	lea 0x66000008,%a0
-fefee006:	43f9 6600 001c 	lea 0x6600001c,%a1
+fefee000:	41f9 6600 0008 	lea 0x66000008,%a0		; SCSI
+fefee006:	43f9 6600 001c 	lea 0x6600001c,%a1		; SCSI
 fefee00c:	1211           	moveb %a1@,%d1
 fefee00e:	6600 0054      	bnew 0xfefee064
 fefee012:	223c 0000 0000 	movel #0,%d1
@@ -16901,10 +16951,10 @@ fefee048:	b200           	cmpb %d0,%d1
 fefee04a:	6600 0018      	bnew 0xfefee064
 fefee04e:	0c81 0000 000f 	cmpil #0xf,%d1
 fefee054:	6d00 ffee      	bltw 0xfefee044
-fefee058:	13f8 0002 6600 	moveb 0x2,0x6600000c
+fefee058:	13f8 0002 6600 	moveb 0x2,0x6600000c		; SCSI
 fefee05e:	000c
 fefee060:	6000 0018      	braw 0xfefee07a
-fefee064:	13f8 0002 6600 	moveb 0x2,0x6600000c
+fefee064:	13f8 0002 6600 	moveb 0x2,0x6600000c		; SCSI
 fefee06a:	000c
 fefee06c:	49fa 0305      	lea %pc@(0xfefee373),%a4
 ; 0xfefee373 \n\r ESP Controller Bad  FLAGS 0x%d0 FIFO 0x%d1 [%d2]
@@ -16914,7 +16964,11 @@ fefee07a:	4dfa 0008      	lea %pc@(0xfefee084),%fp
 fefee07e:	60ff ffff bc9c 	bral 0xfefe9d1c			; INI_func
 fefee084:	0807 0009      	btst #9,%d7
 fefee088:	6600 ff26      	bnew 0xfefedfb0
-fefee08c:	6000 0002      	braw 0xfefee090
+
+fefee08c:	6000 0002      	braw 0xfefee090		; ha ha
+
+; --------------------------------------------
+
 fefee090:	49fa 0316      	lea %pc@(0xfefee3a8),%a4
 ; 0xfefee3a8 \n\rFloppy Controller Check
 fefee094:	1e3c 0024      	moveb #0x24,%d7
@@ -17212,7 +17266,7 @@ fefee668:	7000           	moveq #0,%d0
 fefee66a:	1039 fef0 4026 	moveb 0xfef04026,%d0
 fefee670:	2740 008e      	movel %d0,%a3@(142)
 fefee674:	4879 feff 5e08 	pea 0xfeff5e08
-fefee67a:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefee67a:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 fefee680:	584f           	addqw #4,%sp
 fefee682:	6072           	bras 0xfefee6f6
@@ -17236,7 +17290,7 @@ fefee6c0:	7000           	moveq #0,%d0
 fefee6c2:	1039 fef0 401d 	moveb 0xfef0401d,%d0
 fefee6c8:	2740 008e      	movel %d0,%a3@(142)
 fefee6cc:	4879 feff 5e2d 	pea 0xfeff5e2d
-fefee6d2:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefee6d2:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 fefee6d8:	584f           	addqw #4,%sp
 fefee6da:	601a           	bras 0xfefee6f6
@@ -17293,7 +17347,7 @@ fefee766:	1010           	moveb %a0@,%d0
 fefee768:	49c0           	extbl %d0
 fefee76a:	2f00           	movel %d0,%sp@-
 fefee76c:	4879 feff 5e45 	pea 0xfeff5e45
-fefee772:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefee772:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( " %c%c(%x,%x,%x)%s %s\n" )
 fefee778:	4fef 0020      	lea %sp@(32),%sp
 fefee77c:	2d7c feff 5df8 	movel #0xfeff5df8,%fp@(-66)
@@ -17351,7 +17405,7 @@ fefee826:	1010           	moveb %a0@,%d0
 fefee828:	49c0           	extbl %d0
 fefee82a:	2f00           	movel %d0,%sp@-
 fefee82c:	4879 feff 5e5b 	pea 0xfeff5e5b
-fefee832:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefee832:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Boot: %c%c(%x,%x,%x)%s %s\n" )
 fefee838:	4fef 0020      	lea %sp@(32),%sp
 fefee83c:	6032           	bras 0xfefee870
@@ -17366,7 +17420,7 @@ fefee84e:	1010           	moveb %a0@,%d0
 fefee850:	49c0           	extbl %d0
 fefee852:	2f00           	movel %d0,%sp@-
 fefee854:	4879 feff 5e76 	pea 0xfeff5e76
-fefee85a:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefee85a:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 fefee860:	70ff           	moveq #-1,%d0
 fefee862:	6000 01b8      	braw 0xfefeea1c
@@ -17380,7 +17434,7 @@ fefee874:	2045           	moveal %d5,%a0
 fefee876:	4a50           	tstw %a0@
 fefee878:	6714           	beqs 0xfefee88e
 fefee87a:	4879 feff 5e90 	pea 0xfeff5e90
-fefee880:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefee880:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "No bootable devices found\n" )
 fefee886:	584f           	addqw #4,%sp
 fefee888:	70ff           	moveq #-1,%d0
@@ -17393,7 +17447,7 @@ fefee898:	1010           	moveb %a0@,%d0
 fefee89a:	49c0           	extbl %d0
 fefee89c:	2f00           	movel %d0,%sp@-
 fefee89e:	4879 feff 5eab 	pea 0xfeff5eab
-fefee8a4:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefee8a4:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 fefee8aa:	4fef 000c      	lea %sp@(12),%sp
 fefee8ae:	4aae fffc      	tstl %fp@(-4)
@@ -17420,7 +17474,7 @@ fefee8ea:	1010           	moveb %a0@,%d0
 fefee8ec:	49c0           	extbl %d0
 fefee8ee:	2f00           	movel %d0,%sp@-
 fefee8f0:	4879 feff 5ec5 	pea 0xfeff5ec5
-fefee8f6:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefee8f6:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Boot: %c%c(%x,%x,%x)%s %s\n" )
 fefee8fc:	4fef 0020      	lea %sp@(32),%sp
 fefee900:	2043           	moveal %d3,%a0
@@ -17524,21 +17578,21 @@ fefeea22:	4e5e           	unlk %fp
 fefeea24:	4e75           	rts
 
 fefeea26:	4879 feff 5ee0 	pea 0xfeff5ee0
-fefeea2c:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefeea2c:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Boot: load failed\n" )
 fefeea32:	584f           	addqw #4,%sp
 fefeea34:	60e2           	bras 0xfefeea18
 fefeea36:	4e56 fff8      	linkw %fp,#-8
 fefeea3a:	48d7 3000      	moveml %a4-%a5,%sp@
 fefeea3e:	4879 feff 5ef3 	pea 0xfeff5ef3
-fefeea44:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefeea44:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Boot syntax: b [!][dev(ctlr,unit,part)] name [options]\n ++" )
 fefeea4a:	584f           	addqw #4,%sp
 fefeea4c:	2a6e 0008      	moveal %fp@(8),%a5
 fefeea50:	6014           	bras 0xfefeea66
 fefeea52:	2f2c 0016      	movel %a4@(22),%sp@-
 fefeea56:	4879 feff 5f42 	pea 0xfeff5f42
-fefeea5c:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefeea5c:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "  %s\n" )
 fefeea62:	504f           	addqw #8,%sp
 fefeea64:	584d           	addqw #4,%a5
@@ -17711,21 +17765,31 @@ fefeec2a:	4cee 30f0 ffe8 	moveml %fp@(-24),%d4-%d7/%a4-%a5
 fefeec30:	4e5e           	unlk %fp
 fefeec32:	4e75           	rts
 
+; -------------------------------
+; wrapper on network boot
+; no direct call
+
 fefeec34:	4e56 fffc      	linkw %fp,#-4
 fefeec38:	2e87           	movel %d7,%sp@
+
 fefeec3a:	2f2e 0008      	movel %fp@(8),%sp@-
-fefeec3e:	4eb9 feff 06d4 	jsr 0xfeff06d4
+fefeec3e:	4eb9 feff 06d4 	jsr 0xfeff06d4		; network boot ??
 fefeec44:	584f           	addqw #4,%sp
+
 fefeec46:	7eff           	moveq #-1,%d7
 fefeec48:	b087           	cmpl %d7,%d0
 fefeec4a:	6604           	bnes 0xfefeec50
-fefeec4c:	70ff           	moveq #-1,%d0
+
+fefeec4c:	70ff           	moveq #-1,%d0		; return -1
 fefeec4e:	6006           	bras 0xfefeec56
-fefeec50:	203c 0000 4000 	movel #0x4000,%d0
+
+fefeec50:	203c 0000 4000 	movel #0x4000,%d0	; return 0x4000
+
 fefeec56:	2e2e fffc      	movel %fp@(-4),%d7
 fefeec5a:	4e5e           	unlk %fp
 fefeec5c:	4e75           	rts
 
+; -------------------------------
 fefeec5e:	4e56 fff8      	linkw %fp,#-8
 fefeec62:	48d7 3000      	moveml %a4-%a5,%sp@
 fefeec66:	2a6e 0008      	moveal %fp@(8),%a5
@@ -17868,7 +17932,7 @@ fefeee0a:	7c00           	moveq #0,%d6
 fefeee0c:	0c6d dabe 01fc 	cmpiw #0xdabe,%a5@(508)
 fefeee12:	6712           	beqs 0xfefeee26
 fefeee14:	4879 feff 5fc0 	pea 0xfeff5fc0
-fefeee1a:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefeee1a:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "No label found - attempting boot anyway.\n" )
 fefeee20:	584f           	addqw #4,%sp
 fefeee22:	7001           	moveq #1,%d0
@@ -17885,7 +17949,7 @@ fefeee3c:	64f0           	bccs 0xfefeee2e
 fefeee3e:	4a86           	tstl %d6
 fefeee40:	6712           	beqs 0xfefeee54
 fefeee42:	4879 feff 5fec 	pea 0xfeff5fec
-fefeee48:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefeee48:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Corrupt label\n" )
 fefeee4e:	584f           	addqw #4,%sp
 fefeee50:	7001           	moveq #1,%d0
@@ -17923,7 +17987,7 @@ fefeeea2:	7eff           	moveq #-1,%d7
 fefeeea4:	b087           	cmpl %d7,%d0
 fefeeea6:	66f4           	bnes 0xfefeee9c
 fefeeea8:	4879 feff 5f60 	pea 0xfeff5f60
-fefeeeae:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefeeeae:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 fefeeeb4:	584f           	addqw #4,%sp
 fefeeeb6:	2e15           	movel %a5@,%d7
@@ -17937,7 +18001,7 @@ fefeeecc:	4eb9 fefe 03ba 	jsr 0xfefe03ba
 fefeeed2:	be95           	cmpl %a5@,%d7
 fefeeed4:	6c14           	bges 0xfefeeeea
 fefeeed6:	4879 feff 5ffb 	pea 0xfeff5ffb
-fefeeedc:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefeeedc:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Giving up...\n" )
 fefeeee2:	584f           	addqw #4,%sp
 fefeeee4:	4eb9 fefe 03ba 	jsr 0xfefe03ba
@@ -19126,7 +19190,7 @@ fefeffe2:	7201           	moveq #1,%d1
 fefeffe4:	b081           	cmpl %d1,%d0
 fefeffe6:	6710           	beqs 0xfefefff8
 fefeffe8:	4879 feff 60d0 	pea 0xfeff60d0
-fefeffee:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+fefeffee:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "ERROR: missing or invalid ID prom\n" )
 fefefff4:	584f           	addqw #4,%sp
 fefefff6:	6012           	bras 0xfeff000a
@@ -19385,20 +19449,26 @@ feff037c:	fff4
 feff037e:	663c           	bnes 0xfeff03bc
 feff0380:	0c6c 0001 0014 	cmpiw #1,%a4@(20)
 feff0386:	661a           	bnes 0xfeff03a2
+
 feff0388:	4879 feff 60f8 	pea 0xfeff60f8
-feff038e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff038e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Requesting Ethernet address for " )
 feff0394:	584f           	addqw #4,%sp
+
 feff0396:	2f2c 0026      	movel %a4@(38),%sp@-
-feff039a:	4eb9 feff 05b8 	jsr 0xfeff05b8
-feff03a0:	6018           	bras 0xfeff03ba
+feff039a:	4eb9 feff 05b8 	jsr 0xfeff05b8		; show_net_addr
+feff03a0:	6018           	bras 0xfeff03ba		; cute
+
 feff03a2:	4879 feff 6119 	pea 0xfeff6119
-feff03a8:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff03a8:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Requesting Internet address for " )
 feff03ae:	584f           	addqw #4,%sp
+
 feff03b0:	2f2e ffec      	movel %fp@(-20),%sp@-
-feff03b4:	4eb9 feff 0650 	jsr 0xfeff0650
+feff03b4:	4eb9 feff 0650 	jsr 0xfeff0650		; print_eth_addr
 feff03ba:	584f           	addqw #4,%sp
+
+; call to tricky address
 feff03bc:	4878 003c      	pea 0x3c
 feff03c0:	4854           	pea %a4@
 feff03c2:	2f2b 0006      	movel %a3@(6),%sp@-
@@ -19406,6 +19476,7 @@ feff03c6:	206b 002a      	moveal %a3@(42),%a0
 feff03ca:	2050           	moveal %a0@,%a0
 feff03cc:	4e90           	jsr %a0@
 feff03ce:	4fef 000c      	lea %sp@(12),%sp
+
 feff03d2:	2c02           	movel %d2,%d6
 feff03d4:	e786           	asll #3,%d6
 feff03d6:	2206           	movel %d6,%d1
@@ -19430,7 +19501,7 @@ feff0400:	49c0           	extbl %d0
 feff0402:	52ae fff8      	addql #1,%fp@(-8)
 feff0406:	2f00           	movel %d0,%sp@-
 feff0408:	4879 feff 613a 	pea 0xfeff613a
-feff040e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff040e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%c." )
 feff0414:	504f           	addqw #8,%sp
 feff0416:	2052           	moveal %a2@,%a0
@@ -19460,11 +19531,11 @@ feff0460:	0cae 0000 0002 	cmpil #2,%fp@(-12)
 feff0466:	fff4
 feff0468:	6d1a           	blts 0xfeff0484
 feff046a:	4879 feff 613e 	pea 0xfeff613e
-feff0470:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff0470:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Found at " )
 feff0476:	584f           	addqw #4,%sp
 feff0478:	486d 0016      	pea %a5@(22)
-feff047c:	4eb9 feff 0650 	jsr 0xfeff0650
+feff047c:	4eb9 feff 0650 	jsr 0xfeff0650		; print_eth_addr
 feff0482:	584f           	addqw #4,%sp
 feff0484:	41ed 0016      	lea %a5@(22),%a0
 feff0488:	226e 000c      	moveal %fp@(12),%a1
@@ -19484,11 +19555,11 @@ feff04be:	4fef 000c      	lea %sp@(12),%sp
 feff04c2:	4a80           	tstl %d0
 feff04c4:	6600 ff50      	bnew 0xfeff0416
 feff04c8:	4879 feff 6148 	pea 0xfeff6148
-feff04ce:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff04ce:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Using IP Address " )
 feff04d4:	584f           	addqw #4,%sp
 feff04d6:	2f2d 0026      	movel %a5@(38),%sp@-
-feff04da:	4eb9 feff 05b8 	jsr 0xfeff05b8
+feff04da:	4eb9 feff 05b8 	jsr 0xfeff05b8		; show_net_addr
 feff04e0:	584f           	addqw #4,%sp
 feff04e2:	41ed 0026      	lea %a5@(38),%a0
 feff04e6:	226e 000c      	moveal %fp@(12),%a1
@@ -19563,58 +19634,82 @@ feff05b0:	65e4           	bcss 0xfeff0596
 feff05b2:	9e81           	subl %d1,%d7
 feff05b4:	5287           	addql #1,%d7
 feff05b6:	60de           	bras 0xfeff0596
+
+; subroutine
+; print network address
+; show_net_addr()
+
 feff05b8:	4e56 0000      	linkw %fp,#0
+
+; pick out 4 bytes, put them on the stack.
+
 feff05bc:	7000           	moveq #0,%d0
 feff05be:	102e 000b      	moveb %fp@(11),%d0
 feff05c2:	2f00           	movel %d0,%sp@-
+
 feff05c4:	7000           	moveq #0,%d0
 feff05c6:	102e 000a      	moveb %fp@(10),%d0
 feff05ca:	2f00           	movel %d0,%sp@-
+
 feff05cc:	7000           	moveq #0,%d0
 feff05ce:	102e 0009      	moveb %fp@(9),%d0
 feff05d2:	2f00           	movel %d0,%sp@-
+
 feff05d4:	7000           	moveq #0,%d0
 feff05d6:	102e 0008      	moveb %fp@(8),%d0
 feff05da:	2f00           	movel %d0,%sp@-
+
 feff05dc:	4879 feff 615a 	pea 0xfeff615a
-feff05e2:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff05e2:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%d.%d.%d.%d = " )
 feff05e8:	4fef 0014      	lea %sp@(20),%sp
-feff05ec:	4878 0002      	pea 0x2
+
+; Now the same 4 bytes, in the other order
+
+feff05ec:	4878 0002      	pea 0x2				; 2 bytes
 feff05f0:	7000           	moveq #0,%d0
 feff05f2:	102e 0008      	moveb %fp@(8),%d0
 feff05f6:	2f00           	movel %d0,%sp@-
-feff05f8:	4eb9 fefe 2c54 	jsr 0xfefe2c54
+feff05f8:	4eb9 fefe 2c54 	jsr 0xfefe2c54		; print_hex
 feff05fe:	504f           	addqw #8,%sp
+
 feff0600:	4878 0002      	pea 0x2
 feff0604:	7000           	moveq #0,%d0
 feff0606:	102e 0009      	moveb %fp@(9),%d0
 feff060a:	2f00           	movel %d0,%sp@-
-feff060c:	4eb9 fefe 2c54 	jsr 0xfefe2c54
+feff060c:	4eb9 fefe 2c54 	jsr 0xfefe2c54		; print_hex
 feff0612:	504f           	addqw #8,%sp
+
 feff0614:	4878 0002      	pea 0x2
 feff0618:	7000           	moveq #0,%d0
 feff061a:	102e 000a      	moveb %fp@(10),%d0
 feff061e:	2f00           	movel %d0,%sp@-
-feff0620:	4eb9 fefe 2c54 	jsr 0xfefe2c54
+feff0620:	4eb9 fefe 2c54 	jsr 0xfefe2c54		; print_hex
 feff0626:	504f           	addqw #8,%sp
+
 feff0628:	4878 0002      	pea 0x2
 feff062c:	7000           	moveq #0,%d0
 feff062e:	102e 000b      	moveb %fp@(11),%d0
 feff0632:	2f00           	movel %d0,%sp@-
-feff0634:	4eb9 fefe 2c54 	jsr 0xfefe2c54
+feff0634:	4eb9 fefe 2c54 	jsr 0xfefe2c54		; print_hex
 feff063a:	504f           	addqw #8,%sp
+
 feff063c:	4879 feff 6169 	pea 0xfeff6169
-feff0642:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff0642:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n" )
 feff0648:	584f           	addqw #4,%sp
+
 feff064a:	7000           	moveq #0,%d0
 feff064c:	4e5e           	unlk %fp
 feff064e:	4e75           	rts
 
+; --------------------------------------------------------
+; print_eth_addr()
+
 feff0650:	4e56 fffc      	linkw %fp,#-4
-feff0654:	2e8d           	movel %a5,%sp@
-feff0656:	2a6e 0008      	moveal %fp@(8),%a5
+feff0654:	2e8d           	movel %a5,%sp@			; save a5
+
+feff0656:	2a6e 0008      	moveal %fp@(8),%a5		; arg
 feff065a:	7000           	moveq #0,%d0
 feff065c:	102d 0005      	moveb %a5@(5),%d0
 feff0660:	2f00           	movel %d0,%sp@-
@@ -19634,15 +19729,18 @@ feff0682:	7000           	moveq #0,%d0
 feff0684:	1015           	moveb %a5@,%d0
 feff0686:	2f00           	movel %d0,%sp@-
 feff0688:	4879 feff 616b 	pea 0xfeff616b
-feff068e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff068e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%x:%x:%x:%x:%x:%x\n" )
 feff0694:	7000           	moveq #0,%d0
+
 feff0696:	2a6e fffc      	moveal %fp@(-4),%a5
 feff069a:	4e5e           	unlk %fp
 feff069c:	4e75           	rts
+feff069e:	0000
 
-feff069e:	0000 4e56      	orib #0x56,%d0
-feff06a2:	fffc           	.short 0xfffc
+; --------------------------------------------------------
+
+feff06a0:	4e56 fffc      	linkw %fp,#-4
 feff06a4:	2e8d           	movel %a5,%sp@
 feff06a6:	3a7c 3000      	moveaw #0x3000,%a5
 feff06aa:	4878 088c      	pea 0x88c
@@ -19658,6 +19756,10 @@ feff06cc:	2a6e fffc      	moveal %fp@(-4),%a5
 feff06d0:	4e5e           	unlk %fp
 feff06d2:	4e75           	rts
 
+; ----------------------------
+; big routine - only one call
+; tftp boot is in here
+; network boot ??
 feff06d4:	4e56 ffa0      	linkw %fp,#-96
 feff06d8:	48d7 3cfc      	moveml %d2-%d7/%a2-%a5,%sp@
 feff06dc:	3a7c 3000      	moveaw #0x3000,%a5
@@ -19797,7 +19899,7 @@ feff08b6:	6c78           	bges 0xfeff0930
 feff08b8:	e386           	asll #1,%d6
 feff08ba:	607a           	bras 0xfeff0936
 feff08bc:	4879 feff 6245 	pea 0xfeff6245
-feff08c2:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff08c2:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "tftp: time-out.\n" )
 feff08c8:	584f           	addqw #4,%sp
 feff08ca:	6052           	bras 0xfeff091e
@@ -19813,7 +19915,7 @@ feff08e6:	6f16           	bles 0xfeff08fe
 feff08e8:	306b 002c      	moveaw %a3@(44),%a0
 feff08ec:	2f08           	movel %a0,%sp@-
 feff08ee:	4879 feff 61ca 	pea 0xfeff61ca
-feff08f4:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff08f4:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "tftp: Unknown error 0x%x\n" )
 feff08fa:	504f           	addqw #8,%sp
 feff08fc:	6020           	bras 0xfeff091e
@@ -19822,16 +19924,20 @@ feff0902:	302b 002c      	movew %a3@(44),%d0
 feff0906:	206e ffd6      	moveal %fp@(-42),%a0
 feff090a:	2f30 0400      	movel %a0@(0,%d0:w:4),%sp@-
 feff090e:	4879 feff 61e4 	pea 0xfeff61e4
-feff0914:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff0914:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "tftp: %s @ block %d\n" )
 feff091a:	4fef 000c      	lea %sp@(12),%sp
 feff091e:	4a82           	tstl %d2
 feff0920:	6600 fe32      	bnew 0xfeff0754
 feff0924:	70ff           	moveq #-1,%d0
+
 feff0926:	4cee 3cfc ffa0 	moveml %fp@(-96),%d2-%d7/%a2-%a5
 feff092c:	4e5e           	unlk %fp
 feff092e:	4e75           	rts
 
+; ----
+; above branches to here
+; includes tftp
 feff0930:	2c3c 0000 fa00 	movel #0xfa00,%d6
 feff0936:	2005           	movel %d5,%d0
 feff0938:	7203           	moveq #3,%d1
@@ -19849,7 +19955,7 @@ feff0952:	2d40 ffde      	movel %d0,%fp@(-34)
 feff0956:	5285           	addql #1,%d5
 feff0958:	2f00           	movel %d0,%sp@-
 feff095a:	4879 feff 61c3 	pea 0xfeff61c3
-feff0960:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff0960:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%c." )
 feff0966:	504f           	addqw #8,%sp
 feff0968:	2f2e ffce      	movel %fp@(-50),%sp@-
@@ -19866,7 +19972,7 @@ feff0988:	4fef 0014      	lea %sp@(20),%sp
 feff098c:	4a80           	tstl %d0
 feff098e:	670e           	beqs 0xfeff099e
 feff0990:	4879 feff 61c7 	pea 0xfeff61c7
-feff0996:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff0996:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "X." )
 feff099c:	584f           	addqw #4,%sp
 feff099e:	4a83           	tstl %d3
@@ -19912,13 +20018,16 @@ feff0a2a:	670a           	beqs 0xfeff0a36
 feff0a2c:	41eb 001a      	lea %a3@(26),%a0
 feff0a30:	43ed 001e      	lea %a5@(30),%a1
 feff0a34:	2290           	movel %a0@,%a1@
+
 feff0a36:	4879 feff 61f9 	pea 0xfeff61f9
-feff0a3c:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff0a3c:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Booting from tftp server at " )
 feff0a42:	584f           	addqw #4,%sp
+
 feff0a44:	2f2d 001e      	movel %a5@(30),%sp@-
-feff0a48:	4eb9 feff 05b8 	jsr 0xfeff05b8
+feff0a48:	4eb9 feff 05b8 	jsr 0xfeff05b8		; show_net_addr
 feff0a4e:	584f           	addqw #4,%sp
+
 feff0a50:	7601           	moveq #1,%d3
 feff0a52:	3e2b 0026      	movew %a3@(38),%d7
 feff0a56:	0447 000c      	subiw #0xc,%d7
@@ -19961,7 +20070,7 @@ feff0aca:	49c0           	extbl %d0
 feff0acc:	5285           	addql #1,%d5
 feff0ace:	2f00           	movel %d0,%sp@-
 feff0ad0:	4879 feff 6216 	pea 0xfeff6216
-feff0ad6:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff0ad6:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%c." )
 feff0adc:	504f           	addqw #8,%sp
 feff0ade:	2052           	moveal %a2@,%a0
@@ -19981,19 +20090,28 @@ feff0b04:	4eb9 feff 0062 	jsr 0xfeff0062
 feff0b0a:	4fef 0014      	lea %sp@(20),%sp
 feff0b0e:	4a80           	tstl %d0
 feff0b10:	670e           	beqs 0xfeff0b20
+
 feff0b12:	4879 feff 621a 	pea 0xfeff621a
-feff0b18:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff0b18:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "X." )
 feff0b1e:	584f           	addqw #4,%sp
+
 feff0b20:	202d 0888      	movel %a5@(2184),%d0
 feff0b24:	0480 0000 4000 	subil #0x4000,%d0
-feff0b2a:	2f00           	movel %d0,%sp@-
+
+feff0b2a:	2f00           	movel %d0,%sp@-		; count
 feff0b2c:	4879 feff 621d 	pea 0xfeff621d
-feff0b32:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff0b32:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Downloaded %d bytes from tftp server.\n ++" )
 feff0b38:	504f           	addqw #8,%sp
+
 feff0b3a:	203c 0000 4000 	movel #0x4000,%d0
 feff0b40:	6000 fde4      	braw 0xfeff0926
+; branch up to join proper return
+
+; ----------------------------------------------------
+; subroutine
+; SCSI boot ??
 feff0b44:	4e56 ffcc      	linkw %fp,#-52
 feff0b48:	48d7 3c80      	moveml %d7/%a2-%a5,%sp@
 feff0b4c:	286e 0008      	moveal %fp@(8),%a4
@@ -20005,7 +20123,7 @@ feff0b62:	504f           	addqw #8,%sp
 feff0b64:	7e01           	moveq #1,%d7
 feff0b66:	b087           	cmpl %d7,%d0
 feff0b68:	6600 00a2      	bnew 0xfeff0c0c
-feff0b6c:	2e3c 6600 0000 	movel #0x66000000,%d7
+feff0b6c:	2e3c 6600 0000 	movel #0x66000000,%d7		; SCSI
 feff0b72:	0c94 0000 0001 	cmpil #1,%a4@
 feff0b78:	6c00 00a2      	bgew 0xfeff0c1c
 feff0b7c:	2014           	movel %a4@,%d0
@@ -20697,12 +20815,18 @@ feff13ea:	7000           	moveq #0,%d0
 feff13ec:	4cee 3cc0 ffe8 	moveml %fp@(-24),%d6-%d7/%a2-%a5
 feff13f2:	4e5e           	unlk %fp
 feff13f4:	4e75           	rts
+feff13f6:	0000
 
-feff13f6:	0000 4e56      	orib #0x56,%d0
-feff13fa:	fffc           	.short 0xfffc
+; ------------------------
+; Wrapper on SCSI boot
+; 2 calls
+
+feff13f8:	4e56 fffc      	linkw %fp,#-4
+
 feff13fc:	2f2e 0008      	movel %fp@(8),%sp@-
-feff1400:	4eb9 feff 0b44 	jsr 0xfeff0b44
+feff1400:	4eb9 feff 0b44 	jsr 0xfeff0b44		; call SCSI boot ??
 feff1406:	584f           	addqw #4,%sp
+
 feff1408:	4a80           	tstl %d0
 feff140a:	6604           	bnes 0xfeff1410
 feff140c:	7000           	moveq #0,%d0
@@ -20711,26 +20835,35 @@ feff1410:	70ff           	moveq #-1,%d0
 feff1412:	4e5e           	unlk %fp
 feff1414:	4e75           	rts
 
+; --------------------------------------------------
+; Conditionally print message
+; never called
 feff1416:	4e56 0000      	linkw %fp,#0
 feff141a:	4a79 fef7 207e 	tstw 0xfef7207e
 feff1420:	6612           	bnes 0xfeff1434
+
 feff1422:	2f2e 0008      	movel %fp@(8),%sp@-
 feff1426:	4879 feff 632c 	pea 0xfeff632c
-feff142c:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff142c:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "scsi: %s\n" )
 feff1432:	504f           	addqw #8,%sp
+
 feff1434:	7000           	moveq #0,%d0
 feff1436:	4e5e           	unlk %fp
 feff1438:	4e75           	rts
+feff143a:	0000
 
-feff143a:	0000 4e56      	orib #0x56,%d0
-feff143e:	fffc           	.short 0xfffc
+; -----------------------------------------------
+
+feff143c:	4e56 fffc      	linkw %fp,#-4
 feff1440:	42a7           	clrl %sp@-
 feff1442:	2f2e 0008      	movel %fp@(8),%sp@-
 feff1446:	42a7           	clrl %sp@-
 feff1448:	4eb9 feff 1622 	jsr 0xfeff1622
 feff144e:	4e5e           	unlk %fp
 feff1450:	4e75           	rts
+
+; -----------------------------------------------
 
 feff1452:	4e56 ffe0      	linkw %fp,#-32
 feff1456:	48d7 3cf0      	moveml %d4-%d7/%a2-%a5,%sp@
@@ -20787,7 +20920,7 @@ feff14e4:	5286           	addql #1,%d6
 feff14e6:	26ad 000a      	movel %a5@(10),%a3@
 feff14ea:	2754 0004      	movel %a4@,%a3@(4)
 feff14ee:	4853           	pea %a3@
-feff14f0:	4eb9 feff 13f8 	jsr 0xfeff13f8
+feff14f0:	4eb9 feff 13f8 	jsr 0xfeff13f8		; SCSI boot wrapper
 feff14f6:	584f           	addqw #4,%sp
 feff14f8:	4a80           	tstl %d0
 feff14fa:	6600 00c2      	bnew 0xfeff15be
@@ -20887,6 +21020,7 @@ feff161a:	2e2e fffc      	movel %fp@(-4),%d7
 feff161e:	4e5e           	unlk %fp
 feff1620:	4e75           	rts
 
+; many calls
 feff1622:	4e56 ffb0      	linkw %fp,#-80
 feff1626:	48d7 3cfc      	moveml %d2-%d7/%a2-%a5,%sp@
 feff162a:	266e 000c      	moveal %fp@(12),%a3
@@ -21063,7 +21197,7 @@ feff1870:	2f00           	movel %d0,%sp@-
 feff1872:	42a7           	clrl %sp@-
 feff1874:	4879 feff 63c0 	pea 0xfeff63c0
 feff187a:	2f39 feff 6328 	movel 0xfeff6328,%sp@-
-feff1880:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff1880:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%s sense key = %x  error = %x" )
 feff1886:	4fef 0010      	lea %sp@(16),%sp
 feff188a:	e9d4 0001      	bfextu %a4@,0,1,%d0
@@ -21097,7 +21231,7 @@ feff18da:	0280 0000 00ff 	andil #0xff,%d0
 feff18e0:	2f00           	movel %d0,%sp@-
 feff18e2:	4879 feff 63d0 	pea 0xfeff63d0
 feff18e8:	2f39 feff 6328 	movel 0xfeff6328,%sp@-
-feff18ee:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff18ee:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%s sense key = %x  error = %x" )
 feff18f4:	4fef 0010      	lea %sp@(16),%sp
 feff18f8:	e9d5 0001      	bfextu %a5@,0,1,%d0
@@ -21121,11 +21255,11 @@ feff1922:	122d 0006      	moveb %a5@(6),%d1
 feff1926:	8081           	orl %d1,%d0
 feff1928:	2f00           	movel %d0,%sp@-
 feff192a:	4879 feff 63d4 	pea 0xfeff63d4
-feff1930:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff1930:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( ",  block %d" )
 feff1936:	504f           	addqw #8,%sp
 feff1938:	2f39 feff 6324 	movel 0xfeff6324,%sp@-
-feff193e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff193e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n" )
 feff1944:	584f           	addqw #4,%sp
 feff1946:	2007           	movel %d7,%d0
@@ -21207,7 +21341,7 @@ feff1a14:	5285           	addql #1,%d5
 feff1a16:	24ac 000a      	movel %a4@(10),%a2@
 feff1a1a:	2553 0004      	movel %a3@,%a2@(4)
 feff1a1e:	4852           	pea %a2@
-feff1a20:	4eb9 feff 13f8 	jsr 0xfeff13f8
+feff1a20:	4eb9 feff 13f8 	jsr 0xfeff13f8		; SCSI boot wrapper
 feff1a26:	584f           	addqw #4,%sp
 feff1a28:	4a80           	tstl %d0
 feff1a2a:	66c0           	bnes 0xfeff19ec
@@ -21256,7 +21390,7 @@ feff1ab0:	504f           	addqw #8,%sp
 feff1ab2:	4a80           	tstl %d0
 feff1ab4:	6e4c           	bgts 0xfeff1b02
 feff1ab6:	4879 feff 643c 	pea 0xfeff643c
-feff1abc:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff1abc:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "st: req. sense failed\n" )
 feff1ac2:	584f           	addqw #4,%sp
 feff1ac4:	70ff           	moveq #-1,%d0
@@ -21337,7 +21471,7 @@ feff1bbc:	504f           	addqw #8,%sp
 feff1bbe:	4a80           	tstl %d0
 feff1bc0:	6e12           	bgts 0xfeff1bd4
 feff1bc2:	2f39 feff 6436 	movel 0xfeff6436,%sp@-
-feff1bc8:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff1bc8:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "st: mode select failed\n" )
 feff1bce:	584f           	addqw #4,%sp
 feff1bd0:	70ff           	moveq #-1,%d0
@@ -21361,7 +21495,7 @@ feff1c00:	504f           	addqw #8,%sp
 feff1c02:	4a80           	tstl %d0
 feff1c04:	6ed2           	bgts 0xfeff1bd8
 feff1c06:	4879 feff 6453 	pea 0xfeff6453
-feff1c0c:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff1c0c:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "st: space file failed\n" )
 feff1c12:	584f           	addqw #4,%sp
 feff1c14:	70ff           	moveq #-1,%d0
@@ -21641,7 +21775,7 @@ feff1ff4:	3030 0170 0000 	movew %a0@(fc04),%d0
 feff1ffa:	fc04
 feff1ffc:	2f00           	movel %d0,%sp@-
 feff1ffe:	4879 feff 646a 	pea 0xfeff646a
-feff2004:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2004:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "st: error %x\n" )
 feff200a:	504f           	addqw #8,%sp
 feff200c:	6050           	bras 0xfeff205e
@@ -21730,7 +21864,7 @@ feff20fc:	2a6c 0032      	moveal %a4@(50),%a5
 feff2100:	294d 0006      	movel %a5,%a4@(6)
 feff2104:	2b6c 002e 2000 	movel %a4@(46),%a5@(8192)
 feff210a:	4879 feff 64f0 	pea 0xfeff64f0
-feff2110:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2110:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Retrying\n" )
 feff2116:	584f           	addqw #4,%sp
 feff2118:	4855           	pea %a5@
@@ -21842,7 +21976,7 @@ feff2282:	5385           	subql #1,%d5
 feff2284:	4a87           	tstl %d7
 feff2286:	6eda           	bgts 0xfeff2262
 feff2288:	4879 feff 64fa 	pea 0xfeff64fa
-feff228e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff228e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "le: cannot initialize\n" )
 feff2294:	584f           	addqw #4,%sp
 feff2296:	7001           	moveq #1,%d0
@@ -21921,7 +22055,7 @@ feff2380:	302c 0006      	movew %a4@(6),%d0
 feff2384:	0800 000b      	btst #0xb,%d0
 feff2388:	670e           	beqs 0xfeff2398
 feff238a:	4879 feff 6511 	pea 0xfeff6511
-feff2390:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2390:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "le: No Carrier\n" )
 feff2396:	584f           	addqw #4,%sp
 feff2398:	082c 0006 0002 	btst #6,%a4@(2)
@@ -21955,7 +22089,7 @@ feff23ee:	3014           	movew %a4@,%d0
 feff23f0:	0800 000c      	btst #0xc,%d0
 feff23f4:	6712           	beqs 0xfeff2408
 feff23f6:	4879 feff 6521 	pea 0xfeff6521
-feff23fc:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff23fc:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "le: missed packet\n" )
 feff2402:	584f           	addqw #4,%sp
 feff2404:	0054 1000      	oriw #0x1000,%a4@
@@ -21976,7 +22110,7 @@ feff242c:	7000           	moveq #0,%d0
 feff242e:	102b 0002      	moveb %a3@(2),%d0
 feff2432:	2f00           	movel %d0,%sp@-
 feff2434:	4879 feff 6534 	pea 0xfeff6534
-feff243a:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff243a:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Receive packet error - rmd flags %x\n" )
 feff2440:	504f           	addqw #8,%sp
 feff2442:	99cc           	subal %a4,%a4
@@ -22006,7 +22140,7 @@ feff2482:	302a 0004      	movew %a2@(4),%d0
 feff2486:	b079 feff 60cc 	cmpw 0xfeff60cc,%d0
 feff248c:	6712           	beqs 0xfeff24a0
 feff248e:	4879 feff 6559 	pea 0xfeff6559
-feff2494:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2494:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "le: LANCE Rev C Extra Byte(s) bug; Packet punted\n" )
 feff249a:	584f           	addqw #4,%sp
 feff249c:	99cc           	subal %a4,%a4
@@ -22209,7 +22343,7 @@ feff26ce:	1032 0800      	moveb %a2@(0,%d0:l),%d0
 feff26d2:	49c0           	extbl %d0
 feff26d4:	2f00           	movel %d0,%sp@-
 feff26d6:	4879 feff 65ad 	pea 0xfeff65ad
-feff26dc:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff26dc:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%c." )
 feff26e2:	504f           	addqw #8,%sp
 feff26e4:	2a07           	movel %d7,%d5
@@ -22235,7 +22369,7 @@ feff2718:	6636           	bnes 0xfeff2750
 feff271a:	206e fff8      	moveal %fp@(-8),%a0
 feff271e:	2f10           	movel %a0@,%sp@-
 feff2720:	4879 feff 65b1 	pea 0xfeff65b1
-feff2726:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2726:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 feff272c:	504f           	addqw #8,%sp
 feff272e:	2014           	movel %a4@,%d0
@@ -22245,7 +22379,7 @@ feff2734:	2f00           	movel %d0,%sp@-
 feff2736:	2f15           	movel %a5@,%sp@-
 feff2738:	2f14           	movel %a4@,%sp@-
 feff273a:	4879 feff 65c9 	pea 0xfeff65c9
-feff2740:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2740:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( " Exp = 0x%x, Obs = 0x%x, Xor = 0x%x!\n" )
 feff2746:	4fef 0010      	lea %sp@(16),%sp
 feff274a:	4eb9 fefe 03ba 	jsr 0xfefe03ba
@@ -22496,7 +22630,7 @@ feff2a62:	6708           	beqs 0xfeff2a6c
 feff2a64:	4879 feff 65f0 	pea 0xfeff65f0
 feff2a6a:	6006           	bras 0xfeff2a72
 feff2a6c:	4879 feff 660c 	pea 0xfeff660c
-feff2a72:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2a72:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Serial Ports Test:\n" )
 feff2a78:	584f           	addqw #4,%sp
 feff2a7a:	4aae fffc      	tstl %fp@(-4)
@@ -22506,16 +22640,16 @@ feff2a86:	6006           	bras 0xfeff2a8e
 feff2a88:	2a7c feff 6643 	moveal #0xfeff6643,%a5
 feff2a8e:	4855           	pea %a5@
 feff2a90:	4879 feff 6620 	pea 0xfeff6620
-feff2a96:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2a96:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Cmd Syntax = Cmd [port(%s)]" )
 feff2a9c:	504f           	addqw #8,%sp
 feff2a9e:	4879 feff 664a 	pea 0xfeff664a
-feff2aa4:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2aa4:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( " [Baud(Decimal)] [Pattern(Hex)]\n" )
 feff2aaa:	584f           	addqw #4,%sp
 feff2aac:	4eb9 feff 2ea4 	jsr 0xfeff2ea4
 feff2ab2:	4879 feff 666b 	pea 0xfeff666b
-feff2ab8:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2ab8:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "w - Wr/Rd SCC Reg 12 Test\n ++" )
 feff2abe:	584f           	addqw #4,%sp
 feff2ac0:	4eb9 feff 2ea4 	jsr 0xfeff2ea4
@@ -22556,7 +22690,7 @@ feff2b34:	6616           	bnes 0xfeff2b4c
 feff2b36:	0c06 0042      	cmpib #0x42,%d6
 feff2b3a:	6610           	bnes 0xfeff2b4c
 feff2b3c:	4879 feff 66e7 	pea 0xfeff66e7
-feff2b42:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2b42:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 feff2b48:	584f           	addqw #4,%sp
 feff2b4a:	7e00           	moveq #0,%d7
@@ -22677,7 +22811,7 @@ feff2cc0:	5290           	addql #1,%a0@
 feff2cc2:	0c2e 004d 000f 	cmpib #0x4d,%fp@(15)
 feff2cc8:	660e           	bnes 0xfeff2cd8
 feff2cca:	4879 feff 6713 	pea 0xfeff6713
-feff2cd0:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2cd0:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "To Test Mouse Port, Move shunt J045 to pins 1 - 2\n" )
 feff2cd6:	584f           	addqw #4,%sp
 feff2cd8:	4212           	clrb %a2@
@@ -22744,7 +22878,7 @@ feff2d80:	49c0           	extbl %d0
 feff2d82:	2f00           	movel %d0,%sp@-
 feff2d84:	2f2e 0008      	movel %fp@(8),%sp@-
 feff2d88:	4879 feff 6746 	pea 0xfeff6746
-feff2d8e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2d8e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%s ready timeout: Port = %c, SCC status = %x.\n" )
 feff2d94:	7001           	moveq #1,%d0
 feff2d96:	4e5e           	unlk %fp
@@ -22769,7 +22903,7 @@ feff2dc4:	102e 000f      	moveb %fp@(15),%d0
 feff2dc8:	2f00           	movel %d0,%sp@-
 feff2dca:	2f2e 0008      	movel %fp@(8),%sp@-
 feff2dce:	4879 feff 6775 	pea 0xfeff6775
-feff2dd4:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2dd4:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%sData Error: Port = %c, Exp = %x, Obs = %x, Xor = %x.\n" )
 feff2dda:	7001           	moveq #1,%d0
 feff2ddc:	4cee 00c0 fff8 	moveml %fp@(-8),%d6-%d7
@@ -22787,7 +22921,7 @@ feff2e08:	2c3c feff 67b0 	movel #0xfeff67b0,%d6
 feff2e0e:	2a3c feff 67bc 	movel #0xfeff67bc,%d5
 feff2e14:	6034           	bras 0xfeff2e4a
 feff2e16:	4879 feff 67f9 	pea 0xfeff67f9
-feff2e1c:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2e1c:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 feff2e22:	584f           	addqw #4,%sp
 feff2e24:	6024           	bras 0xfeff2e4a
@@ -22806,7 +22940,7 @@ feff2e48:	4e90           	jsr %a0@
 feff2e4a:	7e03           	moveq #3,%d7
 feff2e4c:	4eb9 feff 2ea4 	jsr 0xfeff2ea4
 feff2e52:	4879 feff 67d4 	pea 0xfeff67d4
-feff2e58:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2e58:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Extended Diagnostics Main Menu:\n" )
 feff2e5e:	584f           	addqw #4,%sp
 feff2e60:	4eb9 feff 2ea4 	jsr 0xfeff2ea4
@@ -22816,7 +22950,7 @@ feff2e6a:	6014           	bras 0xfeff2e80
 feff2e6c:	285d           	moveal %a5@+,%a4
 feff2e6e:	4854           	pea %a4@
 feff2e70:	4879 feff 67f5 	pea 0xfeff67f5
-feff2e76:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2e76:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%s\n" )
 feff2e7c:	504f           	addqw #8,%sp
 feff2e7e:	5387           	subql #1,%d7
@@ -22842,7 +22976,7 @@ feff2eba:	724c           	moveq #76,%d1
 feff2ebc:	be81           	cmpl %d1,%d7
 feff2ebe:	6dec           	blts 0xfeff2eac
 feff2ec0:	4879 feff 680c 	pea 0xfeff680c
-feff2ec6:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2ec6:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n" )
 feff2ecc:	584f           	addqw #4,%sp
 feff2ece:	7000           	moveq #0,%d0
@@ -22855,17 +22989,17 @@ feff2edc:	2e8d           	movel %a5,%sp@
 feff2ede:	2a7c fef7 2002 	moveal #0xfef72002,%a5
 feff2ee4:	61be           	bsrs 0xfeff2ea4
 feff2ee6:	4879 feff 680e 	pea 0xfeff680e
-feff2eec:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2eec:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Test Options:\n" )
 feff2ef2:	584f           	addqw #4,%sp
 feff2ef4:	61ae           	bsrs 0xfeff2ea4
 feff2ef6:	4879 feff 681d 	pea 0xfeff681d
-feff2efc:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2efc:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( " f   -  Loop forever\n ++" )
 feff2f02:	584f           	addqw #4,%sp
 feff2f04:	619e           	bsrs 0xfeff2ea4
 feff2f06:	4879 feff 68e2 	pea 0xfeff68e2
-feff2f0c:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2f0c:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 feff2f12:	584f           	addqw #4,%sp
 feff2f14:	4878 0001      	pea 0x1
@@ -22888,7 +23022,7 @@ feff2f48:	6704           	beqs 0xfeff2f4e
 feff2f4a:	4a15           	tstb %a5@
 feff2f4c:	661a           	bnes 0xfeff2f68
 feff2f4e:	4879 feff 68ea 	pea 0xfeff68ea
-feff2f54:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2f54:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n" )
 feff2f5a:	584f           	addqw #4,%sp
 feff2f5c:	202e fffc      	movel %fp@(-4),%d0
@@ -22901,7 +23035,7 @@ feff2f6e:	6000 ff74      	braw 0xfeff2ee4
 feff2f72:	4e56 fffc      	linkw %fp,#-4
 feff2f76:	2e87           	movel %d7,%sp@
 feff2f78:	4879 feff 68ec 	pea 0xfeff68ec
-feff2f7e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2f7e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 feff2f84:	584f           	addqw #4,%sp
 feff2f86:	4878 0001      	pea 0x1
@@ -22921,7 +23055,7 @@ feff2fb4:	2002
 feff2fb6:	6712           	beqs 0xfeff2fca
 feff2fb8:	2f2e 0008      	movel %fp@(8),%sp@-
 feff2fbc:	4879 feff 68f4 	pea 0xfeff68f4
-feff2fc2:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2fc2:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%s" )
 feff2fc8:	504f           	addqw #8,%sp
 feff2fca:	7000           	moveq #0,%d0
@@ -22930,7 +23064,7 @@ feff2fce:	4e75           	rts
 
 feff2fd0:	4e56 0000      	linkw %fp,#0
 feff2fd4:	4879 feff 68f7 	pea 0xfeff68f7
-feff2fda:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff2fda:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n ++" )
 feff2fe0:	584f           	addqw #4,%sp
 feff2fe2:	7000           	moveq #0,%d0
@@ -22951,7 +23085,7 @@ feff3012:	2f39 fef7 20b2 	movel 0xfef720b2,%sp@-
 feff3018:	2f2e 0008      	movel %fp@(8),%sp@-
 feff301c:	4854           	pea %a4@
 feff301e:	4879 feff 690c 	pea 0xfeff690c
-feff3024:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff3024:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Test %sed during pass %d.  Total errors = %d.\n" )
 feff302a:	4fef 0010      	lea %sp@(16),%sp
 feff302e:	0c15 0046      	cmpib #0x46,%a5@
@@ -22982,12 +23116,12 @@ feff3078:	42b9 fef7 20b2 	clrl 0xfef720b2
 feff307e:	2e39 fef7 200a 	movel 0xfef7200a,%d7
 feff3084:	4eb9 feff 2ea4 	jsr 0xfeff2ea4
 feff308a:	4879 feff 69a0 	pea 0xfeff69a0
-feff3090:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff3090:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "AMD Ethernet Tests:\n" )
 feff3096:	584f           	addqw #4,%sp
 feff3098:	4eb9 feff 2ea4 	jsr 0xfeff2ea4
 feff309e:	4879 feff 69b5 	pea 0xfeff69b5
-feff30a4:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff30a4:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "w - Wr/Rd CSR1 Reg Test\n ++" )
 feff30aa:	584f           	addqw #4,%sp
 feff30ac:	4eb9 feff 2ea4 	jsr 0xfeff2ea4
@@ -23019,7 +23153,7 @@ feff3110:	4eb9 feff 315a 	jsr 0xfeff315a
 feff3116:	504f           	addqw #8,%sp
 feff3118:	2f07           	movel %d7,%sp@-
 feff311a:	4879 feff 6a01 	pea 0xfeff6a01
-feff3120:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff3120:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( ".\n ++" )
 feff3126:	504f           	addqw #8,%sp
 feff3128:	6000 ff5a      	braw 0xfeff3084
@@ -23109,7 +23243,7 @@ feff3234:	3007           	movew %d7,%d0
 feff3236:	2f00           	movel %d0,%sp@-
 feff3238:	4878 0004      	pea 0x4
 feff323c:	4879 feff 6a21 	pea 0xfeff6a21
-feff3242:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff3242:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "CSR0 Wr/Rd Error: exp %x, obs %x\n" )
 feff3248:	4fef 000c      	lea %sp@(12),%sp
 feff324c:	2044           	moveal %d4,%a0
@@ -23134,7 +23268,7 @@ feff327c:	3007           	movew %d7,%d0
 feff327e:	2f00           	movel %d0,%sp@-
 feff3280:	2f03           	movel %d3,%sp@-
 feff3282:	4879 feff 6a43 	pea 0xfeff6a43
-feff3288:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff3288:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "CSR1 Wr/Rd Error: exp %x, obs %x\n" )
 feff328e:	4fef 000c      	lea %sp@(12),%sp
 feff3292:	5286           	addql #1,%d6
@@ -23261,7 +23395,7 @@ feff3418:	2f00           	movel %d0,%sp@-
 feff341a:	0280 0000 0100 	andil #0x100,%d0
 feff3420:	2f00           	movel %d0,%sp@-
 feff3422:	4879 feff 6a65 	pea 0xfeff6a65
-feff3428:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff3428:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Initialization failure, CSR0 exp %x, obs %x\n" )
 feff342e:	4fef 000c      	lea %sp@(12),%sp
 feff3432:	6046           	bras 0xfeff347a
@@ -23283,7 +23417,7 @@ feff3460:	207c fef7 2002 	moveal #0xfef72002,%a0
 feff3466:	0c10 004e      	cmpib #0x4e,%a0@
 feff346a:	670e           	beqs 0xfeff347a
 feff346c:	4879 feff 6a92 	pea 0xfeff6a92
-feff3472:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff3472:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Ethernet Chip Initialization Passed\n" )
 feff3478:	584f           	addqw #4,%sp
 feff347a:	3d7c 0001 fff6 	movew #1,%fp@(-10)
@@ -23395,7 +23529,7 @@ feff35c2:	7000           	moveq #0,%d0
 feff35c4:	3010           	movew %a0@,%d0
 feff35c6:	2f00           	movel %d0,%sp@-
 feff35c8:	4879 feff 6acf 	pea 0xfeff6acf
-feff35ce:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff35ce:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "STATUS - ERROR   stat=%x\n" )
 feff35d4:	504f           	addqw #8,%sp
 feff35d6:	2e3c 0000 2710 	movel #0x2710,%d7
@@ -23453,7 +23587,7 @@ feff3672:	7000           	moveq #0,%d0
 feff3674:	3010           	movew %a0@,%d0
 feff3676:	2f00           	movel %d0,%sp@-
 feff3678:	4879 feff 6b01 	pea 0xfeff6b01
-feff367e:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff367e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "RX - Missed Packet ERROR   stat=%x\n" )
 feff3684:	504f           	addqw #8,%sp
 feff3686:	7e00           	moveq #0,%d7
@@ -23483,7 +23617,7 @@ feff36ba:	3004           	movew %d4,%d0
 feff36bc:	2f00           	movel %d0,%sp@-
 feff36be:	2f0c           	movel %a4,%sp@-
 feff36c0:	4879 feff 6b25 	pea 0xfeff6b25
-feff36c6:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff36c6:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Error in receive buffer at %x  exp=%x obs=%x\n" )
 feff36cc:	4fef 0010      	lea %sp@(16),%sp
 feff36d0:	5287           	addql #1,%d7
@@ -23510,7 +23644,7 @@ feff3708:	3010           	movew %a0@,%d0
 feff370a:	2f00           	movel %d0,%sp@-
 feff370c:	2f2e 0008      	movel %fp@(8),%sp@-
 feff3710:	4879 feff 6b53 	pea 0xfeff6b53
-feff3716:	4eb9 fefe 2b04 	jsr 0xfefe2b04
+feff3716:	4eb9 fefe 2b04 	jsr 0xfefe2b04			; printf
 ; printf ( "%s stat=%x rmd1=%x tmd1=%x tmd3=%x\n" )
 feff371c:	7001           	moveq #1,%d0
 feff371e:	4e5e           	unlk %fp
@@ -23819,6 +23953,8 @@ feff3a4a:	202e fffc      	movel %fp@(-4),%d0
 feff3a4e:	4cee 30f8 ffdc 	moveml %fp@(-36),%d3-%d7/%a4-%a5
 feff3a54:	4e5e           	unlk %fp
 feff3a56:	4e75           	rts
+
+; END of code
 
 ; looks like data beyond here.
 

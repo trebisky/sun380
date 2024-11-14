@@ -472,6 +472,7 @@ fefe03aa:	33c7 fef6 0bfa 	movew %d7,0xfef60bfa
 fefe03b0:	4ff9 fef6 0c00 	lea 0xfef60c00,%sp
 fefe03b6:	6000 ff0a      	braw 0xfefe02c2			; way above
 
+; Called as subroutine, also registered for some use
 fefe03ba:	f000 2400      	pflusha
 fefe03be:	23fc fefe 03ba 	movel #0xfefe03ba,0xfef60bfc
 fefe03c4:	fef6 0bfc
@@ -485,10 +486,15 @@ fefe03e0:	48ef ffff 0000 	moveml %d0-%sp,%sp@(0)
 fefe03e6:	2e0f           	movel %sp,%d7
 fefe03e8:	2c3c 0000 0000 	movel #0,%d6
 fefe03ee:	6010           	bras 0xfefe0400
+
+; installed as vector handler for 0x24 and 0x84
+; 0x24 is Trace
+; 0x84 is TRAP #1  (no trap instructions are in the rom)
 fefe03f0:	f000 2400      	pflusha
 fefe03f4:	9efc 0056      	subaw #0x56,%sp
 fefe03f8:	48ef ffff 0000 	moveml %d0-%sp,%sp@(0)
 fefe03fe:	9e87           	subl %d7,%d7
+; falls into the following
 
 ; branch here from above
 fefe0400:	06af 0000 0056 	addil #0x56,%sp@(60)
@@ -498,6 +504,7 @@ fefe040c:	2f48 0044      	movel %a0,%sp@(68)
 fefe0410:	4e7a 8801      	movec %vbr,%a0
 fefe0414:	4e7a 9802      	movec %caar,%a1
 fefe0418:	4e7a a002      	movec %cacr,%a2
+
 fefe041c:	48ef 0700 0048 	moveml %a0-%a2,%sp@(72)
 
 ; mask off all interrupts
@@ -573,6 +580,8 @@ fefe04f4:	0000 3a14      	orib #0x14,%d0
 fefe04f8:	1c5c           	.short 0x1c5c
 fefe04fa:	0000 0000      	orib #0,%d0
 
+; installed as vector handler for vector 0x7c
+; (level 7 autovector>
 fefe04fe:	f000 2400      	pflusha
 fefe0502:	2f00           	movel %d0,%sp@-
 fefe0504:	1039 fef0 9000 	moveb 0xfef09000,%d0
@@ -582,6 +591,7 @@ fefe0510:	600c           	bras 0xfefe051e
 fefe0512:	3f7c 007e 000a 	movew #0x7e,%sp@(10)
 fefe0518:	201f           	movel %sp@+,%d0
 fefe051a:	6000 fed4      	braw 0xfefe03f0
+
 fefe051e:	1039 fef0 6010 	moveb 0xfef06010,%d0
 fefe0524:	67f2           	beqs 0xfefe0518
 fefe0526:	0239 ff7f fef0 	andib #0x7f,0xfef0b400
@@ -657,6 +667,7 @@ fefe061e:	221f           	movel %sp@+,%d1
 fefe0620:	201f           	movel %sp@+,%d0
 fefe0622:	3f7c 007d 0006 	movew #0x7d,%sp@(6)
 fefe0628:	6000 fdc6      	braw 0xfefe03f0
+
 fefe062c:	2079 fef7 22ee 	moveal 0xfef722ee,%a0
 fefe0632:	4a28 0000      	tstb %a0@(0)
 fefe0636:	203c 0002 ffff 	movel #0x2ffff,%d0
@@ -744,7 +755,7 @@ fefe0726:	6000 ffb8      	braw 0xfefe06e0
 ;
 ; so it installs an entry into the VBR,
 ; returning the prior entry in d0
-; vec_install()
+; vec_install ( offset, handler )
 
 fefe072a:	4e7a 8801      	movec %vbr,%a0
 fefe072e:	d1ef 0004      	addal %sp@(4),%a0		; vbr + arg1
@@ -2668,6 +2679,10 @@ fefe1b6a:	4cee 30c0 ffec 	moveml %fp@(-20),%d6-%d7/%a4-%a5
 fefe1b70:	4e5e           	unlk %fp
 fefe1b72:	4e75           	rts
 
+; -------------------------------------------------------------------
+; Subroutine - 2 calls
+; announce_boot ()
+
 fefe1b74:	4e56 fff0      	linkw %fp,#-16
 fefe1b78:	48d7 30c0      	moveml %d6-%d7/%a4-%a5,%sp@
 fefe1b7c:	2a7c fef7 2502 	moveal #0xfef72502,%a5
@@ -2693,29 +2708,45 @@ fefe1bb6:	7e00           	moveq #0,%d7
 fefe1bb8:	7000           	moveq #0,%d0
 fefe1bba:	1007           	moveb %d7,%d0
 fefe1bbc:	2e00           	movel %d0,%d7
+
 fefe1bbe:	2f07           	movel %d7,%sp@-
 fefe1bc0:	4879 feff 4470 	pea 0xfeff4470
 fefe1bc6:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%c" )
 fefe1bcc:	504f           	addqw #8,%sp
+
 fefe1bce:	4a86           	tstl %d6
 fefe1bd0:	6624           	bnes 0xfefe1bf6
 fefe1bd2:	0cb9 0000 0460 	cmpil #0x460,0xfef720be
 fefe1bd8:	fef7 20be
 fefe1bdc:	6608           	bnes 0xfefe1be6
+
 fefe1bde:	2c3c feff 449b 	movel #0xfeff449b,%d6
+; --- feff449b: "400"
 fefe1be4:	6006           	bras 0xfefe1bec
+
 fefe1be6:	2c3c feff 449f 	movel #0xfeff449f,%d6
+; --- feff449f: "80"
 fefe1bec:	2f06           	movel %d6,%sp@-
 
 ; push the address of the Sun workstation string
 fefe1bee:	4879 feff 4473 	pea 0xfeff4473
+; --- feff4473: Sun Workstation, Model Sun-3/%s Series.
 fefe1bf4:	6008           	bras 0xfefe1bfe
+
 fefe1bf6:	2f06           	movel %d6,%sp@-
 fefe1bf8:	4879 feff 44a2 	pea 0xfeff44a2
+
 fefe1bfe:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "%s" )
 fefe1c04:	504f           	addqw #8,%sp
+
+; We see:
+; Sun Workstation, Model Sun-3/80 Series.
+; ROM Rev 3.0.2, 16MB memory installed
+; ID PROM invalid.
+; also, we have no keyboard, so we saw (previously):
+; No Keyboard Found: Using RS232 Port A as input!
 
 fefe1c06:	2c3c fef7 2013 	movel #0xfef72013,%d6
 fefe1c0c:	2046           	moveal %d6,%a0
@@ -2731,43 +2762,52 @@ fefe1c28:	23f9 feff 535c 	movel 0xfeff535c,0xfef72406
 fefe1c2e:	fef7 2406
 fefe1c32:	7000           	moveq #0,%d0
 fefe1c34:	1010           	moveb %a0@,%d0
+
 fefe1c36:	2f00           	movel %d0,%sp@-
 fefe1c38:	2f07           	movel %d7,%sp@-
 fefe1c3a:	4879 feff 44a5 	pea 0xfeff44a5
 fefe1c40:	6030           	bras 0xfefe1c72
+
 fefe1c42:	2f07           	movel %d7,%sp@-
 fefe1c44:	4879 feff 44c9 	pea 0xfeff44c9
 fefe1c4a:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
-; printf ( "\n ++" )
+; printf ( "\n%cWarning: EEPROM not initialized," )
 fefe1c50:	504f           	addqw #8,%sp
+
 fefe1c52:	4879 feff 44ee 	pea 0xfeff44ee
 fefe1c58:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "defaulted to EPROM key tables." )
 fefe1c5e:	584f           	addqw #4,%sp
+
 fefe1c60:	601a           	bras 0xfefe1c7c
 fefe1c62:	2046           	moveal %d6,%a0
 fefe1c64:	7000           	moveq #0,%d0
 fefe1c66:	1010           	moveb %a0@,%d0
+
 fefe1c68:	2f00           	movel %d0,%sp@-
 fefe1c6a:	2f07           	movel %d7,%sp@-
 fefe1c6c:	4879 feff 450d 	pea 0xfeff450d
 fefe1c72:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
-; printf ( "\n ++" )
+; printf ( "\n%cType-%d Keyboard." )
 fefe1c78:	4fef 000c      	lea %sp@(12),%sp
 fefe1c7c:	2c39 fef7 21d6 	movel 0xfef721d6,%d6
 fefe1c82:	7214           	moveq #20,%d1
 fefe1c84:	e2ae           	lsrl %d1,%d6
+
 fefe1c86:	2f06           	movel %d6,%sp@-
 fefe1c88:	4879 feff 4468 	pea 0xfeff4468
+; -- "3.0.2"
 fefe1c8e:	2f07           	movel %d7,%sp@-
 fefe1c90:	4879 feff 4522 	pea 0xfeff4522
 fefe1c96:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
-; printf ( "\n ++" )
+; printf ( "\n%cROM Rev %s, %dMB memory installed
 fefe1c9c:	4fef 0010      	lea %sp@(16),%sp
+
 fefe1ca0:	4855           	pea %a5@
 fefe1ca2:	4878 0001      	pea 0x1
 fefe1ca6:	4eb9 fefe 26c0 	jsr 0xfefe26c0
 fefe1cac:	504f           	addqw #8,%sp
+
 fefe1cae:	7c01           	moveq #1,%d6
 fefe1cb0:	b086           	cmpl %d6,%d0
 fefe1cb2:	6610           	bnes 0xfefe1cc4
@@ -2776,12 +2816,16 @@ fefe1cb8:	0280 0000 00f0 	andil #0xf0,%d0
 fefe1cbe:	7c40           	moveq #64,%d6
 fefe1cc0:	b086           	cmpl %d6,%d0
 fefe1cc2:	6714           	beqs 0xfefe1cd8
+
+; We see this, no character shows before "ID"
 fefe1cc4:	2f07           	movel %d7,%sp@-
 fefe1cc6:	4879 feff 4547 	pea 0xfeff4547
 fefe1ccc:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
-; printf ( "\n ++" )
+; printf ( "\n%cID PROM invalid.\n." )
 fefe1cd2:	504f           	addqw #8,%sp
+
 fefe1cd4:	6000 00d6      	braw 0xfefe1dac
+
 fefe1cd8:	e9ed 0018 000c 	bfextu %a5@(12),0,24,%d0
 fefe1cde:	2f00           	movel %d0,%sp@-
 fefe1ce0:	4879 feff 455d 	pea 0xfeff455d
@@ -2846,6 +2890,7 @@ fefe1d9e:	4879 feff 45a6 	pea 0xfeff45a6
 fefe1da4:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "\n" )
 fefe1daa:	584f           	addqw #4,%sp
+
 fefe1dac:	7000           	moveq #0,%d0
 fefe1dae:	4cee 30c0 fff0 	moveml %fp@(-16),%d6-%d7/%a4-%a5
 fefe1db4:	4e5e           	unlk %fp
@@ -4652,6 +4697,7 @@ fefe311c:	4e5e           	unlk %fp
 fefe311e:	4e75           	rts
 
 ; ----------------------------------
+
 fefe3120:	4e56 ffdc      	linkw %fp,#-36
 fefe3124:	48d7 38fc      	moveml %d2-%d7/%a3-%a5,%sp@
 fefe3128:	7800           	moveq #0,%d4
@@ -4661,7 +4707,7 @@ fefe3130:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "Selftest Completed.\n ++" )
 fefe3136:	584f           	addqw #4,%sp
 
-fefe3138:	4eb9 fefe 1b74 	jsr 0xfefe1b74
+fefe3138:	4eb9 fefe 1b74 	jsr 0xfefe1b74			; announce_boot
 fefe313e:	4eb9 fefe 6c7c 	jsr 0xfefe6c7c
 fefe3144:	4a80           	tstl %d0
 fefe3146:	6600 0126      	bnew 0xfefe326e
@@ -6176,7 +6222,8 @@ fefe4346:	4eb9 fefe 0208 	jsr 0xfefe0208		; re_init (start ROM over)
 fefe434c:	600c           	bras 0xfefe435a
 
 fefe434e:	4eb9 fefe 1898 	jsr 0xfefe1898
-fefe4354:	4eb9 fefe 1b74 	jsr 0xfefe1b74
+fefe4354:	4eb9 fefe 1b74 	jsr 0xfefe1b74			; announce_boot
+
 fefe435a:	7000           	moveq #0,%d0
 fefe435c:	2a6e fffc      	moveal %fp@(-4),%a5
 fefe4360:	4e5e           	unlk %fp
@@ -13571,204 +13618,27 @@ fefea868:	ffff           	.short 0xffff
 fefea86a:	ffff           	.short 0xffff
 fefea86c:	ffff           	.short 0xffff
 fefea86e:	ffff           	.short 0xffff
+
+; strings
+; These two chars begin a long string
 fefea870:	1a0c           	.short 0x1a0c
-fefea872:	2020           	movel %a0@-,%d0
-fefea874:	2020           	movel %a0@-,%d0
-fefea876:	2020           	movel %a0@-,%d0
-fefea878:	2020           	movel %a0@-,%d0
-fefea87a:	2020           	movel %a0@-,%d0
-fefea87c:	2020           	movel %a0@-,%d0
-fefea87e:	2020           	movel %a0@-,%d0
-fefea880:	2020           	movel %a0@-,%d0
-fefea882:	2020           	movel %a0@-,%d0
-fefea884:	2020           	movel %a0@-,%d0
-fefea886:	2020           	movel %a0@-,%d0
-fefea888:	3c3c 3c20      	movew #0x3c20,%d6
-fefea88c:	5375 6e20      	subqw #1,%a5@(20,%d6:l:8)
-fefea890:	332f 3830      	movew %sp@(14384),%a1@-
-fefea894:	2054           	moveal %a4@,%a0
-fefea896:	6573           	bcss 0xfefea90b
-fefea898:	7420           	moveq #32,%d2
-fefea89a:	4c6f           	.short 0x4c6f
-fefea89c:	6f70           	bles 0xfefea90e
-fefea89e:	204d           	moveal %a5,%a0
-fefea8a0:	656e           	bcss 0xfefea910
-fefea8a2:	7520           	.short 0x7520
-fefea8a4:	3e3e           	.short 0x3e3e
-fefea8a6:	3e0d           	movew %a5,%d7
-fefea8a8:	0a20 496e      	eorib #0x6e,%a0@-
-fefea8ac:	6469           	bccs 0xfefea917
-fefea8ae:	7669           	moveq #105,%d3
-fefea8b0:	6475           	bccs 0xfefea927
-fefea8b2:	616c           	bsrs 0xfefea920
-fefea8b4:	2074 6573 7473 	moveal %a4@(74732063)@(616e2062),%a0
-fefea8ba:	2063 616e 2062
-fefea8c0:	6520           	bcss 0xfefea8e2
-fefea8c2:	7365           	.short 0x7365
-fefea8c4:	6c65           	bges 0xfefea92b
-fefea8c6:	6374           	blss 0xfefea93c
-fefea8c8:	6564           	bcss 0xfefea92e
-fefea8ca:	2061           	moveal %a1@-,%a0
-fefea8cc:	6e64           	bgts 0xfefea932
-fefea8ce:	2072 756e 2066 	moveal %a2@(2066)@(726f),%a0
-fefea8d4:	726f
-fefea8d6:	6d20           	blts 0xfefea8f8
-fefea8d8:	7468           	moveq #104,%d2
-fefea8da:	6973           	bvss 0xfefea94f
-fefea8dc:	206d 656e      	moveal %a5@(25966),%a0
-fefea8e0:	752e           	.short 0x752e
-fefea8e2:	2045           	moveal %d5,%a0
-fefea8e4:	6163           	bsrs 0xfefea949
-fefea8e6:	6820           	bvcs 0xfefea908
-fefea8e8:	7465           	moveq #101,%d2
-fefea8ea:	7374           	.short 0x7374
-fefea8ec:	2077 696c 6c20 	moveal %sp@(6c20)@(0),%a0
-fefea8f2:	7275           	moveq #117,%d1
-fefea8f4:	6e0d           	bgts 0xfefea903
-fefea8f6:	0a20 756e      	eorib #0x6e,%a0@-
-fefea8fa:	7469           	moveq #105,%d2
-fefea8fc:	6c20           	bges 0xfefea91e
-fefea8fe:	7374           	.short 0x7374
-fefea900:	6f70           	bles 0xfefea972
-fefea902:	7065           	moveq #101,%d0
-fefea904:	642e           	bccs 0xfefea934
-fefea906:	204f           	moveal %sp,%a0
-fefea908:	6e6c           	bgts 0xfefea976
-fefea90a:	7920           	.short 0x7920
-fefea90c:	7468           	moveq #104,%d2
-fefea90e:	6520           	bcss 0xfefea930
-fefea910:	6669           	bnes 0xfefea97b
-fefea912:	7273           	moveq #115,%d1
-fefea914:	7420           	moveq #32,%d2
-fefea916:	6572           	bcss 0xfefea98a
-fefea918:	726f           	moveq #111,%d1
-fefea91a:	7220           	moveq #32,%d1
-fefea91c:	7769           	.short 0x7769
-fefea91e:	6c6c           	bges 0xfefea98c
-fefea920:	2062           	moveal %a2@-,%a0
-fefea922:	6520           	bcss 0xfefea944
-fefea924:	6469           	bccs 0xfefea98f
-fefea926:	7370           	.short 0x7370
-fefea928:	6c61           	bges 0xfefea98b
-fefea92a:	7965           	.short 0x7965
-fefea92c:	642e           	bccs 0xfefea95c
-fefea92e:	000d           	.short 0x000d
-fefea930:	0a20 2028      	eorib #0x28,%a0@-
-fefea934:	0029 2020 000d 	orib #0x20,%a1@(13)
-fefea93a:	0a20 2020      	eorib #0x20,%a0@-
-fefea93e:	203c 3c3c 2050 	movel #0x3c3c2050,%d0
-fefea944:	7265           	moveq #101,%d1
-fefea946:	7373           	.short 0x7373
-fefea948:	203c 5370 6163 	movel #0x53706163,%d0
-fefea94e:	653e           	bcss 0xfefea98e
-fefea950:	2066           	moveal %fp@-,%a0
-fefea952:	6f72           	bles 0xfefea9c6
-fefea954:	206d 6f72      	moveal %a5@(28530),%a0
-fefea958:	652c           	bcss 0xfefea986
-fefea95a:	203c 4573 633e 	movel #0x4573633e,%d0
-fefea960:	2074 6f20 7175 	moveal %a4@(7175,%d6:l:8),%a0
-fefea966:	6974           	bvss 0xfefea9dc
-fefea968:	206f 7220      	moveal %sp@(29216),%a0
-fefea96c:	7365           	.short 0x7365
-fefea96e:	6c65           	bges 0xfefea9d5
-fefea970:	6374           	blss 0xfefea9e6
-fefea972:	2061           	moveal %a1@-,%a0
-fefea974:	6e20           	bgts 0xfefea996
-fefea976:	6f70           	bles 0xfefea9e8
-fefea978:	7469           	moveq #105,%d2
-fefea97a:	6f6e           	bles 0xfefea9ea
-fefea97c:	203e           	.short 0x203e
-fefea97e:	3e3e           	.short 0x3e3e
-fefea980:	2000           	movel %d0,%d0
-fefea982:	1a0c           	.short 0x1a0c
-fefea984:	2020           	movel %a0@-,%d0
-fefea986:	2020           	movel %a0@-,%d0
-fefea988:	2020           	movel %a0@-,%d0
-fefea98a:	2020           	movel %a0@-,%d0
-fefea98c:	2020           	movel %a0@-,%d0
-fefea98e:	2020           	movel %a0@-,%d0
-fefea990:	2020           	movel %a0@-,%d0
-fefea992:	2020           	movel %a0@-,%d0
-fefea994:	2020           	movel %a0@-,%d0
-fefea996:	2020           	movel %a0@-,%d0
-fefea998:	2020           	movel %a0@-,%d0
-fefea99a:	3c3c 3c20      	movew #0x3c20,%d6
-fefea99e:	5375 6e20      	subqw #1,%a5@(20,%d6:l:8)
-fefea9a2:	332f 3830      	movew %sp@(14384),%a1@-
-fefea9a6:	2054           	moveal %a4@,%a0
-fefea9a8:	6573           	bcss 0xfefeaa1d
-fefea9aa:	7420           	moveq #32,%d2
-fefea9ac:	4c6f           	.short 0x4c6f
-fefea9ae:	6f70           	bles 0xfefeaa20
-fefea9b0:	204d           	moveal %a5,%a0
-fefea9b2:	656e           	bcss 0xfefeaa22
-fefea9b4:	7520           	.short 0x7520
-fefea9b6:	3e3e           	.short 0x3e3e
-fefea9b8:	3e0d           	movew %a5,%d7
-fefea9ba:	0a20 2020      	eorib #0x20,%a0@-
-fefea9be:	203c 2045 7865 	movel #0x20457865,%d0
-fefea9c4:	6375           	blss 0xfefeaa3b
-fefea9c6:	7469           	moveq #105,%d2
-fefea9c8:	6e67           	bgts 0xfefeaa31
-fefea9ca:	2054           	moveal %a4@,%a0
-fefea9cc:	6573           	bcss 0xfefeaa41
-fefea9ce:	742c           	moveq #44,%d2
-fefea9d0:	2020           	movel %a0@-,%d0
-fefea9d2:	7072           	moveq #114,%d0
-fefea9d4:	6573           	bcss 0xfefeaa49
-fefea9d6:	7320           	.short 0x7320
-fefea9d8:	3c43           	moveaw %d3,%fp
-fefea9da:	6f6e           	bles 0xfefeaa4a
-fefea9dc:	7472           	moveq #114,%d2
-fefea9de:	6f6c           	bles 0xfefeaa4c
-fefea9e0:	2d4c 3e20      	movel %a4,%fp@(15904)
-fefea9e4:	666f           	bnes 0xfefeaa55
-fefea9e6:	7220           	moveq #32,%d1
-fefea9e8:	7468           	moveq #104,%d2
-fefea9ea:	6520           	bcss 0xfefeaa0c
-fefea9ec:	4d65           	.short 0x4d65
-fefea9ee:	6e75           	bgts 0xfefeaa65
-fefea9f0:	206f 7220      	moveal %sp@(29216),%a0
-fefea9f4:	3c45           	moveaw %d5,%fp
-fefea9f6:	7363           	.short 0x7363
-fefea9f8:	3e20           	movew %a0@-,%d7
-fefea9fa:	746f           	moveq #111,%d2
-fefea9fc:	2071 7569 742e 	moveal %a1@(742e)@(0),%a0
-fefeaa02:	203e           	.short 0x203e
-fefeaa04:	0d0a 2020      	movepw %a2@(8224),%d6
-fefeaa08:	2020           	movel %a0@-,%d0
-fefeaa0a:	3c20           	movew %a0@-,%d6
-fefeaa0c:	5468 6520      	addqw #2,%a0@(25888)
-fefeaa10:	7465           	moveq #101,%d2
-fefeaa12:	7374           	.short 0x7374
-fefeaa14:	2077 696c 6c20 	moveal %sp@(6c20)@(0),%a0
-fefeaa1a:	6c6f           	bges 0xfefeaa8b
-fefeaa1c:	6f70           	bles 0xfefeaa8e
-fefeaa1e:	206f 6e20      	moveal %sp@(28192),%a0
-fefeaa22:	6572           	bcss 0xfefeaa96
-fefeaa24:	726f           	moveq #111,%d1
-fefeaa26:	722c           	moveq #44,%d1
-fefeaa28:	2020           	movel %a0@-,%d0
-fefeaa2a:	7072           	moveq #114,%d0
-fefeaa2c:	6573           	bcss 0xfefeaaa1
-fefeaa2e:	7320           	.short 0x7320
-fefeaa30:	7468           	moveq #104,%d2
-fefeaa32:	6520           	bcss 0xfefeaa54
-fefeaa34:	3c53           	moveaw %a3@,%fp
-fefeaa36:	7061           	moveq #97,%d0
-fefeaa38:	6365           	blss 0xfefeaa9f
-fefeaa3a:	2042           	moveal %d2,%a0
-fefeaa3c:	6172           	bsrs 0xfefeaab0
-fefeaa3e:	3e20           	movew %a0@-,%d7
-fefeaa40:	746f           	moveq #111,%d2
-fefeaa42:	2063           	moveal %a3@-,%a0
-fefeaa44:	6f6e           	bles 0xfefeaab4
-fefeaa46:	7469           	moveq #105,%d2
-fefeaa48:	6e75           	bgts 0xfefeaabf
-fefeaa4a:	652e           	bcss 0xfefeaa7a
-fefeaa4c:	203e           	.short 0x203e
-fefeaa4e:	0d0a 0000      	movepw %a2@(0),%d6
-fefeaa52:	0000 09c0      	orib #0xc0,%d0
+
+fefea872:                       <<< Sun 3/80 Test Loop Menu >>>\r\n ++
+fefea8a9:  Individual tests can be selected and run from this menu. Each test will run\r\n ++
+fefea8f7:  until stopped. Only the first error will be displayed.
+fefea92f: \r\n ++
+fefea931:   (
+fefea935: )  
+fefea939: \r\n ++
+fefea93b:     <<< Press <Space> for more, <Esc> to quit or select an option >>> 
+fefea982: ..                      <<< Sun 3/80 Test Loop Menu >>>\r\n ++
+fefea9bb:     < Executing Test,  press <Control-L> for the Menu or <Esc> to quit. >\r\n ++
+fefeaa06:     < The test will loop on error,  press the <Space Bar> to continue. >\r\n
+
+fefeaa50:	0000 0000
+
+; compare to SCC init block below
+fefeaa54:	09c0
 fefeaa56:	0446 03c0      	subiw #0x3c0,%d6
 fefeaa5a:	05e2           	bset %d2,%a2@-
 fefeaa5c:	0902           	btst %d4,%d2
@@ -13819,6 +13689,7 @@ fefeaac2:	03c1           	bset %d1,%d1
 fefeaac4:	05ea 0e03      	bset %d2,%a2@(3587)
 fefeaac8:	0030 0030 0010 	orib #0x30,%a0@(10,%d0:w)
 fefeaace:	ffff           	.short 0xffff
+
 fefeaad0:	0446 03c0      	subiw #0x3c0,%d6
 fefeaad4:	05e2           	bset %d2,%a2@-
 fefeaad6:	0902           	btst %d4,%d2
@@ -13829,6 +13700,7 @@ fefeaae0:	03c1           	bset %d1,%d1
 fefeaae2:	05ea 0e03      	bset %d2,%a2@(3587)
 fefeaae6:	0030 0030 0010 	orib #0x30,%a0@(10,%d0:w)
 fefeaaec:	ffff           	.short 0xffff
+
 fefeaaee:	0446 03c0      	subiw #0x3c0,%d6
 fefeaaf2:	05e2           	bset %d2,%a2@-
 fefeaaf4:	0902           	btst %d4,%d2
@@ -13839,487 +13711,81 @@ fefeaafe:	03c1           	bset %d1,%d1
 fefeab00:	05ea 0e03      	bset %d2,%a2@(3587)
 fefeab04:	0030 0030 0010 	orib #0x30,%a0@(10,%d0:w)
 fefeab0a:	ffff           	.short 0xffff
-fefeab0c:	3031 3233      	movew %a1@(33,%d3:w:2),%d0
-fefeab10:	3435 3637      	movew %a5@(37,%d3:w:8),%d2
-fefeab14:	3839 4142 4344 	movew 0x41424344,%d4
-fefeab1a:	4546           	.short 0x4546
-fefeab1c:	0d0a 2065      	movepw %a2@(8293),%d6
-fefeab20:	7870           	moveq #112,%d4
-fefeab22:	2030 7825      	movel %a0@(25,%d7:l),%d0
-fefeab26:	6431           	bccs 0xfefeab59
-fefeab28:	2c20           	movel %a0@-,%d6
-fefeab2a:	6f62           	bles 0xfefeab8e
-fefeab2c:	7320           	.short 0x7320
-fefeab2e:	3078 2564      	moveaw 0x2564,%a0
-fefeab32:	302c 2078      	movew %a4@(8312),%d0
-fefeab36:	6f72           	bles 0xfefeabaa
-fefeab38:	2030 7825      	movel %a0@(25,%d7:l),%d0
-fefeab3c:	6432           	bccs 0xfefeab70
-fefeab3e:	000d           	.short 0x000d
-fefeab40:	0a20 756e      	eorib #0x6e,%a0@-
-fefeab44:	6578           	bcss 0xfefeabbe
-fefeab46:	7065           	moveq #101,%d0
-fefeab48:	6374           	blss 0xfefeabbe
-fefeab4a:	6564           	bcss 0xfefeabb0
-fefeab4c:	2074 7261      	moveal %a4@(61,%d7:w:2),%a0
-fefeab50:	702f           	moveq #47,%d0
-fefeab52:	7665           	moveq #101,%d3
-fefeab54:	6374           	blss 0xfefeabca
-fefeab56:	6f72           	bles 0xfefeabca
-fefeab58:	000d           	.short 0x000d
-fefeab5a:	0a20 7063      	eorib #0x63,%a0@-
-fefeab5e:	3a20           	movew %a0@-,%d5
-fefeab60:	2564 3000      	movel %a4@-,%a2@(12288)
-fefeab64:	2076 6563 746f 	moveal %fp@(746f)@(72206f66),%a0
-fefeab6a:	7220 6f66
-fefeab6e:	6673           	bnes 0xfefeabe3
-fefeab70:	6574           	bcss 0xfefeabe6
-fefeab72:	3a20           	movew %a0@-,%d5
-fefeab74:	2564 3000      	movel %a4@-,%a2@(12288)
-fefeab78:	2074 7970 653a 	moveal %a4@(653a2025),%a0
-fefeab7e:	2025
-fefeab80:	6430           	bccs 0xfefeabb2
-fefeab82:	000d           	.short 0x000d
-fefeab84:	0a20 556e      	eorib #0x6e,%a0@-
-fefeab88:	6578           	bcss 0xfefeac02
-fefeab8a:	7065           	moveq #101,%d0
-fefeab8c:	6374           	blss 0xfefeac02
-fefeab8e:	6564           	bcss 0xfefeabf4
-fefeab90:	206c 6576      	moveal %a4@(25974),%a0
-fefeab94:	656c           	bcss 0xfefeac02
-fefeab96:	2025           	movel %a5@-,%d0
-fefeab98:	6430           	bccs 0xfefeabca
-fefeab9a:	2061           	moveal %a1@-,%a0
-fefeab9c:	7574           	.short 0x7574
-fefeab9e:	6f20           	bles 0xfefeabc0
-fefeaba0:	7665           	moveq #101,%d3
-fefeaba2:	6374           	blss 0xfefeac18
-fefeaba4:	6f72           	bles 0xfefeac18
-fefeaba6:	000d           	.short 0x000d
-fefeaba8:	0a20 7063      	eorib #0x63,%a0@-
-fefeabac:	2030 7825      	movel %a0@(25,%d7:l),%d0
-fefeabb0:	6430           	bccs 0xfefeabe2
-fefeabb2:	000d           	.short 0x000d
-fefeabb4:	0a43 616c      	eoriw #0x616c,%d3
-fefeabb8:	6c69           	bges 0xfefeac23
-fefeabba:	6e67           	bgts 0xfefeac23
-fefeabbc:	2064           	moveal %a4@-,%a0
-fefeabbe:	6f77           	bles 0xfefeac37
-fefeabc0:	6e6c           	bgts 0xfefeac2e
-fefeabc2:	6f61           	bles 0xfefeac25
-fefeabc4:	6465           	bccs 0xfefeac2b
-fefeabc6:	6420           	bccs 0xfefeabe8
-fefeabc8:	726f           	moveq #111,%d1
-fefeabca:	7574           	.short 0x7574
-fefeabcc:	696e           	bvss 0xfefeac3c
-fefeabce:	6520           	bcss 0xfefeabf0
-fefeabd0:	6174           	bsrs 0xfefeac46
-fefeabd2:	2030 7825      	movel %a0@(25,%d7:l),%d0
-fefeabd6:	312e 000d      	movew %fp@(13),%a0@-
-fefeabda:	0a52 6574      	eoriw #0x6574,%a2@
-fefeabde:	7572           	.short 0x7572
-fefeabe0:	6e65           	bgts 0xfefeac47
-fefeabe2:	6420           	bccs 0xfefeac04
-fefeabe4:	6672           	bnes 0xfefeac58
-fefeabe6:	6f6d           	bles 0xfefeac55
-fefeabe8:	2064           	moveal %a4@-,%a0
-fefeabea:	6f77           	bles 0xfefeac63
-fefeabec:	6e6c           	bgts 0xfefeac5a
-fefeabee:	6f61           	bles 0xfefeac51
-fefeabf0:	6465           	bccs 0xfefeac57
-fefeabf2:	6420           	bccs 0xfefeac14
-fefeabf4:	726f           	moveq #111,%d1
-fefeabf6:	7574           	.short 0x7574
-fefeabf8:	696e           	bvss 0xfefeac68
-fefeabfa:	652e           	bcss 0xfefeac2a
-fefeabfc:	000d           	.short 0x000d
-fefeabfe:	0a65 6e74      	eoriw #0x6e74,%a5@-
-fefeac02:	7279           	moveq #121,%d1
-fefeac04:	3d25           	movew %a5@-,%fp@-
-fefeac06:	6430           	bccs 0xfefeac38
-fefeac08:	2c63           	moveal %a3@-,%fp
-fefeac0a:	6f64           	bles 0xfefeac70
-fefeac0c:	653d           	bcss 0xfefeac4b
-fefeac0e:	2564 312c      	movel %a4@-,%a2@(12588)
-fefeac12:	2564 322c      	movel %a4@-,%a2@(12844)
-fefeac16:	2564 3300      	movel %a4@-,%a2@(13056)
-fefeac1a:	0d0a 0a45      	movepw %a2@(2629),%d6
-fefeac1e:	4e44           	trap #4
-fefeac20:	204f           	moveal %sp,%a0
-fefeac22:	4620           	notb %a0@-
-fefeac24:	5345           	subqw #1,%d5
-fefeac26:	4c46           	.short 0x4c46
-fefeac28:	5445           	addqw #2,%d5
-fefeac2a:	5354           	subqw #1,%a4@
-fefeac2c:	2023           	movel %a3@-,%d0
-fefeac2e:	2030 7825      	movel %a0@(25,%d7:l),%d0
-fefeac32:	6430           	bccs 0xfefeac64
-fefeac34:	2000           	movel %d0,%d0
-fefeac36:	0d0a 2350      	movepw %a2@(9040),%d6
-fefeac3a:	4153           	.short 0x4153
-fefeac3c:	5345           	subqw #1,%d5
-fefeac3e:	4420           	negb %a0@-
-fefeac40:	3d20           	movew %a0@-,%fp@-
-fefeac42:	3078 2564      	moveaw 0x2564,%a0
-fefeac46:	302c 2023      	movew %a4@(8227),%d0
-fefeac4a:	4641           	notw %d1
-fefeac4c:	494c           	.short 0x494c
-fefeac4e:	4544           	.short 0x4544
-fefeac50:	203d           	.short 0x203d
-fefeac52:	2030 7825      	movel %a0@(25,%d7:l),%d0
-fefeac56:	6431           	bccs 0xfefeac89
-fefeac58:	0d0a 0028      	movepw %a2@(40),%d6
-fefeac5c:	5345           	subqw #1,%d5
-fefeac5e:	4c46           	.short 0x4c46
-fefeac60:	5445           	addqw #2,%d5
-fefeac62:	5354           	subqw #1,%a4@
-fefeac64:	2050           	moveal %a0@,%a0
-fefeac66:	4153           	.short 0x4153
-fefeac68:	5345           	subqw #1,%d5
-fefeac6a:	4429 2e00      	negb %a1@(11776)
-fefeac6e:	2853           	moveal %a3@,%a4
-fefeac70:	454c           	.short 0x454c
-fefeac72:	4654           	notw %a4@
-fefeac74:	4553           	.short 0x4553
-fefeac76:	5420           	addqb #2,%a0@-
-fefeac78:	4641           	notw %d1
-fefeac7a:	494c           	.short 0x494c
-fefeac7c:	4544           	.short 0x4544
-fefeac7e:	292e 000d      	movel %fp@(13),%a4@-
-fefeac82:	0a28 5072 6573 	eorib #0x72,%a0@(25971)
-fefeac88:	7320           	.short 0x7320
-fefeac8a:	7370           	.short 0x7370
-fefeac8c:	6163           	bsrs 0xfefeacf1
-fefeac8e:	6520           	bcss 0xfefeacb0
-fefeac90:	6261           	bhis 0xfefeacf3
-fefeac92:	7220           	moveq #32,%d1
-fefeac94:	746f           	moveq #111,%d2
-fefeac96:	2065           	moveal %a5@-,%a0
-fefeac98:	6e74           	bgts 0xfefead0e
-fefeac9a:	6572           	bcss 0xfefead0e
-fefeac9c:	2044           	moveal %d4,%a0
-fefeac9e:	454d           	.short 0x454d
-fefeaca0:	4f4e           	.short 0x4f4e
-fefeaca2:	2900           	movel %d0,%a4@-
-fefeaca4:	0d0a 3c41      	movepw %a2@(15425),%d6
-fefeaca8:	7574           	.short 0x7574
-fefeacaa:	6f6d           	bles 0xfefead19
-fefeacac:	6174           	bsrs 0xfefead22
-fefeacae:	6963           	bvss 0xfefead13
-fefeacb0:	616c           	bsrs 0xfefead1e
-fefeacb2:	6c79           	bges 0xfefead2d
-fefeacb4:	2063           	moveal %a3@-,%a0
-fefeacb6:	6f6e           	bles 0xfefead26
-fefeacb8:	7469           	moveq #105,%d2
-fefeacba:	6e75           	bgts 0xfefead31
-fefeacbc:	696e           	bvss 0xfefead2c
-fefeacbe:	6720           	beqs 0xfefeace0
-fefeacc0:	7465           	moveq #101,%d2
-fefeacc2:	7374           	.short 0x7374
-fefeacc4:	7320           	.short 0x7320
-fefeacc6:	696e           	bvss 0xfefead36
-fefeacc8:	2042           	moveal %d2,%a0
-fefeacca:	5552           	subqw #2,%a2@
-fefeaccc:	4e2d           	.short 0x4e2d
-fefeacce:	494e           	.short 0x494e
-fefeacd0:	206d 6f64      	moveal %a5@(28516),%a0
-fefeacd4:	652e           	bcss 0xfefead04
-fefeacd6:	3e00           	movew %d0,%d7
-fefeacd8:	0d0a 3c42      	movepw %a2@(15426),%d6
-fefeacdc:	3a20           	movew %a0@-,%d5
-fefeacde:	7365           	.short 0x7365
-fefeace0:	7420           	moveq #32,%d2
-fefeace2:	4255           	clrw %a5@
-fefeace4:	524e           	addqw #1,%fp
-fefeace6:	2d49 4e20      	movel %a1,%fp@(20000)
-fefeacea:	6d6f           	blts 0xfefead5b
-fefeacec:	6465           	bccs 0xfefead53
-fefeacee:	2061           	moveal %a1@-,%a0
-fefeacf0:	6e64           	bgts 0xfefead56
-fefeacf2:	2072 6573 7461 	moveal %a2@(74617274)@(20746573),%a0
-fefeacf8:	7274 2074 6573
-fefeacfe:	7473           	moveq #115,%d2
-fefead00:	2e3e           	.short 0x2e3e
-fefead02:	000d           	.short 0x000d
-fefead04:	0a3c 533a      	eorib #0x3a,%ccr
-fefead08:	2072 6573 7461 	moveal %a2@(74617274)@(20746573),%a0
-fefead0e:	7274 2074 6573
-fefead14:	7473           	moveq #115,%d2
-fefead16:	2e3e           	.short 0x2e3e
-fefead18:	000d           	.short 0x000d
-fefead1a:	0a50 4841      	eoriw #0x4841,%a0@
-fefead1e:	5345           	subqw #1,%d5
-fefead20:	2031 204f      	movel %a1@(4f,%d2:w),%d0
-fefead24:	4620           	notb %a0@-
-fefead26:	5345           	subqw #1,%d5
-fefead28:	4c46           	.short 0x4c46
-fefead2a:	5445           	addqw #2,%d5
-fefead2c:	5354           	subqw #1,%a4@
-fefead2e:	2043           	moveal %d3,%a0
-fefead30:	4f4d           	.short 0x4f4d
-fefead32:	504c           	addqw #8,%a4
-fefead34:	4554           	.short 0x4554
-fefead36:	4544           	.short 0x4544
-fefead38:	2e00           	movel %d0,%d7
-fefead3a:	0d0a 5048      	movepw %a2@(20552),%d6
-fefead3e:	4153           	.short 0x4153
-fefead40:	4520           	chkl %a0@-,%d2
-fefead42:	3220           	movew %a0@-,%d1
-fefead44:	4f46           	.short 0x4f46
-fefead46:	2053           	moveal %a3@,%a0
-fefead48:	454c           	.short 0x454c
-fefead4a:	4654           	notw %a4@
-fefead4c:	4553           	.short 0x4553
-fefead4e:	5420           	addqb #2,%a0@-
-fefead50:	434f           	.short 0x434f
-fefead52:	4d50           	.short 0x4d50
-fefead54:	4c45           	.short 0x4c45
-fefead56:	5445           	addqw #2,%d5
-fefead58:	442e 0020      	negb %fp@(32)
-fefead5c:	7b70           	.short 0x7b70
-fefead5e:	6173           	bsrs 0xfefeadd3
-fefead60:	7320           	.short 0x7320
-fefead62:	3078 2564      	moveaw 0x2564,%a0
-fefead66:	317d           	.short 0x317d
-fefead68:	2020           	movel %a0@-,%d0
-fefead6a:	0020 7b50      	orib #0x50,%a0@-
-fefead6e:	312c 2070      	movew %a4@(8304),%a0@-
-fefead72:	6173           	bsrs 0xfefeade7
-fefead74:	7320           	.short 0x7320
-fefead76:	3078 2564      	moveaw 0x2564,%a0
-fefead7a:	317d           	.short 0x317d
-fefead7c:	0020 7b50      	orib #0x50,%a0@-
-fefead80:	322c 2070      	movew %a4@(8304),%d1
-fefead84:	6173           	bsrs 0xfefeadf9
-fefead86:	7320           	.short 0x7320
-fefead88:	3078 2564      	moveaw 0x2564,%a0
-fefead8c:	317d           	.short 0x317d
-fefead8e:	0020 5b43      	orib #0x43,%a0@-
-fefead92:	6f6e           	bles 0xfefeae02
-fefead94:	7469           	moveq #105,%d2
-fefead96:	6e75           	bgts 0xfefeae0d
-fefead98:	6f75           	bles 0xfefeae0f
-fefead9a:	735d           	.short 0x735d
-fefead9c:	2000           	movel %d0,%d0
-fefead9e:	0d0a 4a75      	movepw %a2@(19061),%d6
-fefeada2:	6d70           	blts 0xfefeae14
-fefeada4:	696e           	bvss 0xfefeae14
-fefeada6:	6720           	beqs 0xfefeadc8
-fefeada8:	746f           	moveq #111,%d2
-fefeadaa:	206c 696e      	moveal %a4@(26990),%a0
-fefeadae:	6561           	bcss 0xfefeae11
-fefeadb0:	725f           	moveq #95,%d1
-fefeadb2:	6d61           	blts 0xfefeae15
-fefeadb4:	7028           	moveq #40,%d0
-fefeadb6:	2920           	movel %a0@-,%a4@-
-fefeadb8:	726f           	moveq #111,%d1
-fefeadba:	7574           	.short 0x7574
-fefeadbc:	696e           	bvss 0xfefeae2c
-fefeadbe:	652e           	bcss 0xfefeadee
-fefeadc0:	000d           	.short 0x000d
-fefeadc2:	0a5f 6578      	eoriw #0x6578,%sp@+
-fefeadc6:	6974           	bvss 0xfefeae3c
-fefeadc8:	5f62           	subqw #7,%a2@-
-fefeadca:	6f6f           	bles 0xfefeae3b
-fefeadcc:	743a           	moveq #58,%d2
-fefeadce:	2064           	moveal %a4@-,%a0
-fefeadd0:	6973           	bvss 0xfefeae45
-fefeadd2:	6162           	bsrs 0xfefeae36
-fefeadd4:	6c69           	bges 0xfefeae3f
-fefeadd6:	6e67           	bgts 0xfefeae3f
-fefeadd8:	2062           	moveal %a2@-,%a0
-fefeadda:	6f6f           	bles 0xfefeae4b
-fefeaddc:	7420           	moveq #32,%d2
-fefeadde:	7374           	.short 0x7374
-fefeade0:	6174           	bsrs 0xfefeae56
-fefeade2:	652e           	bcss 0xfefeae12
-fefeade4:	000d           	.short 0x000d
-fefeade6:	0a0a           	.short 0x0a0a
-fefeade8:	5354           	subqw #1,%a4@
-fefeadea:	4152           	.short 0x4152
-fefeadec:	5449           	addqw #2,%a1
-fefeadee:	4e47           	trap #7
-fefeadf0:	2050           	moveal %a0@,%a0
-fefeadf2:	4841           	swap %d1
-fefeadf4:	5345           	subqw #1,%d5
-fefeadf6:	2032 204f      	movel %a2@(4f,%d2:w),%d0
-fefeadfa:	4620           	notb %a0@-
-fefeadfc:	5345           	subqw #1,%d5
-fefeadfe:	4c46           	.short 0x4c46
-fefeae00:	5445           	addqw #2,%d5
-fefeae02:	5354           	subqw #1,%a4@
-fefeae04:	2e00           	movel %d0,%d7
-fefeae06:	0d0a 7061      	movepw %a2@(28769),%d6
-fefeae0a:	7269           	moveq #105,%d1
-fefeae0c:	7479           	moveq #121,%d2
-fefeae0e:	2065           	moveal %a5@-,%a0
-fefeae10:	7272           	moveq #114,%d1
-fefeae12:	6f72           	bles 0xfefeae86
-fefeae14:	2061           	moveal %a1@-,%a0
-fefeae16:	6464           	bccs 0xfefeae7c
-fefeae18:	7265           	moveq #101,%d1
-fefeae1a:	7373           	.short 0x7373
-fefeae1c:	203d           	.short 0x203d
-fefeae1e:	2030 7825      	movel %a0@(25,%d7:l),%d0
-fefeae22:	6430           	bccs 0xfefeae54
-fefeae24:	000d           	.short 0x000d
-fefeae26:	0a70 6172 6974 	eoriw #0x6172,%a0@(79206572)@(0)
-fefeae2c:	7920 6572
-fefeae30:	726f           	moveq #111,%d1
-fefeae32:	7220           	moveq #32,%d1
-fefeae34:	7374           	.short 0x7374
-fefeae36:	6174           	bsrs 0xfefeaeac
-fefeae38:	7573           	.short 0x7573
-fefeae3a:	2061           	moveal %a1@-,%a0
-fefeae3c:	6674           	bnes 0xfefeaeb2
-fefeae3e:	6572           	bcss 0xfefeaeb2
-fefeae40:	2063           	moveal %a3@-,%a0
-fefeae42:	6c72           	bges 0xfefeaeb6
-fefeae44:	203d           	.short 0x203d
-fefeae46:	2030 7825      	movel %a0@(25,%d7:l),%d0
-fefeae4a:	6430           	bccs 0xfefeae7c
-fefeae4c:	000d           	.short 0x000d
-fefeae4e:	0a50 6172      	eoriw #0x6172,%a0@
-fefeae52:	6974           	bvss 0xfefeaec8
-fefeae54:	7920           	.short 0x7920
-fefeae56:	4d65           	.short 0x4d65
-fefeae58:	6d20           	blts 0xfefeae7a
-fefeae5a:	456e           	.short 0x456e
-fefeae5c:	6120           	bsrs 0xfefeae7e
-fefeae5e:	5265           	addqw #1,%a5@-
-fefeae60:	6720           	beqs 0xfefeae82
-fefeae62:	3d20           	movew %a0@-,%fp@-
-fefeae64:	3078 2564      	moveaw 0x2564,%a0
-fefeae68:	3000           	movew %d0,%d0
-fefeae6a:	0d0a 7665      	movepw %a2@(30309),%d6
-fefeae6e:	6374           	blss 0xfefeaee4
-fefeae70:	6f72           	bles 0xfefeaee4
-fefeae72:	2072 6561 6420 	moveal %a2@(6420)@(0),%a0
-fefeae78:	6261           	bhis 0xfefeaedb
-fefeae7a:	636b           	blss 0xfefeaee7
-fefeae7c:	206a 756d      	moveal %a2@(30061),%a0
-fefeae80:	7020           	moveq #32,%d0
-fefeae82:	6164           	bsrs 0xfefeaee8
-fefeae84:	6472           	bccs 0xfefeaef8
-fefeae86:	203d           	.short 0x203d
-fefeae88:	2030 7825      	movel %a0@(25,%d7:l),%d0
-fefeae8c:	6430           	bccs 0xfefeaebe
-fefeae8e:	000d           	.short 0x000d
-fefeae90:	0a3c 496e      	eorib #0x6e,%ccr
-fefeae94:	6974           	bvss 0xfefeaf0a
-fefeae96:	6961           	bvss 0xfefeaef9
-fefeae98:	6c69           	bges 0xfefeaf03
-fefeae9a:	7a69           	moveq #105,%d5
-fefeae9c:	6e67           	bgts 0xfefeaf05
-fefeae9e:	2041           	moveal %d1,%a0
-fefeaea0:	6c6c           	bges 0xfefeaf0e
-fefeaea2:	206f 6620      	moveal %sp@(26144),%a0
-fefeaea6:	4d61           	.short 0x4d61
-fefeaea8:	696e           	bvss 0xfefeaf18
-fefeaeaa:	204d           	moveal %a5,%a0
-fefeaeac:	656d           	bcss 0xfefeaf1b
-fefeaeae:	6f72           	bles 0xfefeaf22
-fefeaeb0:	793e           	.short 0x793e
-fefeaeb2:	000d           	.short 0x000d
-fefeaeb4:	0a3c 456e      	eorib #0x6e,%ccr
-fefeaeb8:	6162           	bsrs 0xfefeaf1c
-fefeaeba:	6c69           	bges 0xfefeaf25
-fefeaebc:	6e67           	bgts 0xfefeaf25
-fefeaebe:	2050           	moveal %a0@,%a0
-fefeaec0:	6172           	bsrs 0xfefeaf34
-fefeaec2:	6974           	bvss 0xfefeaf38
-fefeaec4:	7920           	.short 0x7920
-fefeaec6:	616e           	bsrs 0xfefeaf36
-fefeaec8:	6420           	bccs 0xfefeaeea
-fefeaeca:	4543           	.short 0x4543
-fefeaecc:	4320           	chkl %a0@-,%d1
-fefeaece:	4368           	.short 0x4368
-fefeaed0:	6563           	bcss 0xfefeaf35
-fefeaed2:	6b69           	bmis 0xfefeaf3d
-fefeaed4:	6e67           	bgts 0xfefeaf3d
-fefeaed6:	3e00           	movew %d0,%d7
-fefeaed8:	0d0a 203c      	movepw %a2@(8252),%d6
-fefeaedc:	5475 726e      	addqw #2,%a5@(6e,%d7:w:2)
-fefeaee0:	696e           	bvss 0xfefeaf50
-fefeaee2:	6720           	beqs 0xfefeaf04
-fefeaee4:	4255           	clrw %a5@
-fefeaee6:	524e           	addqw #1,%fp
-fefeaee8:	2d49 4e20      	movel %a1,%fp@(20000)
-fefeaeec:	6d6f           	blts 0xfefeaf5d
-fefeaeee:	6465           	bccs 0xfefeaf55
-fefeaef0:	204f           	moveal %sp,%a0
-fefeaef2:	4e3e           	.short 0x4e3e
-fefeaef4:	000d           	.short 0x000d
-fefeaef6:	0a20 3c54      	eorib #0x54,%a0@-
-fefeaefa:	7572           	.short 0x7572
-fefeaefc:	6e69           	bgts 0xfefeaf67
-fefeaefe:	6e67           	bgts 0xfefeaf67
-fefeaf00:	2042           	moveal %d2,%a0
-fefeaf02:	5552           	subqw #2,%a2@
-fefeaf04:	4e2d           	.short 0x4e2d
-fefeaf06:	494e           	.short 0x494e
-fefeaf08:	206d 6f64      	moveal %a5@(28516),%a0
-fefeaf0c:	6520           	bcss 0xfefeaf2e
-fefeaf0e:	4f46           	.short 0x4f46
-fefeaf10:	463e           	.short 0x463e
-fefeaf12:	000d           	.short 0x000d
-fefeaf14:	0a3c 5761      	eorib #0x61,%ccr
-fefeaf18:	726e           	moveq #110,%d1
-fefeaf1a:	696e           	bvss 0xfefeaf8a
-fefeaf1c:	673a           	beqs 0xfefeaf58
-fefeaf1e:	2073 656c 6674 	moveal %a3@(6674)@(0),%a0
-fefeaf24:	6573           	bcss 0xfefeaf99
-fefeaf26:	7473           	moveq #115,%d2
-fefeaf28:	2061           	moveal %a1@-,%a0
-fefeaf2a:	626f           	bhis 0xfefeaf9b
-fefeaf2c:	7274           	moveq #116,%d1
-fefeaf2e:	6564           	bcss 0xfefeaf94
-fefeaf30:	2062           	moveal %a2@-,%a0
-fefeaf32:	7920           	.short 0x7920
-fefeaf34:	7573           	.short 0x7573
-fefeaf36:	6572           	bcss 0xfefeafaa
-fefeaf38:	3e0d           	movew %a5,%d7
-fefeaf3a:	0a00 0d0a      	eorib #0xa,%d0
-fefeaf3e:	3c53           	moveaw %a3@,%fp
-fefeaf40:	656c           	bcss 0xfefeafae
-fefeaf42:	6674           	bnes 0xfefeafb8
-fefeaf44:	6573           	bcss 0xfefeafb9
-fefeaf46:	7420           	moveq #32,%d2
-fefeaf48:	6162           	bsrs 0xfefeafac
-fefeaf4a:	6f72           	bles 0xfefeafbe
-fefeaf4c:	7465           	moveq #101,%d2
-fefeaf4e:	6420           	bccs 0xfefeaf70
-fefeaf50:	6279           	bhis 0xfefeafcb
-fefeaf52:	2074 6865      	moveal %a4@(65,%d6:l),%a0
-fefeaf56:	203c 4573 633e 	movel #0x4573633e,%d0
-fefeaf5c:	204b           	moveal %a3,%a0
-fefeaf5e:	6579           	bcss 0xfefeafd9
-fefeaf60:	3e0d           	movew %a5,%d7
-fefeaf62:	0a00 0d0a      	eorib #0xa,%d0
-fefeaf66:	3c53           	moveaw %a3@,%fp
-fefeaf68:	656c           	bcss 0xfefeafd6
-fefeaf6a:	6674           	bnes 0xfefeafe0
-fefeaf6c:	6573           	bcss 0xfefeafe1
-fefeaf6e:	7420           	moveq #32,%d2
-fefeaf70:	6162           	bsrs 0xfefeafd4
-fefeaf72:	6f72           	bles 0xfefeafe6
-fefeaf74:	7465           	moveq #101,%d2
-fefeaf76:	642c           	bccs 0xfefeafa4
-fefeaf78:	2049           	moveal %a1,%a0
-fefeaf7a:	6e69           	bgts 0xfefeafe5
-fefeaf7c:	7469           	moveq #105,%d2
-fefeaf7e:	616c           	bsrs 0xfefeafec
-fefeaf80:	697a           	bvss 0xfefeaffc
-fefeaf82:	696e           	bvss 0xfefeaff2
-fefeaf84:	6720           	beqs 0xfefeafa6
-fefeaf86:	7468           	moveq #104,%d2
-fefeaf88:	6520           	bcss 0xfefeafaa
-fefeaf8a:	4d6f           	.short 0x4d6f
-fefeaf8c:	6e69           	bgts 0xfefeaff7
-fefeaf8e:	746f           	moveq #111,%d2
-fefeaf90:	723e           	moveq #62,%d1
-fefeaf92:	0d0a 0000      	movepw %a2@(0),%d6
 
+; strings
+
+fefeab0c: 0123456789ABCDEF\r\n ++
+fefeab1e:  exp 0x%d1, obs 0x%d0, xor 0x%d2
+fefeab3f: \r\n ++
+fefeab41:  unexpected trap/vector
+fefeab59: \r\n ++
+fefeab5b:  pc: %d0
+fefeab64:  vector offset: %d0
+fefeab78:  type: %d0
+fefeab83: \r\n ++
+fefeab85:  Unexpected level %d0 auto vector
+fefeaba7: \r\n ++
+fefeaba9:  pc 0x%d0
+fefeabb3: \r\n ++
+fefeabb5: Calling downloaded routine at 0x%1.
+fefeabd9: \r\n ++
+fefeabdb: Returned from downloaded routine.
+fefeabfd: \r\n ++
+fefeabff: entry=%d0,code=%d1,%d2,%d3
+fefeac1a: \r\n ++
+fefeac1c: \n ++
+fefeac1d: END OF SELFTEST # 0x%d0 
+fefeac36: \r\n ++
+fefeac38: #PASSED = 0x%d0, #FAILED = 0x%d1\r\n
+fefeac5b: (SELFTEST PASSED).
+fefeac6e: (SELFTEST FAILED).
+fefeac81: \r\n ++
+fefeac83: (Press space bar to enter DEMON)
+fefeaca4: \r\n ++
+fefeaca6: <Automatically continuing tests in BURN-IN mode.>
+fefeacd8: \r\n ++
+fefeacda: <B: set BURN-IN mode and restart tests.>
+fefead03: \r\n ++
+fefead05: <S: restart tests.>
+fefead19: \r\n ++
+fefead1b: PHASE 1 OF SELFTEST COMPLETED.
+fefead3a: \r\n ++
+fefead3c: PHASE 2 OF SELFTEST COMPLETED.
+fefead5b:  {pass 0x%d1}  
+fefead6b:  {P1, pass 0x%d1}
+fefead7d:  {P2, pass 0x%d1}
+fefead8f:  [Continuous] 
+fefead9e: \r\n ++
+fefeada0: Jumping to linear_map() routine.
+fefeadc1: \r\n ++
+fefeadc3: _exit_boot: disabling boot state.
+fefeade5: \r\n ++
+fefeade7: \n ++
+fefeade8: STARTING PHASE 2 OF SELFTEST.
+fefeae06: \r\n ++
+fefeae08: parity error address = 0x%d0
+fefeae25: \r\n ++
+fefeae27: parity error status after clr = 0x%d0
+fefeae4d: \r\n ++
+fefeae4f: Parity Mem Ena Reg = 0x%d0
+fefeae6a: \r\n ++
+fefeae6c: vector read back jump addr = 0x%d0
+fefeae8f: \r\n ++
+fefeae91: <Initializing All of Main Memory>
+fefeaeb3: \r\n ++
+fefeaeb5: <Enabling Parity and ECC Checking>
+fefeaed8: \r\n ++
+fefeaeda:  <Turning BURN-IN mode ON>
+fefeaef5: \r\n ++
+fefeaef7:  <Turning BURN-IN mode OFF>
+fefeaf13: \r\n ++
+fefeaf15: <Warning: selftests aborted by user>\r\n
+fefeaf3c: \r\n ++
+fefeaf3e: <Selftest aborted by the <Esc> Key>\r\n
+fefeaf64: \r\n ++
+fefeaf66: <Selftest aborted, Initializing the Monitor>\r\n
+
+fefeaf94:	0000
 fefeaf96:	0000
 
 ; ----------------------------------------

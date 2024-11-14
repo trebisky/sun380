@@ -215,7 +215,9 @@ main ( int argc, char **argv )
 			// batch ( 0xfefed788, 0xfefede2a );
 			// batch ( 0xfefee240, 0xfefee48a );
 			// batch ( 0xfefeb31e, 0xfefeb61c );
-			batch ( 0xfefec500, 0xfefec800 );
+			// batch ( 0xfefec500, 0xfefec800 );
+			// batch ( 0xfefea872, 0xfefeaa50 );
+			batch ( 0xfefeab0c, 0xfefeaf94 );
 		} else if ( argc == 1 ) {
 			single ( argv[0] );
 		} else {

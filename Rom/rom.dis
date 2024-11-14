@@ -581,19 +581,27 @@ fefe04f8:	1c5c           	.short 0x1c5c
 fefe04fa:	0000 0000      	orib #0,%d0
 
 ; installed as vector handler for vector 0x7c
-; (level 7 autovector>
+; (level 7 autovector)
 fefe04fe:	f000 2400      	pflusha
 fefe0502:	2f00           	movel %d0,%sp@-
 fefe0504:	1039 fef0 9000 	moveb 0xfef09000,%d0
 fefe050a:	0200 0003      	andib #3,%d0
+
+; we get there one way or the other
 fefe050e:	670e           	beqs 0xfefe051e
 fefe0510:	600c           	bras 0xfefe051e
+
+; no path
 fefe0512:	3f7c 007e 000a 	movew #0x7e,%sp@(10)
+
+; branch from below
 fefe0518:	201f           	movel %sp@+,%d0
 fefe051a:	6000 fed4      	braw 0xfefe03f0
 
+; from above
 fefe051e:	1039 fef0 6010 	moveb 0xfef06010,%d0
 fefe0524:	67f2           	beqs 0xfefe0518
+
 fefe0526:	0239 ff7f fef0 	andib #0x7f,0xfef0b400
 fefe052c:	b400
 fefe052e:	0039 0080 fef0 	orib #0x80,0xfef0b400
@@ -610,27 +618,37 @@ fefe0556:	1039 fef7 200f 	moveb 0xfef7200f,%d0
 fefe055c:	0a00 0001      	eorib #1,%d0
 fefe0560:	13c0 fef7 200f 	moveb %d0,0xfef7200f
 fefe0566:	13c0 fef1 a800 	moveb %d0,0xfef1a800
+
+; loop
 fefe056c:	2208           	movel %a0,%d1
 fefe056e:	2079 fef7 22ee 	moveal 0xfef722ee,%a0
 fefe0574:	4a28 0000      	tstb %a0@(0)
+
 fefe0578:	7020           	moveq #32,%d0
 fefe057a:	51c8 fffe      	dbf %d0,0xfefe057a
+
 fefe057e:	7001           	moveq #1,%d0
 fefe0580:	c028 0000      	andb %a0@(0),%d0
 fefe0584:	6726           	beqs 0xfefe05ac
+
 fefe0586:	7020           	moveq #32,%d0
 fefe0588:	51c8 fffe      	dbf %d0,0xfefe0588
+
 fefe058c:	7000           	moveq #0,%d0
 fefe058e:	1028 0002      	moveb %a0@(2),%d0
 fefe0592:	2041           	moveal %d1,%a0
+
 fefe0594:	48e7 00c0      	moveml %a0-%a1,%sp@-
+
 fefe0598:	2f00           	movel %d0,%sp@-
 fefe059a:	4eb9 fefe 2720 	jsr 0xfefe2720
 fefe05a0:	588f           	addql #4,%sp
+
 fefe05a2:	4cdf 0300      	moveml %sp@+,%a0-%a1
 fefe05a6:	4a80           	tstl %d0
 fefe05a8:	67c2           	beqs 0xfefe056c
 fefe05aa:	6072           	bras 0xfefe061e
+
 fefe05ac:	2041           	moveal %d1,%a0
 fefe05ae:	4a39 fef7 2016 	tstb 0xfef72016
 fefe05b4:	675c           	beqs 0xfefe0612
@@ -834,24 +852,30 @@ fefe07cc:	206f 0004      	moveal %sp@(4),%a0
 fefe07d0:	f010 4100      	pmovefd %a0@,%tc
 fefe07d4:	4e75           	rts
 
+; no calls
 fefe07d6:	206f 0004      	moveal %sp@(4),%a0
 fefe07da:	f010 6000      	pmove %a0@,%psr
 fefe07de:	4e75           	rts
 
+; get PSR - one call
 fefe07e0:	206f 0004      	moveal %sp@(4),%a0
 fefe07e4:	f010 6200      	pmove %psr,%a0@
 fefe07e8:	3010           	movew %a0@,%d0
 fefe07ea:	4e75           	rts
 
+; no calls
 fefe07ec:	46fc 2500      	movew #0x2500,%sr
 fefe07f0:	4e75           	rts
 
+; no calls
 fefe07f2:	46fc 2600      	movew #0x2600,%sr
 fefe07f6:	4e75           	rts
 
+; no calls
 fefe07f8:	46fc 2700      	movew #0x2700,%sr
 fefe07fc:	4e75           	rts
 
+; several calls, but why?
 fefe07fe:	f000 2400      	pflusha
 fefe0802:	4e75           	rts
 
@@ -3844,29 +3868,35 @@ fefe2716:	4cee 20c0 fff0 	moveml %fp@(-16),%d6-%d7/%a5
 fefe271c:	4e5e           	unlk %fp
 fefe271e:	4e75           	rts
 
+; -----------------------------------------------------
+; subroutine
+; bigger than it looks
 fefe2720:	4e56 fff4      	linkw %fp,#-12
 fefe2724:	48d7 2080      	moveml %d7/%a5,%sp@
+
 fefe2728:	1e2e 000b      	moveb %fp@(11),%d7
 fefe272c:	227c fef7 2012 	moveal #0xfef72012,%a1
 fefe2732:	7000           	moveq #0,%d0
 fefe2734:	1011           	moveb %a1@,%d0
 fefe2736:	4a80           	tstl %d0
-fefe2738:	6700 00d0      	beqw 0xfefe280a
+fefe2738:	6700 00d0      	beqw 0xfefe280a		; below D
 fefe273c:	7201           	moveq #1,%d1
 fefe273e:	b081           	cmpl %d1,%d0
-fefe2740:	6722           	beqs 0xfefe2764
+fefe2740:	6722           	beqs 0xfefe2764		; below A
 fefe2742:	7202           	moveq #2,%d1
 fefe2744:	b081           	cmpl %d1,%d0
-fefe2746:	6740           	beqs 0xfefe2788
+fefe2746:	6740           	beqs 0xfefe2788		; below B
 fefe2748:	0c80 0000 00ff 	cmpil #0xff,%d0
-fefe274e:	6700 008e      	beqw 0xfefe27de
+fefe274e:	6700 008e      	beqw 0xfefe27de		; below C
 fefe2752:	6004           	bras 0xfefe2758
 fefe2754:	12bc 0002      	moveb #2,%a1@
+
 fefe2758:	7000           	moveq #0,%d0
 fefe275a:	4cee 2080 fff4 	moveml %fp@(-12),%d7/%a5
 fefe2760:	4e5e           	unlk %fp
 fefe2762:	4e75           	rts
 
+; A
 fefe2764:	0c07 0001      	cmpib #1,%d7
 fefe2768:	67ea           	beqs 0xfefe2754
 fefe276a:	2a7c fef7 22f6 	moveal #0xfef722f6,%a5
@@ -3878,6 +3908,8 @@ fefe2780:	2055           	moveal %a5@,%a0
 fefe2782:	1087           	moveb %d7,%a0@
 fefe2784:	5295           	addql #1,%a5@
 fefe2786:	60d0           	bras 0xfefe2758
+
+; B
 fefe2788:	12bc 0001      	moveb #1,%a1@
 fefe278c:	2a7c fef7 22f6 	moveal #0xfef722f6,%a5
 fefe2792:	227c fef7 22fa 	moveal #0xfef722fa,%a1
@@ -3902,6 +3934,8 @@ fefe27cc:	4239 fef7 2016 	clrb 0xfef72016
 fefe27d2:	4239 fef7 2017 	clrb 0xfef72017
 fefe27d8:	7001           	moveq #1,%d0
 fefe27da:	6000 ff7e      	braw 0xfefe275a
+
+; C
 fefe27de:	13c7 fef7 2013 	moveb %d7,0xfef72013
 fefe27e4:	2a7c fef7 22f6 	moveal #0xfef722f6,%a5
 fefe27ea:	2015           	movel %a5@,%d0
@@ -3913,12 +3947,19 @@ fefe27fc:	10bc 00ff      	moveb #-1,%a0@
 fefe2800:	5295           	addql #1,%a5@
 fefe2802:	12bc 0001      	moveb #1,%a1@
 fefe2806:	6000 ff50      	braw 0xfefe2758
+
+; D
 fefe280a:	0c07 00ff      	cmpib #-1,%d7
 fefe280e:	6600 ff48      	bnew 0xfefe2758
 fefe2812:	12bc 00ff      	moveb #-1,%a1@
 fefe2816:	6000 ff40      	braw 0xfefe2758
-fefe281a:	0000 4e56      	orib #0x56,%d0
-fefe281e:	ffdc           	.short 0xffdc
+
+fefe281a:	0000
+
+; ----------------------------
+
+; no calls
+fefe281c:	4e56 ffdc      	linkw %fp,#-36
 fefe2820:	48d7 3cf8      	moveml %d3-%d7/%a2-%a5,%sp@
 fefe2824:	2a7c fef7 2016 	moveal #0xfef72016,%a5
 fefe282a:	263c fef7 235a 	movel #0xfef7235a,%d3
@@ -3969,12 +4010,15 @@ fefe28ba:	1015           	moveb %a5@,%d0
 fefe28bc:	2044           	moveal %d4,%a0
 fefe28be:	1030 0800      	moveb %a0@(0,%d0:l),%d0
 fefe28c2:	49c0           	extbl %d0
+
 fefe28c4:	2f00           	movel %d0,%sp@-
 fefe28c6:	4879 feff 542c 	pea 0xfeff542c
 fefe28cc:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( "u%ci, u%co, ua%x, ub%x, u%s\n" )
 fefe28d2:	4fef 0018      	lea %sp@(24),%sp
+
 fefe28d6:	6070           	bras 0xfefe2948
+
 fefe28d8:	4eb9 fefe 2536 	jsr 0xfefe2536
 fefe28de:	725f           	moveq #95,%d1
 fefe28e0:	c001           	andb %d1,%d0
@@ -4447,7 +4491,7 @@ fefe2da4:	2047           	moveal %d7,%a0
 fefe2da6:	20bc fefe 0484 	movel #0xfefe0484,%a0@
 
 fefe2dac:	4879 fefe 04fe 	pea 0xfefe04fe
-fefe2db2:	4878 007c      	pea 0x7c
+fefe2db2:	4878 007c      	pea 0x7c				; level 7 autovector
 fefe2db6:	4eb9 fefe 072a 	jsr 0xfefe072a			; vec_install
 fefe2dbc:	504f           	addqw #8,%sp
 
@@ -4576,7 +4620,7 @@ fefe2f96:	4eb9 fefe 2a68 	jsr 0xfefe2a68
 fefe2f9c:	504f           	addqw #8,%sp
 
 fefe2f9e:	4879 fefe 04fe 	pea 0xfefe04fe
-fefe2fa4:	4878 007c      	pea 0x7c
+fefe2fa4:	4878 007c      	pea 0x7c				; level 7 autovector
 fefe2fa8:	4eb9 fefe 072a 	jsr 0xfefe072a			; vec_install
 fefe2fae:	504f           	addqw #8,%sp
 
@@ -4754,7 +4798,7 @@ fefe31ca:	2f07           	movel %d7,%sp@-
 fefe31cc:	4879 0088 0000 	pea 0x880000
 fefe31d2:	4eb9 fefe 0b62 	jsr 0xfefe0b62
 fefe31d8:	504f           	addqw #8,%sp
-fefe31da:	4eb9 fefe 07fe 	jsr 0xfefe07fe
+fefe31da:	4eb9 fefe 07fe 	jsr 0xfefe07fe		; do pflusha
 fefe31e0:	7a00           	moveq #0,%d5
 fefe31e2:	7c00           	moveq #0,%d6
 fefe31e4:	287c fef7 2376 	moveal #0xfef72376,%a4
@@ -5744,7 +5788,7 @@ fefe3d44:	5280           	addql #1,%d0
 fefe3d46:	23c0 fef7 20d2 	movel %d0,0xfef720d2
 
 fefe3d4c:	4879 fefe 03f0 	pea 0xfefe03f0
-fefe3d52:	4878 0024      	pea 0x24
+fefe3d52:	4878 0024      	pea 0x24				; trace
 fefe3d56:	4eb9 fefe 072a 	jsr 0xfefe072a			; vec_install
 fefe3d5c:	504f           	addqw #8,%sp
 
@@ -5792,7 +5836,7 @@ fefe3dc6:	4bed 0056      	lea %a5@(86),%a5
 fefe3dca:	0055 8000      	oriw #0x8000,%a5@
 
 fefe3dce:	4879 fefe 03f0 	pea 0xfefe03f0
-fefe3dd4:	4878 0024      	pea 0x24
+fefe3dd4:	4878 0024      	pea 0x24				; trace
 fefe3dd8:	4eb9 fefe 072a 	jsr 0xfefe072a			; vec_install
 fefe3dde:	504f           	addqw #8,%sp
 
@@ -6133,7 +6177,7 @@ fefe4208:	4fef 0010      	lea %sp@(16),%sp
 
 ; restore old vector
 fefe420c:	2f39 fef7 21ce 	movel 0xfef721ce,%sp@-
-fefe4212:	4878 0084      	pea 0x84
+fefe4212:	4878 0084      	pea 0x84				; TRAP #1
 fefe4216:	4eb9 fefe 072a 	jsr 0xfefe072a			; vec_install
 fefe421c:	504f           	addqw #8,%sp
 
@@ -6154,7 +6198,7 @@ fefe4248:	4eb9 fefe 39b0 	jsr 0xfefe39b0
 fefe424e:	4fef 0010      	lea %sp@(16),%sp
 
 fefe4252:	4879 fefe 03f0 	pea 0xfefe03f0
-fefe4258:	4878 0084      	pea 0x84
+fefe4258:	4878 0084      	pea 0x84				; TRAP #1
 fefe425c:	4eb9 fefe 072a 	jsr 0xfefe072a			; vec_install
 fefe4262:	504f           	addqw #8,%sp
 
@@ -6367,7 +6411,7 @@ fefe4536:	504f           	addqw #8,%sp
 fefe4538:	de94           	addl %a4@,%d7
 fefe453a:	0c87 1000 0000 	cmpil #0x10000000,%d7
 fefe4540:	6d92           	blts 0xfefe44d4
-fefe4542:	4eb9 fefe 07fe 	jsr 0xfefe07fe
+fefe4542:	4eb9 fefe 07fe 	jsr 0xfefe07fe		; do pflusha
 fefe4548:	7000           	moveq #0,%d0
 fefe454a:	4cee 38c0 ffec 	moveml %fp@(-20),%d6-%d7/%a3-%a5
 fefe4550:	4e5e           	unlk %fp
@@ -6511,7 +6555,7 @@ fefe46ec:	0255 7fff      	andiw #0x7fff,%a5@
 
 ; restore old vector
 fefe46f0:	2f39 fef7 21ca 	movel 0xfef721ca,%sp@-
-fefe46f6:	4878 0024      	pea 0x24
+fefe46f6:	4878 0024      	pea 0x24				; Trace
 fefe46fa:	4eb9 fefe 072a 	jsr 0xfefe072a			; vec_install
 fefe4700:	504f           	addqw #8,%sp
 
@@ -8605,7 +8649,7 @@ fefe5e84:	0010 0080      	orib #0x80,%a0@
 fefe5e88:	1e39 fef0 6010 	moveb 0xfef06010,%d7
 fefe5e8e:	6000 0394      	braw 0xfefe6224
 fefe5e92:	55ae 0060      	subql #2,%fp@(96)
-fefe5e96:	4eb9 fefe 635c 	jsr 0xfefe635c
+fefe5e96:	4eb9 fefe 635c 	jsr 0xfefe635c		; print Break
 fefe5e9c:	1d7c 0001 ffff 	moveb #1,%fp@(-1)
 fefe5ea2:	4eb9 fefe 6320 	jsr 0xfefe6320		; print_at_addr
 fefe5ea8:	6000 037a      	braw 0xfefe6224
@@ -8638,7 +8682,7 @@ fefe5efc:	026e 7fff 005e 	andiw #0x7fff,%fp@(94)
 
 ; restore previous vector
 fefe5f02:	2f39 fef7 21d2 	movel 0xfef721d2,%sp@-
-fefe5f08:	4878 0024      	pea 0x24
+fefe5f08:	4878 0024      	pea 0x24				; Trace
 fefe5f0c:	4eb9 fefe 072a 	jsr 0xfefe072a			; vec_install
 fefe5f12:	504f           	addqw #8,%sp
 
@@ -8646,7 +8690,7 @@ fefe5f14:	6000 03be      	braw 0xfefe62d4
 fefe5f18:	2039 fef7 2086 	movel 0xfef72086,%d0
 fefe5f1e:	b0ae 0060      	cmpl %fp@(96),%d0
 fefe5f22:	660a           	bnes 0xfefe5f2e
-fefe5f24:	4eb9 fefe 635c 	jsr 0xfefe635c
+fefe5f24:	4eb9 fefe 635c 	jsr 0xfefe635c		; print Break
 fefe5f2a:	6000 02f8      	braw 0xfefe6224
 fefe5f2e:	006e 8000 005e 	oriw #0x8000,%fp@(94)
 fefe5f34:	1d7c 0001 ffff 	moveb #1,%fp@(-1)
@@ -8662,17 +8706,22 @@ fefe5f52:	4eb9 fefe 6320 	jsr 0xfefe6320		; print_at_addr
 fefe5f58:	6000 02ca      	braw 0xfefe6224
 fefe5f5c:	2e3c fef7 260e 	movel #0xfef7260e,%d7
 fefe5f62:	2047           	moveal %d7,%a0
-fefe5f64:	0c90 1234 abcd 	cmpil #0x1234abcd,%a0@
+fefe5f64:	0c90 1234 abcd 	cmpil #0x1234abcd,%a0@	; magic val
 fefe5f6a:	670e           	beqs 0xfefe5f7a
 fefe5f6c:	4eb9 fefe 64f2 	jsr 0xfefe64f2
 fefe5f72:	2047           	moveal %d7,%a0
-fefe5f74:	20bc 1234 abcd 	movel #0x1234abcd,%a0@
+
+
+fefe5f74:	20bc 1234 abcd 	movel #0x1234abcd,%a0@		; magic val
+
 fefe5f7a:	2f39 fef7 241a 	movel 0xfef7241a,%sp@-
 fefe5f80:	4eb9 fefe 080c 	jsr 0xfefe080c
 fefe5f86:	584f           	addqw #4,%sp
+
 fefe5f88:	486e fffc      	pea %fp@(-4)
-fefe5f8c:	4eb9 fefe 07e0 	jsr 0xfefe07e0
+fefe5f8c:	4eb9 fefe 07e0 	jsr 0xfefe07e0		; get_PSR
 fefe5f92:	584f           	addqw #4,%sp
+
 fefe5f94:	7000           	moveq #0,%d0
 fefe5f96:	302e fffc      	movew %fp@(-4),%d0
 fefe5f9a:	0c80 0000 8403 	cmpil #0x8403,%d0
@@ -8684,10 +8733,13 @@ fefe5fac:	54c9 fffc      	dbcc %d1,0xfefe5faa
 fefe5fb0:	6600 00a8      	bnew 0xfefe605a
 fefe5fb4:	303b 1206      	movew %pc@(0xfefe5fbc,%d1:w:2),%d0
 fefe5fb8:	4efb 0002      	jmp %pc@(0xfefe5fbc,%d0:w)
+
+; table for the above
 fefe5fbc:	0012 0012      	orib #0x12,%a2@
 fefe5fc0:	0034 0046 0056 	orib #0x46,%a4@(56,%d0:w)
 fefe5fc6:	0056 0066      	oriw #0x66,%fp@
 fefe5fca:	0066 008e      	oriw #0x8e,%fp@-
+
 fefe5fce:	0c6e 0401 fffc 	cmpiw #0x401,%fp@(-4)
 fefe5fd4:	6604           	bnes 0xfefe5fda
 fefe5fd6:	7e41           	moveq #65,%d7
@@ -8885,13 +8937,13 @@ fefe623c:	4879 7e70 a041 	pea 0x7e70a041
 fefe6242:	4855           	pea %a5@
 fefe6244:	4eb9 fefe 08f2 	jsr 0xfefe08f2
 fefe624a:	504f           	addqw #8,%sp
-fefe624c:	4eb9 fefe 07fe 	jsr 0xfefe07fe
+fefe624c:	4eb9 fefe 07fe 	jsr 0xfefe07fe		; do pflusha
 fefe6252:	42ad 1000      	clrl %a5@(4096)
 fefe6256:	2f07           	movel %d7,%sp@-
 fefe6258:	4855           	pea %a5@
 fefe625a:	4eb9 fefe 08f2 	jsr 0xfefe08f2
 fefe6260:	504f           	addqw #8,%sp
-fefe6262:	4eb9 fefe 07fe 	jsr 0xfefe07fe
+fefe6262:	4eb9 fefe 07fe 	jsr 0xfefe07fe		; do pflusha
 fefe6268:	426e 005c      	clrw %fp@(92)
 fefe626c:	2e3c fef7 2024 	movel #0xfef72024,%d7
 fefe6272:	2047           	moveal %d7,%a0
@@ -8959,7 +9011,7 @@ fefe631e:	4e75           	rts
 ; print_at_addr ()
 fefe6320:	4e56 0000      	linkw %fp,#0
 
-fefe6324:	0cb9 1234 abcd 	cmpil #0x1234abcd,0xfef7260e
+fefe6324:	0cb9 1234 abcd 	cmpil #0x1234abcd,0xfef7260e	; magic val
 fefe632a:	fef7 260e
 fefe632e:	660e           	bnes 0xfefe633e
 
@@ -8976,23 +9028,27 @@ fefe634e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
 ; printf ( " at 0x%8x.\n" )
 fefe6354:	504f           	addqw #8,%sp
 
-; --------------------------------------------------
-
 fefe6356:	7000           	moveq #0,%d0
 fefe6358:	4e5e           	unlk %fp
 fefe635a:	4e75           	rts
 
+; ------------------------------------------
+; print Break
+
 fefe635c:	4e56 0000      	linkw %fp,#0
 fefe6360:	3079 fef7 207a 	moveaw 0xfef7207a,%a0
+
 fefe6366:	2f08           	movel %a0,%sp@-
 fefe6368:	4879 feff 5b62 	pea 0xfeff5b62
 fefe636e:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf
-; printf ( "\n ++" )
+; printf ( "\nBreak %4x
 fefe6374:	504f           	addqw #8,%sp
+
 fefe6376:	7000           	moveq #0,%d0
 fefe6378:	4e5e           	unlk %fp
 fefe637a:	4e75           	rts
 
+; ------------------------------------------
 fefe637c:	4e56 fff0      	linkw %fp,#-16
 fefe6380:	48d7 30c0      	moveml %d6-%d7/%a4-%a5,%sp@
 fefe6384:	4879 feff 5b6d 	pea 0xfeff5b6d
@@ -9003,7 +9059,7 @@ fefe6392:	0839 0000 fef7 	btst #0,0xfef72414
 fefe6398:	2414
 fefe639a:	6700 00ee      	beqw 0xfefe648a
 fefe639e:	2e39 fef7 241a 	movel 0xfef7241a,%d7
-fefe63a4:	0cb9 1234 abcd 	cmpil #0x1234abcd,0xfef7260e
+fefe63a4:	0cb9 1234 abcd 	cmpil #0x1234abcd,0xfef7260e	; magic val
 fefe63aa:	fef7 260e
 fefe63ae:	676a           	beqs 0xfefe641a
 fefe63b0:	2a7c fef7 2415 	moveal #0xfef72415,%a5
@@ -9274,11 +9330,14 @@ fefe670e:	6a02           	bpls 0xfefe6712
 fefe6710:	5280           	addql #1,%d0
 fefe6712:	e280           	asrl #1,%d0
 fefe6714:	23c0 fef7 21f6 	movel %d0,0xfef721f6
+
+; These are all stubs
 fefe671a:	4eb9 fefe 6a28 	jsr 0xfefe6a28
 fefe6720:	4eb9 fefe 6a32 	jsr 0xfefe6a32
 fefe6726:	4eb9 fefe 6a3c 	jsr 0xfefe6a3c
 fefe672c:	4eb9 fefe 6a46 	jsr 0xfefe6a46
 fefe6732:	4eb9 fefe 6a50 	jsr 0xfefe6a50
+
 fefe6738:	2a7c fef7 2156 	moveal #0xfef72156,%a5
 fefe673e:	4a95           	tstl %a5@
 fefe6740:	6606           	bnes 0xfefe6748
@@ -9316,22 +9375,30 @@ fefe67ac:	4cee 3800 ffd8 	moveml %fp@(-40),%a3-%a5
 fefe67b2:	4e5e           	unlk %fp
 fefe67b4:	4e75           	rts
 
+; ---------------------------------------------
+
 fefe67b6:	4e56 fffc      	linkw %fp,#-4
 fefe67ba:	2e87           	movel %d7,%sp@
+
 fefe67bc:	202e 0008      	movel %fp@(8),%d0
 fefe67c0:	6718           	beqs 0xfefe67da
 fefe67c2:	7e20           	moveq #32,%d7
 fefe67c4:	b087           	cmpl %d7,%d0
 fefe67c6:	670a           	beqs 0xfefe67d2
 fefe67c8:	7000           	moveq #0,%d0
+
 fefe67ca:	2e2e fffc      	movel %fp@(-4),%d7
 fefe67ce:	4e5e           	unlk %fp
 fefe67d0:	4e75           	rts
 
+; continued
 fefe67d2:	4eb9 fefe 6aee 	jsr 0xfefe6aee
 fefe67d8:	60f0           	bras 0xfefe67ca
 fefe67da:	4eb9 fefe 6c2c 	jsr 0xfefe6c2c
 fefe67e0:	60e8           	bras 0xfefe67ca
+
+
+; ---------------------------------------------
 fefe67e2:	4e56 fff4      	linkw %fp,#-12
 fefe67e6:	2e87           	movel %d7,%sp@
 fefe67e8:	226e 0008      	moveal %fp@(8),%a1
@@ -9711,12 +9778,17 @@ fefe6c78:	4e75           	rts
 
 fefe6c7a:	0000
 
+; The SNE instruction sets a byte to all ones if
+; the condition is met.
+; NEG subtracts it from 0.
+
 fefe6c7c:	4e56 fffc      	linkw %fp,#-4
 fefe6c80:	7000           	moveq #0,%d0
 fefe6c82:	0c39 0006 fef0 	cmpib #6,0xfef0470b
 fefe6c88:	470b
 fefe6c8a:	56c0           	sne %d0
 fefe6c8c:	4400           	negb %d0
+
 fefe6c8e:	4e5e           	unlk %fp
 fefe6c90:	4e75           	rts
 
@@ -22296,7 +22368,7 @@ feff2798:	0687 0000 2000 	addil #0x2000,%d7
 feff279e:	0686 0000 2000 	addil #0x2000,%d6
 feff27a4:	0c87 0090 0000 	cmpil #0x900000,%d7
 feff27aa:	6de0           	blts 0xfeff278c
-feff27ac:	4eb9 fefe 07fe 	jsr 0xfefe07fe
+feff27ac:	4eb9 fefe 07fe 	jsr 0xfefe07fe		; do pflusha
 feff27b2:	7000           	moveq #0,%d0
 feff27b4:	4cee 00c0 fff8 	moveml %fp@(-8),%d6-%d7
 feff27ba:	4e5e           	unlk %fp

@@ -57,7 +57,7 @@ fefe003c fef7 2013   ; 15
 fefe0040 fef7 20d6   ; 16
 fefe0044 fef7 20da   ; 17
 fefe0048 fef7 22f2   ; 18
-fefe004c feff 4468   ; 19 - address goes into strings
+fefe004c feff 4468   ; 19 - rom revision level (string)  "3.0.2"
 fefe0050 fefe 4ba0   ; 20 - show_char
 fefe0054 fef7 2366   ; 21
 fefe0058 fef7 208a   ; 22
@@ -3007,8 +3007,6 @@ fefe1ea0:	7000           	moveq #0,%d0
 fefe1ea2:	2e2e fffc      	movel %fp@(-4),%d7
 fefe1ea6:	4e5e           	unlk %fp
 fefe1ea8:	4e75           	rts
-
-; Vector 8 - Privilege violation (??)
 
 ; a few calls come here to print single character
 ;  ( 3 calls besides the one above)
@@ -18951,6 +18949,7 @@ fefefff4:	584f           	addqw #4,%sp
 fefefff6:	6012           	bras 0xfeff000a
 fefefff8:	41ee ffe2      	lea %fp@(-30),%a0
 fefefffc:	226e 0008      	moveal %fp@(8),%a1
+; the 64K boundary (meaningless)
 feff0000:	3368 0004 0004 	movew %a0@(4),%a1@(4)
 feff0006:	2290           	movel %a0@,%a1@
 feff0008:	7e00           	moveq #0,%d7

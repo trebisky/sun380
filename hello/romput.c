@@ -43,7 +43,8 @@ struct romvec {
 		void *mayput;
 };
 
-typedef void (*ifptr) ( int );
+typedef void (*vfptr) ( int );
+typedef int (*ifptr) ( int );
 
 #define ROMBASE	0xfefe0000
 
@@ -51,10 +52,23 @@ void
 putchar_rom ( int c )
 {
 		struct romvec *rvp = (struct romvec *) ROMBASE;
-		// ifptr fp = (ifptr) rvp->putchar;
+		// ifptr fp = (vfptr) rvp->putchar;
 		ifptr fp = (ifptr) rvp->mayput;
 
-		(*fp) ( c );
+		for ( ;; ) {
+			if ( (*fp) ( c ) == 0 )
+				break;
+		}
+}
+
+void
+romvec_puts ( char *s )
+{
+        while ( *s ) {
+            if (*s == '\n')
+                putchar_rom('\r');
+            putchar_rom(*s++);
+        }
 }
 
 /* THE END */

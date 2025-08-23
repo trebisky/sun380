@@ -30,6 +30,7 @@
 #include "protos.h"
 
 void uart_puts ( char * );
+void romvec_puts ( char * );
 
 #define PRINTF_BUF_SIZE 128
 static void asnprintf (char *abuf, unsigned int size, const char *fmt, va_list args);
@@ -44,7 +45,8 @@ printf ( char *fmt, ... )
         asnprintf ( buf, PRINTF_BUF_SIZE, fmt, args );
         va_end ( args );
 
-        uart_puts ( buf );
+        // uart_puts ( buf );
+        romvec_puts ( buf );
 }
 
 /* The limit is absurd, so take care */

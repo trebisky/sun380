@@ -181,10 +181,27 @@ user_test ( void )
 void putchar_rom ( int );
 
 void
-sun380_test ( void )
+sun380_test_A ( void )
 {
 		for ( ;; )
 			putchar_rom ( 'X' );
+}
+
+void
+sun380_test ( void )
+{
+		int i;
+
+		for ( i=0; i<10 ; i++ )
+			putchar_rom ( 'X' );
+
+		putchar_rom ( '\n' );
+
+		printf ( "Starting test\n" );
+		for ( i=0; ; i++ ) {
+			delay_one ();
+			printf ( "Tick %d\n", i );
+		}
 }
 
 void

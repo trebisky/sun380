@@ -1,4 +1,4 @@
-/* serial.c
+/* uart.c
  *
  * uart driver for the SCC on the sun3/280
  *  This is the Zilog Z8530
@@ -28,12 +28,22 @@ struct scc {
 		vu_char		data_a;		/* 06 */
 };
 
-// #define SCC_BASE 0x0fe02000
-#define SCC_BASE    0xfef02000
-
+// #define SCC_BASE	0x0fe02000
+#define SCC_BASE	0xfef02000
 
 #define ST_TXE	BIT(2)
 #define ST_RXRDY	BIT(0)
+
+void
+uart_mmu ( void )
+{
+	struct scc *sp = (struct scc *) SCC_BASE;
+
+	printf ( "Uart status a: %h\n", sp->csr_a );
+	printf ( "Uart status b: %h\n", sp->csr_b );
+	printf ( "Uart status a: %h\n", sp->csr_a );
+	printf ( "Uart status b: %h\n", sp->csr_b );
+}
 
 void
 uart_init ( void )

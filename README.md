@@ -5,3 +5,4 @@ that I am investigating.
 
 1. Rom - the bootrom
 2. hello - a first standalone demo
+3. mmu - standalone demo to dump the MMU

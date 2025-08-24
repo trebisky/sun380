@@ -1,10 +1,10 @@
 /* main.c
  *
  * From the Callan project "uart" 2022
- *
  * Now for the sun3/280  5-23-2025
+ * Now for the sun 3/80 8-23-2025
  *
- *  5-23-2025Tom Trebisky
+ *  8-23-2025 Tom Trebisky
  */
 
 #include "protos.h"
@@ -204,12 +204,12 @@ sun380_test ( void )
 		}
 }
 
+/* This failed, getting bus errors on the 3/80
+ * when it tried to write to the uart registers.
+ */
 void
-start ( void )
+uart_test ( void )
 {
-
-	// sun380_test ();
-
 	uart_init ();
 
 	delay_one ();
@@ -218,6 +218,90 @@ start ( void )
 	printf ( "Starting test\n" );
 	user_test ();
 	printf ( " -- Done\n" );
+}
+
+int get_sr ( void );
+void get_psr ( int * );
+void get_tc ( int * );
+void get_crp ( int * );
+void get_srp ( int * );
+void uart_mmu ( void );
+void spin ( void );
+
+void
+poke ( int addr )
+{
+		int *p = (int *) addr;
+
+		printf ( "Poke %X = %X\n", addr, *p );
+}
+
+void
+dump_mmu ( void )
+{
+	int val;
+	int rp[2];
+	int *tp;
+
+	printf ( "Dump MMU\n" );
+
+	val = get_sr ();
+	printf ( "SR = %X\n", val );
+
+	get_tc ( &val );
+	printf ( "TC = %X\n", val );
+
+	// this is only 16 bits
+	val = 0;
+	get_psr ( &val );
+	printf ( "PSR = %X\n", val );
+
+	get_crp ( rp );
+	printf ( "CRP = %X %X\n", rp[0], rp[1] );
+
+	get_srp ( rp );
+	printf ( "SRP = %X %X\n", rp[0], rp[1] );
+
+#ifdef notdef
+	tp = (int *) rp[1];
+
+	printf ( "%X\n", *tp++ );
+	printf ( "%X\n", *tp++ );
+#endif
+
+	poke ( 0 );
+	poke ( 0x00080000 );
+	poke ( 0x00100000 );
+	poke ( 0x00200000 );
+	poke ( 0x00300000 );
+	poke ( 0x00400000 );
+	poke ( 0x00600000 );
+	poke ( 0x00700000 );
+	poke ( 0x00780000 );
+	poke ( 0x007ffff0 );
+	//poke ( 0x00800000 );
+	//poke ( 0x00E00000 );
+	//poke ( 0x00f00000 );
+	//poke ( 0x00ff0000 );
+
+	uart_mmu ();
+
+	for ( ;; ) {
+		uart_puts ( "Happy ..\n" );
+		delay_one ();
+	}
+
+	printf ( "\n" );
+	printf ( "--done\n" );
+}
+
+void
+start ( void )
+{
+	// uart_test ();
+	// sun380_test ();
+	dump_mmu ();
+	spin ();
 }
 
 /* THE END */

@@ -339,6 +339,7 @@ fefe0256:	67ff 0000 6e08 	beql 0xfefe7060		; BIG_init
 ; We fetch it to address 6000_0000
 ; If we are starting from scratch, how do we
 ; know there is RAM at this address?
+; Or better put, what the heck is at this address?
 
 fefe025c:	207c 6000 0000 	moveal #0x60000000,%a0
 fefe0262:	f010 4200      	pmove %tc,%a0@
@@ -817,6 +818,7 @@ fefe0796:	60a2           	bras 0xfefe073a			; up to repeat and die
 
 ; ------------------------------------------------------
 ; various short utilities
+; these are the only access to the MMU root pointers
 ; 4 calls
 fefe0798:	206f 0004      	moveal %sp@(4),%a0		; get_mmu_CRP
 fefe079c:	f010 4e00      	pmove %crp,%a0@
@@ -857,7 +859,7 @@ fefe07d6:	206f 0004      	moveal %sp@(4),%a0
 fefe07da:	f010 6000      	pmove %a0@,%psr
 fefe07de:	4e75           	rts
 
-; get PSR - one call
+; get_PSR - one call
 fefe07e0:	206f 0004      	moveal %sp@(4),%a0
 fefe07e4:	f010 6200      	pmove %psr,%a0@
 fefe07e8:	3010           	movew %a0@,%d0

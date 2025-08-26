@@ -8902,10 +8902,12 @@ fefe61e8:	504f           	addqw #8,%sp
 fefe61ea:	4eb9 fefe 6320 	jsr 0xfefe6320		; print_at_addr
 fefe61f0:	6032           	bras 0xfefe6224
 
+; An exception, fetch the number
 fefe61f2:	7000           	moveq #0,%d0
 fefe61f4:	302e 0064      	movew %fp@(100),%d0
 fefe61f8:	0240 0fff      	andiw #0xfff,%d0
 
+# We push the vector we want to complain about from %d0
 fefe61fc:	2f00           	movel %d0,%sp@-
 fefe61fe:	4879 feff 5b3a 	pea 0xfeff5b3a
 fefe6204:	4eb9 fefe 2b04 	jsr 0xfefe2b04		; printf

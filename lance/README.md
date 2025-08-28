@@ -1,7 +1,15 @@
-Sun 3/80 projects - test the if_le driver
+Sun 3/80 baremetal framework to test the lance driver
 
-August 25, 2025
+This is part of the sun3 bootrom project.
+I had no way to test the lance driver, so I dug out
+my Sun 3/80 board and rigged this up.
 
-We want to use this to rebuild the 3/60 ROM, but
-I don't have a 3/60, but the 3/80 has a lance chip,
-so we can use it to test the bootrom driver.
+Go to the "src" directory to do the build
+
+Note that all the include files required are copied to
+the "h" directory and the links dev and sun3 point there
+so that things will work.
+
+The idea is that the lance code itself and the files in the
+h directory are in now way changed from what is used in the
+bootrom build.

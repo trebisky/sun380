@@ -4,14 +4,14 @@
 #
 # This is from a Fedora package
 #CC = m68k-linux-gnu-gcc -m68020 -O2 -fno-builtin
-CC = m68k-linux-gnu-gcc -m68020 -fno-builtin
+CC = m68k-linux-gnu-gcc -m68020 -fno-builtin -Wno-endif-labels
 
 #AS = m68k-linux-gnu-as -m68020
 AS = m68k-linux-gnu-as -m68020 --register-prefix-optional
 LD = m68k-linux-gnu-ld --no-warn-rwx-segments
 DUMP = m68k-linux-gnu-objdump -d
 
-OBJS = start.o main.o prf.o uart.o util.o
+OBJS = start.o pig.o main.o prf.o uart.o util.o fixture.o if_le.o tftp.o inet.o
 
 # Note that the path for libgcc will change with new gcc
 # releases, which would require this Makefile to be updated
@@ -58,6 +58,13 @@ fancy.elf:	$(OBJS)
 
 fancy.dump:	fancy.elf
 	$(DUMP) fancy.elf >fancy.dump
+
+ROM = /Projects/sun3-prom/Github
+get:
+	cp $(ROM)/dev/if_le.c .
+	cp $(ROM)/dev/if_lereg.h .
+	cp $(ROM)/sys/tftp.c .
+	cp $(ROM)/sys/inet.c .
 
 clean:
 	rm -f $(OBJS) fancy.bin 

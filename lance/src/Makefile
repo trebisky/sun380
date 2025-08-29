@@ -37,7 +37,7 @@ LIBS = -lm68k
 all: fancy.bin fancy.dump
 
 install: fancy.bin
-	cp fancy.bin /var/lib/tftpboot/sun3_test.bin
+	cp fancy.bin /var/lib/tftpboot/sun3x_test.bin
 
 getlib:
 	cp ../libgcc/libm68k.a .

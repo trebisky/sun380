@@ -25,7 +25,8 @@
 int in_lnaof ( struct in_addr );
 int bcmp ( caddr_t, caddr_t, int );
 
-#define millitime() (*romp->v_nmiclock)
+// #define millitime() (*romp->v_nmiclock)
+int millitime ( void );
 
 struct ether_addr etherbroadcastaddr = { 
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -49,6 +50,9 @@ static void comarp ( struct saioreq *, struct sainet *, struct arp_packet *, cha
 // also used by tftp.c
 void inet_print ( struct in_addr );
 
+void myetheraddr ( struct ether_addr * );
+#ifdef notdef
+// tjt -- see fixture.c
 /*
  * Fetch our Ethernet address from the ID prom
  * tjt - used by ie and le drivers
@@ -64,6 +68,7 @@ myetheraddr ( struct ether_addr *ea )
         }
         *ea = *(struct ether_addr *)id.id_ether;
 }
+#endif
 
 /*
  * Initialize IP state
@@ -104,10 +109,18 @@ ip_output ( struct saioreq *sip, caddr_t buf, int len, struct sainet *sain, cadd
         eh->ether_shost = sain->sain_myether;
         eh->ether_dhost = sain->sain_hisether;
         /* checksum the packet */
+		printf ( "IP_out 1\n" );
         ip->ip_sum = 0;
         ip->ip_sum = ipcksum((caddr_t)ip, sizeof (struct ip));
+		printf ( "IP_out 2\n" );
         if (len < ETHERMIN+sizeof(struct ether_header))
                 len = ETHERMIN+sizeof(struct ether_header);
+
+		printf ( "IP_out 3 sip = %X\n", sip );
+		printf ( "IP_out 3 buf = %X\n", buf );
+		printf ( "IP_out 3 fn  = %X\n", *sip->si_sif->sif_xmit );
+		printf ( "IP_out 3 dd  = %X\n", sip->si_devdata );
+
         return (*sip->si_sif->sif_xmit)(sip->si_devdata, buf, len);
 }
 

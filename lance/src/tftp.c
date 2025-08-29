@@ -47,7 +47,10 @@ char    *tftp_errs[] = {
 
 
 #define       LOADADDR        0x4000
-#define millitime() (*romp->v_nmiclock)
+
+// tjt - see fixture.c
+// #define millitime() (*romp->v_nmiclock)
+int millitime ( void );
 
 struct tftp_pack {      /* TFTP packet */
         struct ether_header tf_ether;   /* Ethernet header */
@@ -109,8 +112,11 @@ tftpload ( struct saioreq *sip )
         int time, xcount, locked, retry;
         char    *ind = "-\\|/";
 
+		printf ( "tjt - tftp 0, out = %X\n", out );
+
+		/* if unit # is 0, this is an autoboot */
         if (sip->si_unit == 0)
-                autoboot = 1;   /* if unit # is 0, this is an autoboot */
+                autoboot = 1; 
 top:
         /*
          * Initialize IP and UDP headers
@@ -120,9 +126,15 @@ top:
         out->tf_ip.ip_ttl = MAXTTL;
         out->tf_ip.ip_p = IPPROTO_UDP;
 
-        out->tf_udp.uh_sport =  (millitime() & 1023) + 1024;
+// tjt this has the wrong base 0fef0000
+// #define millitime() (*romp->v_nmiclock)
+//        out->tf_udp.uh_sport =  (millitime() & 1023) + 1024;
+
+        out->tf_udp.uh_sport =  1024 + 57;
         out->tf_udp.uh_dport =  IPPORT_TFTP;
         out->tf_udp.uh_sum =  0;                /* no checksum */
+
+		printf ( "tjt - tftp 1\n" );
          
         /* 
          * Set src and dst host addresses
@@ -138,12 +150,15 @@ top:
                 out->tf_ip.ip_dst.s_addr = out->tf_ip.ip_src.s_addr +
                                 sip->si_unit  - in_lnaof(out->tf_ip.ip_src);
         }
+		printf ( "tjt - tftp 2\n" );
 
         ++firsttry;
         locked = 0;
         retry = 0;
         tf->tf_block = 1;
-        tf->tf_data = (char *)LOADADDR;
+        tf->tf_data = (char *) LOADADDR;
+
+		printf ( "tjt - tftp 3 %X\n", tf->tf_data );
 
         /*
          * Create the TFTP Read Request packet 
@@ -164,6 +179,8 @@ top:
                 (p - out->tf_tftp.th_stuff);
         out->tf_ip.ip_len = sizeof (struct ip) +
                 out->tf_udp.uh_ulen;
+
+		printf ( "tjt - tftp 4\n" );
         
         time = 0;
         for (xcount = 0; xcount < 5;) {

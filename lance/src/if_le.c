@@ -145,6 +145,7 @@ lanceopen ( struct saioreq *sip )
 {
         register int result;
 
+        printf("tjt: lanceopen\n");
 #ifdef DEBUG1
         printf("le: lanceopen[\n");
 #endif DEBUG1

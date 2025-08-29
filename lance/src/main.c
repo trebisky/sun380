@@ -178,6 +178,8 @@ user_test ( void )
 	}
 }
 
+void lance_test ( void );
+
 void
 start ( void )
 {
@@ -187,9 +189,12 @@ start ( void )
 	delay_one ();
 	delay_one ();
 
-	printf ( "Starting lance test 8-25-2025\n" );
-	user_test ();
-	printf ( " -- Done\n" );
+	printf ( "Starting lance test 8-28-2025\n" );
+
+	// user_test ();
+	lance_test ();
+
+	printf ( " -- Lance test done\n" );
 }
 
 /* THE END */

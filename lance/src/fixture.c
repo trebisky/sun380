@@ -12,6 +12,10 @@
 #include "../h/idprom.h"
 #include "../h/cpu.map.h"
 #include "../dev/saio.h"
+#include "../h/socket.h"
+#include "../h/in.h"
+#include "../h/if.h"
+#include "../h/if_ether.h"
 
 #include "../h/pixrect.h"
 #include "../h/protos.h"
@@ -24,14 +28,104 @@
 // #define LOADADDR    0x4000
 #define LOADADDR       0x40000
 
+/* Currently this test resides at 0x4000 to 0x5f66
+ * Surprisingly, TFTP just grabs memory at 0x3000,
+ * which is OK I guess.
+ */
+
+/* This is from sun3/cpu.addrs.h
+ * I find this interesting.  The bootrom seems to
+ * call devalloc() to set up a new mapping.  Maybe.
+ * That call is conditional on d_devbytes, which never
+ * seems to get set.  Whatever the case, I see no reason
+ * to call devalloc() to get the base address given that
+ * a mapping is already set up.
+ */
+// #define AMD_ETHER_BASE  ((struct amd_ether *)        0x0FE10000)
+// #define AMD_ETHER_BASE  ((struct amd_ether *)           0xFEF0E000)
+#define AMD_ETHER_BASE  0xFEF0E000;
+
 /* XXX
  * etherstrategy is in (of all places) tftp.c 
  */
 
 /* ***************************************** */
+/* Set things up and call the boot code
+ */
+
+extern struct boottab ledriver;
+
+static struct bootparam boot_info;
+
+int millitime ( void );
+
+void
+lance_test ( void )
+{
+		int rv;
+		struct bootparam *bp;
+
+		bp = &boot_info;
+        bp->bp_boottab = &ledriver;
+
+		printf ( "Milli = %d\n", millitime () );
+		printf ( "Calling tftpboot\n" );
+		printf ( "Milli = %d\n", millitime () );
+		/* We could call this using the pointer
+		 * in the boottab, i.e. via ledriver.boot
+		 * But in our case, this makes things clear.
+		 */
+		rv = tftpboot ( bp );
+		printf ( "tftpboot returns %X\n", rv );
+}
+
+/* ***************************************** */
 /* Routines that the driver makes calls to.
  */
 
+// struct ether_addr etherbroadcastaddr = { 
+//         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,     
+// };
+
+struct ether_addr myether = { 
+        0x08, 0, 0x20, 1, 0xdb, 2     
+};
+
+// moved here from inet.c
+void
+myetheraddr ( struct ether_addr *ea )
+{
+        *ea = myether;
+}
+
+// tjt - this is correct for the 3/160
+// #define	romp	((struct sunromvec *)0x0FEF0000)
+// #define millitime() (*romp->v_nmiclock)
+#define	ROMBASE	((struct sunromvec *) 0xFEFE0000)
+
+// tftp.c uses this now
+int
+millitime ( void )
+{
+		return *ROMBASE->v_nmiclock;
+}
+
+// tjt - my replacement for devopen()
+// The saioreq struct is on the stack from
+// tftpboot
+void
+io_setup ( struct saioreq *sip )
+{
+		sip->si_devaddr = (char *) AMD_ETHER_BASE;
+
+		/* XXX */
+		sip->si_dmaaddr = (char *) 0x00700000;
+
+		/* calls lanceopen() */
+		(sip->si_boottab->b_open) (sip);
+}
+
+#ifdef notdef
 /* From sys/xxboot.c
  */
 int
@@ -71,6 +165,7 @@ devopen ( struct saioreq *sip )
 
         return ((sip->si_boottab->b_open)(sip));
 }
+#endif
 
 /* also from sys/xxboot.c
  */
@@ -86,9 +181,13 @@ tftpboot ( struct bootparam *bp )
         req.si_boff = (daddr_t)bp->bp_part;
         req.si_boottab = bp->bp_boottab;
 
+		io_setup ( &req );
+#ifdef notdef
         if (devopen(&req))      /* Do all the hard work */
                 return -1;
+#endif
 
+		printf ( "Calling tftpload\n" );
         if (tftpload(&req) == -1){
                 return(-1);
         } else {
